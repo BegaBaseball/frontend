@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 
 import { Button } from './ui/plain-button';
 import { Card } from './ui/card';
-import { MateStarIcon } from './MateIcons';
+import { MateDetailStarIcon as MateStarIcon } from './icons/MateDetailIcons';
 import { getApiErrorStatus } from '../api/errorStatus';
 import {
   getMatePartyApplicationsQueryOptions,

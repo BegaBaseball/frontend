@@ -9,19 +9,19 @@ import { sanitizeExternalUrl } from '../utils/safeExternalUrl';
 import ImageGrid from './ImageGrid';
 import TeamLogo from './TeamLogo';
 import {
-    ArrowLeftIcon,
-    ClockIcon,
-    EditIcon,
-    ExternalLinkIcon,
-    EyeIcon,
-    FlagIcon,
-    FlameIcon,
-    MegaphoneIcon,
-    MoreVerticalIcon,
-    QuoteIcon,
-    RepeatIcon,
-    TrashIcon,
-} from './icons/CheerIcons';
+    CheerDetailArrowLeftIcon as ArrowLeftIcon,
+    CheerDetailClockIcon as ClockIcon,
+    CheerDetailEditIcon as EditIcon,
+    CheerDetailExternalLinkIcon as ExternalLinkIcon,
+    CheerDetailEyeIcon as EyeIcon,
+    CheerDetailFlagIcon as FlagIcon,
+    CheerDetailFlameIcon as FlameIcon,
+    CheerDetailMegaphoneIcon as MegaphoneIcon,
+    CheerDetailMoreVerticalIcon as MoreVerticalIcon,
+    CheerDetailQuoteIcon as QuoteIcon,
+    CheerDetailRepeatIcon as RepeatIcon,
+    CheerDetailTrashIcon as TrashIcon,
+} from './icons/CheerDetailArticleIcons';
 import PlainMenu from './ui/plain-menu';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';

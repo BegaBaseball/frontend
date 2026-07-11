@@ -4,7 +4,7 @@ import {
   ArrowSquareOutIcon as ExternalLink,
   MinusIcon as Minus,
   PlusIcon as Plus,
-} from '@phosphor-icons/react';
+} from '../icons/StadiumGuideIcons';
 import {
   DAEGU_CATEGORIES,
   getDaeguTraceMethodLabel,

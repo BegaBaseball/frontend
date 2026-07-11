@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getMatePopularSearchTermsQueryOptions } from '../hooks/mateQueryOptions';
 import { useMateStore } from '../store/mateStore';
 import { normalizeMateSearchText } from '../utils/mateSearchTerms';
-import { FlameIcon } from './icons/PublicShellIcons';
+import { MateFlameIcon as FlameIcon } from './icons/MateFlowIcons';
 
 interface MatePopularSearchesPanelProps {
   limit?: number;

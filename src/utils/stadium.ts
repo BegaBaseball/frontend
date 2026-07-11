@@ -5,7 +5,7 @@ import {
   ShoppingBagIcon,
   TruckIcon,
   UtensilsIcon,
-} from '../components/icons/PublicShellIcons';
+} from '../components/icons/StadiumGuideIcons';
 import type { StadiumCategoryIconKey, StadiumIconComponent } from '../types/stadium';
 
 const CATEGORY_ICON_COMPONENTS: Record<StadiumCategoryIconKey, StadiumIconComponent> = {

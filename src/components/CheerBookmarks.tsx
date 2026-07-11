@@ -2,7 +2,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchBookmarks } from '../api/cheerApi';
 import CheerCard from './CheerCard';
-import { BookmarkIcon, HomeIcon, LineChartIcon, MegaphoneIcon, UserIcon } from './icons/PublicShellIcons';
+import { BookmarkIcon, HomeIcon, LineChartIcon, MegaphoneIcon, UserIcon } from './icons/CheerFlowIcons';
 import { cn } from '../lib/utils';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import CheerMobileBottomNav from './CheerMobileBottomNav';

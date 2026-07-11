@@ -23,7 +23,7 @@ import {
   MyPageLaptopIcon,
   MyPageShieldAlertIcon,
   MyPageSmartphoneIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface AccountSettingsSecurityRuntimeProps {
   userProvider?: string;

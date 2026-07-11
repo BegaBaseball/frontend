@@ -1,6 +1,6 @@
 import { Component, Fragment, type ErrorInfo, type ReactNode } from 'react';
 
-import { RefreshIcon, WarningTriangleIcon } from './icons/PublicShellIcons';
+import { RefreshIcon, WarningTriangleIcon } from './icons/StadiumGuideIcons';
 
 interface StadiumSeatMapStateProps {
   label?: string;

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
 const PRETENDARD_STYLESHEET_ID = 'bega-pretendard-stylesheet';
-const PRETENDARD_STYLESHEET_HREF = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css';
+const PRETENDARD_STYLESHEET_HREF = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';
 const HOME_FIRST_CARD_READY_EVENT = 'bega:home-first-card-ready';
 const FONT_IDLE_TIMEOUT_MS = 3000;
 const HOME_FONT_FALLBACK_DELAY_MS = 5000;

@@ -1,8 +1,14 @@
+import { lazy, Suspense, useMemo } from 'react';
+
+import { useGamesData } from '../api/home';
 import { cn } from '../lib/utils';
 import type { Game as HomeGame } from '../types/home';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import TeamLogo from './TeamLogo';
 import CheerHot from './CheerHot';
+import CheerThemeControl from './CheerThemeControl';
+
+const LazyCheerCommunityPulse = lazy(() => import('./CheerCommunityPulse'));
 
 interface CheerSidebarPanelsProps {
     teamLogoId?: string;
@@ -13,11 +19,11 @@ interface CheerSidebarPanelsProps {
     isTeamMetadataError: boolean;
     onRefetchTeamMetadata: () => void;
     teamDescription: string;
-    isGamesLoading: boolean;
-    isGamesError: boolean;
-    onRefetchGames: () => void;
-    featuredGame: HomeGame | null;
+    favoriteTeamId: string | null;
+    favoriteTeamLabel: string | null;
+    favoriteTeamFull: string | null;
     onGoPrediction: () => void;
+    teamAccent: string;
 }
 
 export default function CheerSidebarPanels({
@@ -29,15 +35,51 @@ export default function CheerSidebarPanels({
     isTeamMetadataError,
     onRefetchTeamMetadata,
     teamDescription,
-    isGamesLoading,
-    isGamesError,
-    onRefetchGames,
-    featuredGame,
+    favoriteTeamId,
+    favoriteTeamLabel,
+    favoriteTeamFull,
     onGoPrediction,
+    teamAccent,
 }: CheerSidebarPanelsProps) {
+    const today = useMemo(() => new Date(), []);
+    const {
+        data: todaysGames = [],
+        isLoading: isGamesLoading,
+        isError: isGamesError,
+        refetch: refetchGames,
+    } = useGamesData(today);
+    const featuredGame = useMemo(() => {
+        if (!todaysGames.length) return null;
+        const normalized = (value?: string) => value?.toLowerCase().trim();
+        const favoriteCandidates = [favoriteTeamId, favoriteTeamLabel, favoriteTeamFull]
+            .filter(Boolean)
+            .map((value) => normalized(String(value)));
+        const matchesFavorite = (game: HomeGame) => {
+            if (!favoriteCandidates.length) return false;
+            const gameCandidates = [
+                normalized(game.homeTeam),
+                normalized(game.awayTeam),
+                normalized(game.homeTeamFull),
+                normalized(game.awayTeamFull),
+            ].filter(Boolean) as string[];
+            return favoriteCandidates.some((favorite) =>
+                gameCandidates.some((candidate) => candidate.includes(favorite!))
+            );
+        };
+        const liveGames = todaysGames.filter((game) => game.gameStatus === 'PLAYING');
+        const favoriteGames = favoriteCandidates.length ? todaysGames.filter(matchesFavorite) : [];
+
+        if (favoriteGames.length) {
+            return favoriteGames.find((game) => game.gameStatus === 'PLAYING') ?? favoriteGames[0];
+        }
+        return liveGames[0] ?? todaysGames[0];
+    }, [favoriteTeamFull, favoriteTeamId, favoriteTeamLabel, todaysGames]);
+
     return (
         <div className="flex w-full flex-col gap-4">
-            <div className="rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+            <CheerThemeControl accentColor={teamAccent} compact />
+
+            <div className="min-h-[140px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
                 <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-secondary">
                         <TeamLogo teamId={teamLogoId} team={teamLabel} size={48} />
@@ -76,7 +118,7 @@ export default function CheerSidebarPanels({
                 )}
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+            <div className="min-h-[188px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
                     <p className="text-body font-bold text-[#0F172A] dark:text-white">오늘 경기</p>
                 {isGamesLoading ? (
                     <div className="mt-3 space-y-3">
@@ -89,7 +131,7 @@ export default function CheerSidebarPanels({
                         경기 정보를 불러오지 못했습니다.
                         <button
                             type="button"
-                            onClick={onRefetchGames}
+                            onClick={() => void refetchGames()}
                             className="mt-3 w-full rounded-full border border-slate-200 py-2 text-body font-bold text-slate-600 hover:bg-slate-50 dark:border-border dark:text-white dark:hover:bg-secondary"
                         >
                             다시 시도
@@ -155,6 +197,20 @@ export default function CheerSidebarPanels({
             </div>
 
             <CheerHot />
+            <Suspense
+                fallback={(
+                    <div className="space-y-4">
+                        {[1, 2].map((item) => (
+                            <div key={item} className="h-32 animate-pulse rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+                                <div className="h-4 w-28 rounded bg-slate-100 dark:bg-secondary" />
+                                <div className="mt-4 h-16 rounded-xl bg-slate-100 dark:bg-secondary" />
+                            </div>
+                        ))}
+                    </div>
+                )}
+            >
+                <LazyCheerCommunityPulse />
+            </Suspense>
         </div>
     );
 }

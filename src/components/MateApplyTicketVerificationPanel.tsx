@@ -10,7 +10,7 @@ import {
   MateLoaderIcon,
   MateShieldIcon,
   MateTicketIcon,
-} from './MateIcons';
+} from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 
 interface MateApplyTicketVerificationPanelProps {

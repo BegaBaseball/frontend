@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { type SeatViewPhoto } from '../api/diary';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
+import { CameraIcon, XIcon } from './icons/StadiumGuideIcons';
 import { Button } from './ui/plain-button';
-import { MateCameraIcon, MateCloseIcon } from './MateIcons';
 import { useSeatViewPhotos } from '../hooks/useSeatViewPhotos';
 
 export { buildSeatViewSectionQueries, dedupeSeatViewPhotos } from '../hooks/useSeatViewPhotos';
@@ -34,9 +34,9 @@ export default function SeatViewGallery({ stadium, section, sectionAliases = [],
 
   if (photos.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/50 py-6 px-4 text-center">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-border">
-          <MateCameraIcon className="h-5 w-5 text-gray-400 dark:text-white" />
+        <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-gray-300 dark:border-border bg-gray-50 dark:bg-secondary/50 py-6 px-4 text-center">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-200 dark:bg-border">
+          <CameraIcon className="h-5 w-5 text-gray-400 dark:text-white" />
         </div>
         <div>
           <p className="text-body font-semibold text-gray-800 dark:text-white">
@@ -92,7 +92,7 @@ export default function SeatViewGallery({ stadium, section, sectionAliases = [],
             onClick={() => setLightboxPhoto(null)}
             aria-label="닫기"
           >
-            <MateCloseIcon className="h-5 w-5" />
+            <XIcon className="h-5 w-5" />
           </button>
           <img
             src={lightboxPhoto.photoUrl}

@@ -1,7 +1,7 @@
-import { PencilSimple } from '@phosphor-icons/react';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { parseHighlight, useIsDark } from './coachRiskHelpers';
 import { getCoachTokens } from './coachStyleTokens';
+import { PredictionPencilIcon } from './PredictionShellIcons';
 
 interface CoachVerdictMemoProps {
     verdict: string;
@@ -67,7 +67,7 @@ export default function CoachVerdictMemo({
 
             {/* 헤더 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <PencilSimple aria-hidden="true" style={{ width: 13, height: 13, color: accentColor, flexShrink: 0 }} />
+                <PredictionPencilIcon aria-hidden="true" style={{ width: 13, height: 13, color: accentColor, flexShrink: 0 }} />
                 <span style={{
                     fontSize: 11.5,
                     fontWeight: 800,

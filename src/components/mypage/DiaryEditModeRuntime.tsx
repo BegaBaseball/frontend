@@ -18,11 +18,11 @@ import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { Button } from '../ui/button';
 import PlainDialog from '../ui/plain-dialog';
 import {
-  MyPageCameraIcon,
-  MyPageCloseIcon,
-  MyPageLoaderIcon,
-  MyPageTicketIcon,
-} from './MyPageIcons';
+  DiaryEditModeCameraIcon,
+  DiaryEditModeCloseIcon,
+  DiaryEditModeLoaderIcon,
+  DiaryEditModeTicketIcon,
+} from './DiaryEditModeIcons';
 import type { WinningType } from '../../types/diary';
 
 type SelectedWinningType = Exclude<WinningType, '' | null>;
@@ -212,12 +212,12 @@ export default function DiaryEditModeRuntime({
         >
           {isScanning ? (
             <>
-              <MyPageLoaderIcon className="h-5 w-5 animate-spin text-primary" />
+              <DiaryEditModeLoaderIcon className="h-5 w-5 animate-spin text-primary" />
               <span className="font-semibold text-primary">티켓 분석 중...</span>
             </>
           ) : (
             <>
-              <MyPageTicketIcon className="h-5 w-5 text-primary" />
+              <DiaryEditModeTicketIcon className="h-5 w-5 text-primary" />
               <span className="font-semibold text-primary">티켓 사진으로 자동 입력</span>
             </>
           )}
@@ -369,13 +369,13 @@ export default function DiaryEditModeRuntime({
                   onClick={() => removePhoto(index)}
                   className="absolute -right-2 -top-2 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 p-1"
                 >
-                  <MyPageCloseIcon className="h-4 w-4" />
+                  <DiaryEditModeCloseIcon className="h-4 w-4" />
                 </button>
               </div>
             ))}
             {allPhotos.length < MAX_PHOTOS && (
                 <label className="diary-photo-tile flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-border hover:border-primary hover:bg-muted/80">
-                <MyPageCameraIcon className="mb-2 h-8 w-8 text-muted-foreground" />
+                <DiaryEditModeCameraIcon className="mb-2 h-8 w-8 text-muted-foreground" />
                 <span className="text-body text-muted-foreground">사진 추가</span>
                 <input
                   type="file"

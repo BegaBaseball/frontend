@@ -23,7 +23,7 @@ import {
   NotificationStarIcon,
   NotificationTrashIcon,
   NotificationUserPlusIcon,
-} from './NotificationIcons';
+} from './icons/NotificationPanelIcons';
 
 type TabType = 'ALL' | 'MATE' | 'CHEER';
 

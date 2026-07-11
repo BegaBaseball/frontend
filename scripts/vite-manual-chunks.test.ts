@@ -4,8 +4,13 @@ import test from 'node:test';
 
 const packageJsonSource = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
 const packageJson = JSON.parse(packageJsonSource) as { scripts: Record<string, string> };
+const indexHtmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const viteConfigSource = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
 const bundleGuardSource = readFileSync(new URL('./bundle-guard.mjs', import.meta.url), 'utf8');
+const mainEntrySource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+const landingSource = readFileSync(new URL('../src/components/Landing.tsx', import.meta.url), 'utf8');
+const coreWebVitalsTelemetrySource = readFileSync(new URL('../src/utils/coreWebVitalsTelemetry.ts', import.meta.url), 'utf8');
+const seoHeadSource = readFileSync(new URL('../src/seo/SeoHead.tsx', import.meta.url), 'utf8');
 const predictionMatchScheduleDataRuntimeSource = readFileSync(
   new URL('../src/components/prediction/PredictionMatchScheduleDataRuntime.tsx', import.meta.url),
   'utf8',
@@ -43,6 +48,8 @@ const navbarSource = readFileSync(new URL('../src/components/Navbar.tsx', import
 const publicNavbarSource = readFileSync(new URL('../src/components/PublicNavbar.tsx', import.meta.url), 'utf8');
 const publicNavbarDmUnreadBadgeSource = readFileSync(new URL('../src/components/PublicNavbarDmUnreadBadge.tsx', import.meta.url), 'utf8');
 const cheerMobileBottomNavSource = readFileSync(new URL('../src/components/CheerMobileBottomNav.tsx', import.meta.url), 'utf8');
+const cheerFeedRuntimeContentSource = readFileSync(new URL('../src/components/CheerFeedRuntimeContent.tsx', import.meta.url), 'utf8');
+const cheerSidebarPanelsSource = readFileSync(new URL('../src/components/CheerSidebarPanels.tsx', import.meta.url), 'utf8');
 const uiButtonSource = readFileSync(new URL('../src/components/ui/button.tsx', import.meta.url), 'utf8');
 const uiInputSource = readFileSync(new URL('../src/components/ui/input.tsx', import.meta.url), 'utf8');
 const uiTextareaSource = readFileSync(new URL('../src/components/ui/textarea.tsx', import.meta.url), 'utf8');
@@ -91,13 +98,38 @@ test('preloads the match schedule data chunk before the first Suspense render', 
   );
 });
 
+test('keeps hidden landing screenshots below the primary LCP image priority', () => {
+  const primaryImage = landingSource.match(/<img\s+src=\{homeScreenshot\}[\s\S]*?\/>/)?.[0];
+  const predictionImage = landingSource.match(/<img\s+src=\{predictionScreenshot\}[\s\S]*?\/>/)?.[0];
+  const mateImage = landingSource.match(/<img\s+src=\{mateScreenshot\}[\s\S]*?\/>/)?.[0];
+
+  assert.ok(primaryImage);
+  assert.ok(predictionImage);
+  assert.ok(mateImage);
+  assert.ok(primaryImage.includes('loading="eager"'));
+  assert.ok(primaryImage.includes("fetchpriority: 'high'"));
+  for (const secondaryImage of [predictionImage, mateImage]) {
+    assert.ok(secondaryImage.includes('loading="lazy"'));
+    assert.ok(secondaryImage.includes("fetchpriority: 'low'"));
+    assert.equal(secondaryImage.includes('loading="eager"'), false);
+  }
+});
+
+test('keeps GA4 network loading off the initial render critical path', () => {
+  assert.equal(indexHtmlSource.includes('googletagmanager.com'), false);
+  assert.ok(seoHeadSource.includes('script.async = true;'));
+  assert.ok(seoHeadSource.includes("window.addEventListener('load', scheduleIdle, { once: true });"));
+  assert.ok(seoHeadSource.includes('window.requestIdleCallback(run, { timeout: GA4_IDLE_TIMEOUT_MS });'));
+  assert.ok(seoHeadSource.includes('ensureGa4Queue();'));
+  assert.ok(seoHeadSource.includes('return scheduleGa4ScriptLoad();'));
+});
+
 test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialHomeRoute = /^\\/home\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes("const initialLayoutModulePromise = shouldPreloadInitialHomeRoute ? import('./Layout') : null;"));
-  assert.equal(appRoutesSource.includes('initialAppQueryProviderModulePromise'), false);
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute;'));
+  assert.ok(appRoutesSource.includes("const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;"));
   assert.ok(appRoutesSource.includes("const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;"));
   assert.ok(appRoutesSource.includes("void import('./home/HomeMatchPanel');"));
-  assert.ok(appRoutesSource.includes("const AppQueryProvider = lazy(() => import('./AppQueryProvider'));"));
   assert.ok(appRoutesSource.includes("lazy(() => initialHomeModulePromise ?? import('./Home'))"));
   assert.match(
     appRoutesSource,
@@ -118,6 +150,63 @@ test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(bundleGuardSource.includes("'errorUtils-'"));
   assert.ok(bundleGuardSource.includes("'teams-'"));
   assert.ok(bundleGuardSource.includes("'sonner-'"));
+});
+
+test('preloads /cheer route chunks before nested lazy route rendering', () => {
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialCheerRoute = /^\\/cheer(?:\\/write)?\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialCheerComposer = /^\\/cheer\\/write\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes("const initialAppQueryProviderModulePromise = shouldPreloadInitialCheerRoute ? import('./AppQueryProvider') : null;"));
+  assert.ok(appRoutesSource.includes("const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;"));
+  assert.match(
+    appRoutesSource,
+    /if \(shouldPreloadInitialCheerRoute\) \{\s*void import\('\.\/CheerRuntime'\);\s*void import\('\.\/CheerFeedRuntimeContent'\);\s*\}/,
+  );
+  assert.match(
+    appRoutesSource,
+    /if \(shouldPreloadInitialCheerComposer\) \{\s*void import\('\.\/CheerComposerRuntime'\);\s*\}/,
+  );
+  assert.equal(appRoutesSource.includes('shouldPreloadInitialCheerSidebar'), false);
+  assert.equal(appRoutesSource.includes("void import('./CheerSidebarPanels');"), false);
+  assert.ok(appRoutesSource.includes("const AppQueryProvider = lazy(() => initialAppQueryProviderModulePromise ?? import('./AppQueryProvider'));"));
+  assert.ok(appRoutesSource.includes("const Cheer = lazy(() => initialCheerModulePromise ?? import('./Cheer'));"));
+  assert.match(
+    appRoutesSource,
+    /<Route path="\/cheer" element={<Cheer \/>} \/>/,
+  );
+  assert.match(
+    appRoutesSource,
+    /<Route path="\/cheer\/write" element={<Cheer openComposerOnMount \/>} \/>/,
+  );
+  const cheerFirstLoadGuard = bundleGuardSource.match(
+    /route: '\/cheer first-load',[\s\S]*?\n\s*},\n/,
+  )?.[0];
+  assert.ok(cheerFirstLoadGuard);
+  assert.ok(cheerFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"));
+  assert.ok(cheerFirstLoadGuard.includes("'src/components/CheerFeedRuntimeContent.tsx'"));
+  assert.equal(cheerFirstLoadGuard.includes("'src/components/CheerComposerRuntime.tsx'"), false);
+  assert.ok(cheerFirstLoadGuard.includes('maxJsGzipBytes: 155_000'));
+});
+
+test('reserves /cheer feed and sidebar space to prevent CLS', () => {
+  assert.ok(cheerFeedRuntimeContentSource.includes('className="min-h-[72svh]"'));
+  assert.equal(cheerFeedRuntimeContentSource.includes('lg:min-h-0'), false);
+  assert.ok(cheerFeedRuntimeContentSource.includes('className="relative flex min-h-[220px] items-center justify-center"'));
+  assert.ok(cheerSidebarPanelsSource.includes('className="min-h-[140px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card"'));
+  assert.ok(cheerSidebarPanelsSource.includes('className="min-h-[188px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card"'));
+});
+
+test('defers the below-fold cheer ad slot outside the feed static closure', () => {
+  assert.equal(cheerFeedRuntimeContentSource.includes("import AdSlot from './ads/AdSlot';"), false);
+  assert.ok(cheerFeedRuntimeContentSource.includes("const AdSlot = lazy(() => import('./ads/AdSlot'));"));
+  assert.ok(cheerFeedRuntimeContentSource.includes('<Suspense fallback={null}>'));
+});
+
+test('forbids the retired icon vendor chunk from production assets', () => {
+  const forbiddenChunkPrefixesSource = bundleGuardSource.match(
+    /const forbiddenChunkPrefixes = \[[\s\S]*?\];/,
+  )?.[0];
+  assert.ok(forbiddenChunkPrefixesSource);
+  assert.ok(forbiddenChunkPrefixesSource.includes("'vendor-icons-'"));
 });
 
 test('groups tiny /home first-load helpers to reduce pre-card request fanout', () => {
@@ -193,8 +282,9 @@ test('defers public home footer outside the first card critical path', () => {
   assert.ok(layoutSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
 });
 
-test('defers Pretendard font loading outside the /home first-card critical path', () => {
-  assert.ok(deferredPretendardFontSource.includes("const PRETENDARD_STYLESHEET_HREF = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css';"));
+test('defers the Pretendard variable dynamic subset outside the /home first-card critical path', () => {
+  assert.ok(deferredPretendardFontSource.includes("const PRETENDARD_STYLESHEET_HREF = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css';"));
+  assert.equal(deferredPretendardFontSource.includes('/pretendardvariable.css'), false);
   assert.ok(deferredPretendardFontSource.includes("const HOME_FIRST_CARD_READY_EVENT = 'bega:home-first-card-ready';"));
   assert.ok(deferredPretendardFontSource.includes('const FONT_IDLE_TIMEOUT_MS = 3000;'));
   assert.ok(deferredPretendardFontSource.includes('const HOME_FONT_FALLBACK_DELAY_MS = 5000;'));
@@ -203,7 +293,8 @@ test('defers Pretendard font loading outside the /home first-card critical path'
   assert.ok(deferredPretendardFontSource.includes('const handleHomeFirstCardReady = () => {'));
   assert.ok(deferredPretendardFontSource.includes('if (readyPathname !== pathname)'));
   assert.ok(deferredPretendardFontSource.includes('window.addEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
-  assert.ok(deferredPretendardFontSource.includes('homeFallbackId = window.setTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);'));
+  assert.ok(deferredPretendardFontSource.includes('const setWindowTimeout = window.setTimeout.bind(window);'));
+  assert.ok(deferredPretendardFontSource.includes('homeFallbackId = setWindowTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);'));
   assert.ok(deferredPretendardFontSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
   assert.equal(deferredPretendardFontSource.includes("const delayMs = pathname === '/home' ? 1800 : 0;"), false);
 });
@@ -428,6 +519,22 @@ test('defers home load telemetry formatting outside the first-card critical path
   assert.ok(homeLoadTelemetrySource.includes('home_load_completed'));
   assert.ok(homeLoadTelemetrySource.includes('home_load_manual_data_required'));
   assert.ok(bundleGuardSource.includes("'homeLoadTelemetry-'"));
+});
+
+test('defers Core Web Vitals RUM outside the initial app entry', () => {
+  assert.ok(mainEntrySource.includes("void import('./utils/coreWebVitalsTelemetry')"));
+  assert.equal(mainEntrySource.includes("import { startCoreWebVitalsTelemetry }"), false);
+  assert.ok(mainEntrySource.includes('if (import.meta.env.PROD)'));
+  assert.ok(coreWebVitalsTelemetrySource.includes("from 'web-vitals'"));
+  assert.ok(coreWebVitalsTelemetrySource.includes('onLCP'));
+  assert.ok(coreWebVitalsTelemetrySource.includes('onCLS'));
+  assert.ok(coreWebVitalsTelemetrySource.includes('onINP'));
+  assert.equal(coreWebVitalsTelemetrySource.includes('new PerformanceObserver'), false);
+  assert.ok(coreWebVitalsTelemetrySource.includes("cwv_lcp"));
+  assert.ok(coreWebVitalsTelemetrySource.includes("cwv_cls"));
+  assert.ok(coreWebVitalsTelemetrySource.includes("cwv_inp"));
+  assert.ok(coreWebVitalsTelemetrySource.includes("normalizeCwvPath"));
+  assert.ok(bundleGuardSource.includes("'coreWebVitalsTelemetry-'"));
 });
 
 test('keeps public shell icon bundle out of the /home first-card path', () => {
