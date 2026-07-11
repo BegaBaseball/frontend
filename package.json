@@ -265,7 +265,7 @@
     "test:mate:smoke": "node --import tsx --test src/hooks/mateRouteBarrels.test.ts src/hooks/mateQueryOptions.test.ts src/hooks/mateQueryCache.test.ts src/hooks/internal/mateQueryCacheUtils.test.ts src/utils/mateIdentity.test.ts src/utils/mateApplyDraft.test.ts src/utils/mateRouteState.test.ts src/utils/mateValidation.test.ts src/utils/mateCreateDraft.test.ts src/store/mateRecentSearchStore.test.ts src/api/mate.test.ts src/components/MatePartyCard.test.tsx scripts/mate-ci-summary-lib.test.ts scripts/mate-regression-label-policy.test.ts scripts/ci-workflow-policy.test.ts scripts/mate-ci-pr-comment-lib.test.ts",
     "ci:workflow-policy": "node scripts/ci-workflow-policy.mjs",
     "qa:mate:regression:label": "node scripts/mate-regression-label-check.mjs",
-    "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\" scripts/prerender-seo.test.mjs scripts/seo-postdeploy-smoke.test.mjs",
+    "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\" scripts/prerender-seo.test.mjs scripts/seo-postdeploy-smoke.test.mjs worker/index.test.ts",
     "test:unit": "node --import tsx --test \"src/**/*.test.ts\"",
     "deploy": "npm run build:artifact",
     "deploy:cloudflare:legacy": "npm run build && wrangler deploy",
