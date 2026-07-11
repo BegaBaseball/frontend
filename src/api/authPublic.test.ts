@@ -2,11 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  buildSocialLoginUrl,
   checkSignUpHandleAvailability,
   getSocialLoginUrl,
   loginUser,
   confirmPasswordReset,
   consumeOAuth2State,
+  resolveOAuthLoginBaseUrl,
   requestPasswordReset,
   SignUpSubmissionError,
   signupUser,
@@ -361,4 +363,27 @@ test('getSocialLoginUrl는 provider와 link params를 유지한다', () => {
   assert.equal(url.includes('/oauth2/authorization/google'), true);
   assert.equal(url.includes('mode=link'), true);
   assert.equal(url.includes('linkToken=test-link-token'), true);
+});
+
+test('resolveOAuthLoginBaseUrl는 운영 VITE_API_BASE_URL에서 /api를 제거한 backend origin을 사용한다', () => {
+  assert.equal(
+    resolveOAuthLoginBaseUrl('https://api.begabaseball.xyz/api', 'http://localhost:8080'),
+    'https://api.begabaseball.xyz',
+  );
+  assert.equal(
+    resolveOAuthLoginBaseUrl('https://api.begabaseball.xyz', 'http://localhost:8080'),
+    'https://api.begabaseball.xyz',
+  );
+});
+
+test('resolveOAuthLoginBaseUrl는 로컬 상대 API base에서는 direct backend fallback을 유지한다', () => {
+  assert.equal(
+    resolveOAuthLoginBaseUrl('/api', 'http://localhost:8080'),
+    'http://localhost:8080',
+  );
+});
+
+test('buildSocialLoginUrl는 운영 backend origin으로 소셜 로그인 URL을 만든다', () => {
+  const url = buildSocialLoginUrl('naver', undefined, 'https://api.begabaseball.xyz');
+  assert.equal(url, 'https://api.begabaseball.xyz/oauth2/authorization/naver');
 });
