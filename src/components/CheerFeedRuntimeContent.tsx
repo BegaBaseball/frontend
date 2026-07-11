@@ -330,7 +330,7 @@ export default function CheerFeedRuntimeContent({
             </div>
 
             <section className="mt-3" data-testid="cheer-feed-section">
-                <div className="min-h-[72svh]">
+                <div className="min-h-[88svh]">
                     {normalizedSearchQuery.length === 1 ? (
                         <div className="mx-4 rounded-2xl border border-slate-200 bg-white px-5 py-8 text-center dark:border-border dark:bg-card">
                             <p className="text-body font-black text-slate-900 dark:text-white">검색어를 두 글자 이상 입력해 주세요.</p>
