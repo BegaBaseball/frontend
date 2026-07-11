@@ -1,11 +1,11 @@
 import { lazy, Suspense, useMemo, useState } from 'react';
 import {
-  MyPageBanIcon,
-  MyPageCameraIcon,
-  MyPageLockIcon,
-  MyPageSettingsIcon,
-  MyPageUserRoundIcon,
-} from './MyPageIcons';
+  ProfileEditSectionBanIcon as MyPageBanIcon,
+  ProfileEditSectionCameraIcon as MyPageCameraIcon,
+  ProfileEditSectionLockIcon as MyPageLockIcon,
+  ProfileEditSectionSettingsIcon as MyPageSettingsIcon,
+  ProfileEditSectionUserRoundIcon as MyPageUserRoundIcon,
+} from './ProfileEditSectionIcons';
 import { Button } from '../ui/button';
 import '../common/autofill-input.css';
 import { useProfileEdit } from '../../hooks/useProfileEdit';

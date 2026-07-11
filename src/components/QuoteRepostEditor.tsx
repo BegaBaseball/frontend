@@ -3,7 +3,10 @@ import { CheerPost, EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import EmbeddedPost from './EmbeddedPost';
-import { LoaderIcon, XIcon } from './icons/CheerIcons';
+import {
+    CheerModalLoaderIcon as LoaderIcon,
+    CheerModalXIcon as XIcon,
+} from './icons/CheerModalIcons';
 import { toast } from 'sonner';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
 import { ProfileAvatar } from './ui/ProfileAvatar';

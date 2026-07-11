@@ -9,7 +9,7 @@ import baseballLogo from '../assets/landing/bega-logo-192.webp';
 import landingCriticalCss from './Landing.css?inline';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
-import { FirstLoadArrowRightIcon } from './icons/FirstLoadIcons';
+import { LandingArrowRightIcon } from './icons/LandingIcons';
 import { Button } from './ui/button';
 import ThemeToggleButton from './ThemeToggleButton';
 import ViewportDeferred from './ViewportDeferred';
@@ -271,7 +271,7 @@ export default function Landing() {
                 className="group w-full sm:w-auto"
               >
                 앱 열기
-                <FirstLoadArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <LandingArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
               <Button
                 size="touchLg"
@@ -316,8 +316,9 @@ export default function Landing() {
                     className="landing-product-side-image"
                     width={1440}
                     height={900}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
+                    {...{ fetchpriority: 'low' }}
                   />
                   <span>전력분석실</span>
                 </div>
@@ -328,8 +329,9 @@ export default function Landing() {
                     className="landing-product-side-image"
                     width={1440}
                     height={900}
-                    loading="eager"
+                    loading="lazy"
                     decoding="async"
+                    {...{ fetchpriority: 'low' }}
                   />
                   <span>같이가요</span>
                 </div>
@@ -385,7 +387,7 @@ export default function Landing() {
                 className="group w-full sm:w-auto"
               >
                 앱 열기
-                <FirstLoadArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                <LandingArrowRightIcon className="h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
               </Button>
             </div>
           </div>

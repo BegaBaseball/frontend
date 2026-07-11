@@ -11,7 +11,7 @@ import {
   MyPageCoinsIcon,
   MyPageEditIcon,
   MyPageSettingsIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 const MyPageSidebarMoreRuntime = lazy(() => import('./MyPageSidebarMoreRuntime'));
 

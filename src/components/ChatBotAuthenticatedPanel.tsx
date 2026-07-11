@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react';
 
-import { SpinnerIcon } from './icons/PublicShellIcons';
+import { ChatBotSessionSpinnerIcon as SpinnerIcon } from './chatbot/ChatBotSessionIcons';
 
 const ChatBotSessionRuntime = lazy(() => import('./chatbot/ChatBotSessionRuntime'));
 

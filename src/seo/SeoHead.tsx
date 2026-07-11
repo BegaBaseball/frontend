@@ -15,6 +15,7 @@ declare global {
 const GA4_MEASUREMENT_ID = (import.meta.env.VITE_GA4_MEASUREMENT_ID || '').trim();
 const GOOGLE_SITE_VERIFICATION = (import.meta.env.VITE_GOOGLE_SITE_VERIFICATION || '').trim();
 const NAVER_SITE_VERIFICATION = (import.meta.env.VITE_NAVER_SITE_VERIFICATION || '').trim();
+const GA4_READY_EVENT_NAME = 'bega:ga4-ready';
 
 const GA4_IDLE_TIMEOUT_MS = 3000;
 
@@ -111,6 +112,7 @@ export default function SeoHead() {
       window.gtag!('config', GA4_MEASUREMENT_ID);
       window.__BEGA_GA4_INITIALIZED__ = true;
     }
+    window.dispatchEvent(new Event(GA4_READY_EVENT_NAME));
 
     return scheduleGa4ScriptLoad();
   }, []);

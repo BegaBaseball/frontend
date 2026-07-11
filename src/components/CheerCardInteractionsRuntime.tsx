@@ -10,13 +10,13 @@ import { getRepostPolicyDecision } from '../utils/repostPolicy';
 import { resolveCheerLikeActionPostId, resolveCheerLikeDisplayCount } from '../utils/cheerLikeState';
 import RollingNumber from './RollingNumber';
 import {
-    BookmarkIcon,
-    HeartIcon,
-    MessageCircleIcon,
-    QuoteIcon,
-    RepeatIcon,
-    UndoIcon,
-} from './icons/CheerIcons';
+    CheerCardBookmarkIcon as BookmarkIcon,
+    CheerCardHeartIcon as HeartIcon,
+    CheerCardMessageCircleIcon as MessageCircleIcon,
+    CheerCardQuoteIcon as QuoteIcon,
+    CheerCardRepeatIcon as RepeatIcon,
+    CheerCardUndoIcon as UndoIcon,
+} from './icons/CheerCardIcons';
 import PlainMenu from './ui/plain-menu';
 
 const LazyCommentModal = lazy(() => import('./CommentModal'));

@@ -1,4 +1,4 @@
-import { AlertCircleIcon, RefreshIcon, SearchIcon, XIcon } from '../icons/PublicFeatureIcons';
+import { AlertCircleIcon, RefreshIcon, SearchIcon, XIcon } from '../icons/OffseasonIcons';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import { Skeleton } from '../ui/skeleton';

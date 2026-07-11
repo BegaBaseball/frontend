@@ -1,6 +1,6 @@
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { Button } from '../ui/button';
-import { SparklesIcon } from '../icons/PublicFeatureIcons';
+import { SparklesIcon } from '../icons/OffseasonIcons';
 import PlainDialog from '../ui/plain-dialog';
 import TeamLogo from '../TeamLogo';
 import { OffseasonMovement } from './offseasonListTypes';

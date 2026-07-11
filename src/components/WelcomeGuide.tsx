@@ -3,12 +3,12 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { Button } from './ui/button';
 import {
-  CloseIcon,
-  HomeIcon,
-  LineChartIcon,
-  MegaphoneIcon,
-  UsersIcon,
-} from './icons/PublicShellIcons';
+  LandingHomeIcon as HomeIcon,
+  LandingLineChartIcon as LineChartIcon,
+  LandingMegaphoneIcon as MegaphoneIcon,
+  LandingUsersIcon as UsersIcon,
+  LandingXIcon as CloseIcon,
+} from './icons/LandingIcons';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
 import { useUIStore } from '../store/uiStore';
 

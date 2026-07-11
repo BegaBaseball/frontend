@@ -17,7 +17,7 @@ import {
     MegaphoneIcon,
     PenSquareIcon,
     UserIcon,
-} from './icons/PublicShellIcons';
+} from './icons/CheerShellIcons';
 import {
     normalizeHexColor,
     getReadableAccent,

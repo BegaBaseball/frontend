@@ -2,7 +2,7 @@ import { Suspense, lazy } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useNotificationStore } from '../store/notificationStore';
 import { useUIStore } from '../store/uiStore';
-import { BellIcon } from './icons/PublicShellIcons';
+import { NavbarBellIcon as BellIcon } from './icons/NavbarIcons';
 import PlainMenu from './ui/plain-menu';
 
 const NotificationPanel = lazy(() => import('./NotificationPanel'));

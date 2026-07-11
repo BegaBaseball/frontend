@@ -6,15 +6,29 @@ import RootEntryRoute from './RootEntryRoute';
 
 const initialPathname = typeof window === 'undefined' ? '' : window.location.pathname;
 const shouldPreloadInitialHomeRoute = /^\/home\/?$/.test(initialPathname);
-const initialLayoutModulePromise = shouldPreloadInitialHomeRoute ? import('./Layout') : null;
+const shouldPreloadInitialCheerRoute = /^\/cheer(?:\/write)?\/?$/.test(initialPathname);
+const shouldPreloadInitialCheerComposer = /^\/cheer\/write\/?$/.test(initialPathname);
+const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute;
+const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;
+const initialAppQueryProviderModulePromise = shouldPreloadInitialCheerRoute ? import('./AppQueryProvider') : null;
 const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;
+const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;
 
 if (shouldPreloadInitialHomeRoute) {
   void import('./home/HomeMatchPanel');
 }
 
+if (shouldPreloadInitialCheerRoute) {
+  void import('./CheerRuntime');
+  void import('./CheerFeedRuntimeContent');
+}
+
+if (shouldPreloadInitialCheerComposer) {
+  void import('./CheerComposerRuntime');
+}
+
 const Layout = lazy(() => initialLayoutModulePromise ?? import('./Layout'));
-const AppQueryProvider = lazy(() => import('./AppQueryProvider'));
+const AppQueryProvider = lazy(() => initialAppQueryProviderModulePromise ?? import('./AppQueryProvider'));
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'));
 const AdminRoute = lazy(() => import('./AdminRoute'));
 const Home = lazy(() => initialHomeModulePromise ?? import('./Home'));
@@ -28,7 +42,7 @@ const PasswordResetConfirm = lazy(() => import('./PasswordResetConfirm'));
 const AccountDeletionRecovery = lazy(() => import('./AccountDeletionRecovery'));
 const StadiumGuide = lazy(() => import('./StadiumGuide'));
 const Prediction = lazy(loadPredictionPage);
-const Cheer = lazy(() => import('./Cheer'));
+const Cheer = lazy(() => initialCheerModulePromise ?? import('./Cheer'));
 const CheerBookmarksPage = lazy(() => import('./CheerBookmarksPage'));
 const CheerDetailPage = lazy(() => import('./CheerDetailPage'));
 const CheerEditPage = lazy(() => import('./CheerEditPage'));
@@ -50,6 +64,9 @@ const TermsOfService = lazy(() => import('./TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./OAuthCallback'));
 const TestError = lazy(() => import('./TestError'));
+const ModuleFederationDesignSystemProbe = import.meta.env.DEV || import.meta.env.VITE_MF_DESIGN_SYSTEM_ENTRY
+  ? lazy(() => import('./moduleFederation/ModuleFederationDesignSystemProbe'))
+  : null;
 const GwangjuSeatMapEditor = import.meta.env.DEV
   ? lazy(() => import('./gwangju/GwangjuSeatMapEditor'))
   : null;
@@ -131,6 +148,9 @@ export default function AppRoutes() {
       )}
       {import.meta.env.DEV && GwangjuSeatMapEditor && (
         <Route path="/internal/gwangju-seatmap-editor" element={<GwangjuSeatMapEditor />} />
+      )}
+      {ModuleFederationDesignSystemProbe && (
+        <Route path="/internal/module-federation-design-system" element={<ModuleFederationDesignSystemProbe />} />
       )}
 
       <Route path="*" element={<NotFound />} />

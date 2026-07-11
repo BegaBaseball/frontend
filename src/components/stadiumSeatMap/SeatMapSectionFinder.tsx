@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { MagnifyingGlassIcon as Search } from '@phosphor-icons/react';
+import { SearchIcon } from '../icons/StadiumGuideIcons';
 import type { SeatMapSectionAdapter, SeatMapCategoryMeta } from './seatMapCommonTypes';
 import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
@@ -98,7 +98,7 @@ export function SeatMapSectionFinder<TSection>({
           </span>
         </div>
         <label className="relative mt-3 block">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input
             data-testid={`${testIdPrefix}-block-search`}
             aria-label={`${stadiumShortLabel} 좌석 블록 검색`}

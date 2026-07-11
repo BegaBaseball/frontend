@@ -1,10 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   ArrowSquareOutIcon as ExternalLink,
-  MagnifyingGlassIcon as Search,
   MinusIcon as Minus,
   PlusIcon as Plus,
-} from '@phosphor-icons/react';
+  SearchIcon as Search,
+} from '../icons/StadiumGuideIcons';
 import {
   CHANGWON_BLOCKS,
   CHANGWON_CATEGORIES,

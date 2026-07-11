@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import {
   ImageSquareIcon,
-  MagnifyingGlassIcon as Search,
   MapPinIcon,
+  SearchIcon,
   XIcon,
-} from '@phosphor-icons/react';
+} from '../icons/StadiumGuideIcons';
 
 import SeatViewGallery from '../SeatViewGallery';
 import type {
@@ -44,7 +44,7 @@ function EmptyState({ copy, mode }: { copy?: SeatMapCommonCopy; mode: SeatMapThe
           color: isDark ? STADIUM_SEATMAP_DARK_COLORS.accent : undefined,
         }}
       >
-        <MapPinIcon size={28} weight="regular" aria-hidden="true" />
+        <MapPinIcon className="h-7 w-7" />
       </div>
       <p className="mb-1.5 text-sm font-bold text-slate-700 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
         {copy?.emptyTitle ?? '구역을 선택하세요'}
@@ -131,7 +131,7 @@ export function SeatMapDetailPanel<TSection>({
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
           }}
         >
-          <XIcon size={18} weight="bold" aria-hidden="true" />
+          <XIcon className="h-[18px] w-[18px]" />
         </button>
 
         <div className="mb-2 flex flex-wrap items-center gap-2 pr-10">
@@ -165,7 +165,7 @@ export function SeatMapDetailPanel<TSection>({
             className="mt-3 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-black transition-opacity hover:opacity-85"
             style={{ background: `${accent}12`, borderColor: `${accent}44`, color: accent }}
           >
-            <Search aria-hidden="true" className="h-3.5 w-3.5" strokeWidth={2.4} />
+            <SearchIcon className="h-3.5 w-3.5" />
             {searchAction.label ?? '구역 검색'}
           </button>
         )}
@@ -257,7 +257,7 @@ export function SeatMapDetailPanel<TSection>({
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           style={{ background: uploadDisabled ? '#94a3b8' : accent }}
         >
-          <ImageSquareIcon size={16} weight="bold" aria-hidden="true" />
+          <ImageSquareIcon className="h-4 w-4" />
           {getUploadLabel?.(section) ?? copy?.uploadLabel ?? '이 구역 시야 사진 올리기'}
         </button>
       </div>

@@ -81,6 +81,10 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      PAGESPEED_API_KEY:
+        description: "Optional Google PageSpeed Insights API key for CWV baseline jobs"
+        required: false
 
 jobs:
   run-suite:
@@ -99,6 +103,15 @@ jobs:
         run: |
           set -euo pipefail
           printf '%s\n' "${ENV_EXPORTS}" >> "${GITHUB_ENV}"
+
+      - name: Export optional PageSpeed API key
+        if: ${{ secrets.PAGESPEED_API_KEY != '' }}
+        shell: bash
+        env:
+          PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+        run: |
+          set -euo pipefail
+          printf 'PAGESPEED_API_KEY=%s\n' "${PAGESPEED_API_KEY}" >> "${GITHUB_ENV}"
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4

@@ -1,4 +1,4 @@
-import { CalendarDaysIcon, InfoIcon, TrendingUpIcon } from '../icons/PublicFeatureIcons';
+import { CalendarDaysIcon, InfoIcon, TrendingUpIcon } from '../icons/OffseasonIcons';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import TeamLogo from '../TeamLogo';
 import { OffseasonMovement } from './offseasonListTypes';

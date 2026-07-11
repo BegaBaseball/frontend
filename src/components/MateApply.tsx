@@ -1,15 +1,14 @@
 import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import {
-  MateAlertTriangleIcon,
-  MateChevronLeftIcon,
-  MateMessageSquareIcon,
-  MateShieldIcon,
-  MateWalletIcon,
-} from './MateIcons';
+  MateApplyAlertTriangleIcon as MateAlertTriangleIcon,
+  MateApplyChevronLeftIcon as MateChevronLeftIcon,
+  MateApplyMessageSquareIcon as MateMessageSquareIcon,
+  MateApplyShieldIcon as MateShieldIcon,
+  MateApplyWalletIcon as MateWalletIcon,
+} from './icons/MateApplyIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Textarea } from './ui/textarea';
@@ -142,10 +141,14 @@ export default function MateApply() {
   if (partyError || !party) {
     return (
       <div className="flex justify-center items-center h-screen bg-background dark:bg-background transition-colors duration-200">
-        <OptimizedImage
+        <img
           src={grassDecor}
           alt=""
           className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+          aria-hidden="true"
+          decoding="async"
+          fetchPriority="low"
+          loading="lazy"
         />
         <div className="text-center z-10">
           <p className="text-lg text-gray-600 dark:text-white mb-4">{partyError || '파티 정보를 불러오는 중입니다...'}</p>
@@ -258,10 +261,14 @@ export default function MateApply() {
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-primary/5 dark:bg-primary/10" />
-      <OptimizedImage
+      <img
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        aria-hidden="true"
+        decoding="async"
+        fetchPriority="low"
+        loading="lazy"
       />
 
       <div className="relative z-10 mx-auto max-w-3xl px-4 py-6 pb-44 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">

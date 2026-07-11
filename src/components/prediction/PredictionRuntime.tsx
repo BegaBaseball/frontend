@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, startTransition, useEffect, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 
 import { Card } from '../ui/card';
@@ -12,11 +12,28 @@ import {
   PredictionLoaderIcon,
 } from './PredictionShellIcons';
 import { buildPredictionListPath } from '../../utils/predictionDeepLink';
+import { scheduleAfterNextPaint } from '../../utils/afterNextPaint';
+import { schedulePredictionPostPaintIdleWork } from '../../utils/predictionDeferredWork';
 import PredictionMatchRuntime from './PredictionMatchRuntime';
 import { PREDICTION_BRAND_GRADIENT_CLASS } from './predictionUiTokens';
 
-const PredictionRankingTab = lazy(() => import('./PredictionRankingTab'));
-const PredictionAnimatedSections = lazy(() => import('../PredictionAnimatedSections'));
+const loadPredictionRankingTab = () => import('./PredictionRankingTab');
+const loadPredictionAnimatedSections = () => import('../PredictionAnimatedSections');
+const loadRankingPrediction = () => import('../RankingPrediction');
+const loadPredictionStatsPanel = () => import('./PredictionStatsPanel');
+
+const PredictionRankingTab = lazy(loadPredictionRankingTab);
+const PredictionAnimatedSections = lazy(loadPredictionAnimatedSections);
+
+export function preloadPredictionRankingTabResources(includeUserStats: boolean) {
+  void loadPredictionAnimatedSections();
+  void loadPredictionRankingTab();
+  void loadRankingPrediction();
+
+  if (includeUserStats) {
+    void loadPredictionStatsPanel();
+  }
+}
 
 export function getPredictionTabActivationState(
   nextTab: 'match' | 'ranking',
@@ -40,6 +57,7 @@ export function getPredictionOtherGamesLinkState(dateParam: string | null) {
 
 export default function PredictionRuntime() {
   const [activeTab, setActiveTab] = useState<'match' | 'ranking'>('match');
+  const [contentTab, setContentTab] = useState<'match' | 'ranking'>('match');
   const [hasVisitedRankingTab, setHasVisitedRankingTab] = useState(false);
   const [rankingFeatureReady, setRankingFeatureReady] = useState(false);
   const { isLoggedIn } = useAuthSession();
@@ -49,22 +67,39 @@ export default function PredictionRuntime() {
     searchParams.get('date')
   );
 
+  useEffect(() => {
+    return schedulePredictionPostPaintIdleWork(() => {
+      preloadPredictionRankingTabResources(isLoggedIn);
+    });
+  }, [isLoggedIn]);
+
   const handleTabChange = (nextTab: 'match' | 'ranking') => {
     setActiveTab(nextTab);
-
-    const nextState = getPredictionTabActivationState(
-      nextTab,
-      hasVisitedRankingTab,
-      rankingFeatureReady,
-    );
-
-    if (nextState.hasVisitedRankingTab !== hasVisitedRankingTab) {
-      setHasVisitedRankingTab(nextState.hasVisitedRankingTab);
-    }
-    if (nextState.rankingFeatureReady !== rankingFeatureReady) {
-      setRankingFeatureReady(nextState.rankingFeatureReady);
-    }
   };
+
+  useEffect(() => {
+    if (activeTab === contentTab) {
+      return undefined;
+    }
+
+    return scheduleAfterNextPaint(() => {
+      startTransition(() => {
+        setContentTab(activeTab);
+        const nextState = getPredictionTabActivationState(
+          activeTab,
+          hasVisitedRankingTab,
+          rankingFeatureReady,
+        );
+
+        if (nextState.hasVisitedRankingTab !== hasVisitedRankingTab) {
+          setHasVisitedRankingTab(nextState.hasVisitedRankingTab);
+        }
+        if (nextState.rankingFeatureReady !== rankingFeatureReady) {
+          setRankingFeatureReady(nextState.rankingFeatureReady);
+        }
+      });
+    });
+  }, [activeTab, contentTab, hasVisitedRankingTab, rankingFeatureReady]);
 
   const matchChildren = (
     <Suspense
@@ -106,7 +141,7 @@ export default function PredictionRuntime() {
     </Card>
   );
 
-  const shouldRenderAnimatedSections = activeTab === 'ranking' || hasVisitedRankingTab;
+  const shouldRenderAnimatedSections = contentTab === 'ranking' || hasVisitedRankingTab;
 
   return (
     <div className="min-h-screen bg-secondary/40 font-sans transition-colors duration-200 dark:bg-background">
@@ -200,16 +235,16 @@ export default function PredictionRuntime() {
 
         <div className="px-4 sm:px-0">
           {shouldRenderAnimatedSections ? (
-            <Suspense fallback={activeTab === 'match' ? matchChildren : rankingChildren}>
+            <Suspense fallback={contentTab === 'match' ? matchChildren : rankingChildren}>
               <PredictionAnimatedSections
-                activeTab={activeTab}
+                activeTab={contentTab}
                 topNotice={null}
                 matchChildren={matchChildren}
                 rankingChildren={rankingChildren}
               />
             </Suspense>
           ) : (
-            activeTab === 'match' ? matchChildren : rankingChildren
+            contentTab === 'match' ? matchChildren : rankingChildren
           )}
         </div>
       </div>

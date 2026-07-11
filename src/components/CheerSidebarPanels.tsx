@@ -37,7 +37,7 @@ export default function CheerSidebarPanels({
 }: CheerSidebarPanelsProps) {
     return (
         <div className="flex w-full flex-col gap-4">
-            <div className="rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+            <div className="min-h-[140px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
                 <div className="flex items-center gap-3">
                     <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-secondary">
                         <TeamLogo teamId={teamLogoId} team={teamLabel} size={48} />
@@ -76,7 +76,7 @@ export default function CheerSidebarPanels({
                 )}
             </div>
 
-            <div className="rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+            <div className="min-h-[188px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
                     <p className="text-body font-bold text-[#0F172A] dark:text-white">오늘 경기</p>
                 {isGamesLoading ? (
                     <div className="mt-3 space-y-3">

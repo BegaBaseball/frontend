@@ -1,11 +1,11 @@
 import type { ChangeEvent } from 'react';
 
 import {
-  MateAlertCircleIcon,
-  MateCheckCircleIcon,
-  MateLoaderIcon,
-  MateTicketIcon,
-} from './MateIcons';
+  MateCreateAlertCircleIcon as MateAlertCircleIcon,
+  MateCreateCheckCircleIcon as MateCheckCircleIcon,
+  MateCreateLoaderIcon as MateLoaderIcon,
+  MateCreateTicketIcon as MateTicketIcon,
+} from './icons/MateCreateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import type { PartyFormData } from '../utils/mateCreateDraft';

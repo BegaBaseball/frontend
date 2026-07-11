@@ -20,7 +20,7 @@ import {
   MyPageShieldAlertIcon,
   MyPageTrashIcon,
   MyPageUnlinkIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface AccountSettingsSectionProps {
   userProvider?: string;

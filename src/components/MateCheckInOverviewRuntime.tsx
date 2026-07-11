@@ -18,7 +18,7 @@ import {
   MateMapPinIcon,
   MateQrCodeIcon,
   MateUsersIcon,
-} from './MateIcons';
+} from './icons/MateFlowIcons';
 import TeamLogo from './TeamLogo';
 import { Card } from './ui/card';
 import { StatusBadge } from './ui/status-badge';

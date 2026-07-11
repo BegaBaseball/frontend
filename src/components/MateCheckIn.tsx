@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import LoadingSpinner from './LoadingSpinner';
-import { MateAlertCircleIcon, MateChevronLeftIcon } from './MateIcons';
+import { MateAlertCircleIcon, MateChevronLeftIcon } from './icons/MateFlowIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';

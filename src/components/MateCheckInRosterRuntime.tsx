@@ -7,7 +7,7 @@ import {
   MateArrowRightCircleIcon,
   MateCheckCircleIcon,
   MateUsersIcon,
-} from './MateIcons';
+} from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { StatusBadge } from './ui/status-badge';
