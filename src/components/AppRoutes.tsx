@@ -7,12 +7,14 @@ import RootEntryRoute from './RootEntryRoute';
 const initialPathname = typeof window === 'undefined' ? '' : window.location.pathname;
 const shouldPreloadInitialHomeRoute = /^\/home\/?$/.test(initialPathname);
 const shouldPreloadInitialCheerRoute = /^\/cheer(?:\/write)?\/?$/.test(initialPathname);
-const shouldPreloadInitialCheerComposer = /^\/cheer\/write\/?$/.test(initialPathname);
-const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute;
+const shouldPreloadInitialMateRoute = /^\/mate\/?$/.test(initialPathname);
+const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;
+const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;
 const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;
-const initialAppQueryProviderModulePromise = shouldPreloadInitialCheerRoute ? import('./AppQueryProvider') : null;
+const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;
 const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;
 const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;
+const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;
 
 if (shouldPreloadInitialHomeRoute) {
   void import('./home/HomeMatchPanel');
@@ -20,11 +22,8 @@ if (shouldPreloadInitialHomeRoute) {
 
 if (shouldPreloadInitialCheerRoute) {
   void import('./CheerRuntime');
-  void import('./CheerFeedRuntimeContent');
-}
-
-if (shouldPreloadInitialCheerComposer) {
   void import('./CheerComposerRuntime');
+  void import('./CheerFeedRuntimeContent');
 }
 
 const Layout = lazy(() => initialLayoutModulePromise ?? import('./Layout'));
@@ -46,7 +45,7 @@ const Cheer = lazy(() => initialCheerModulePromise ?? import('./Cheer'));
 const CheerBookmarksPage = lazy(() => import('./CheerBookmarksPage'));
 const CheerDetailPage = lazy(() => import('./CheerDetailPage'));
 const CheerEditPage = lazy(() => import('./CheerEditPage'));
-const MatePage = lazy(() => import('./MatePage'));
+const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));
 const MateCreatePage = lazy(() => import('./MateCreatePage'));
 const MateDetail = lazy(() => import('./MateDetail'));
 const MateApplyPage = lazy(() => import('./MateApplyPage'));

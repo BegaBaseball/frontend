@@ -126,7 +126,7 @@ test('keeps GA4 network loading off the initial render critical path', () => {
 
 test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialHomeRoute = /^\\/home\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute;'));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
   assert.ok(appRoutesSource.includes("const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;"));
   assert.ok(appRoutesSource.includes("const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;"));
   assert.ok(appRoutesSource.includes("void import('./home/HomeMatchPanel');"));
@@ -154,16 +154,12 @@ test('preloads /home route chunks before nested lazy route rendering', () => {
 
 test('preloads /cheer route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialCheerRoute = /^\\/cheer(?:\\/write)?\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes("const shouldPreloadInitialCheerComposer = /^\\/cheer\\/write\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes("const initialAppQueryProviderModulePromise = shouldPreloadInitialCheerRoute ? import('./AppQueryProvider') : null;"));
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;"));
+  assert.ok(appRoutesSource.includes("const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;"));
   assert.ok(appRoutesSource.includes("const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;"));
   assert.match(
     appRoutesSource,
-    /if \(shouldPreloadInitialCheerRoute\) \{\s*void import\('\.\/CheerRuntime'\);\s*void import\('\.\/CheerFeedRuntimeContent'\);\s*\}/,
-  );
-  assert.match(
-    appRoutesSource,
-    /if \(shouldPreloadInitialCheerComposer\) \{\s*void import\('\.\/CheerComposerRuntime'\);\s*\}/,
+    /if \(shouldPreloadInitialCheerRoute\) \{\s*void import\('\.\/CheerRuntime'\);\s*void import\('\.\/CheerComposerRuntime'\);\s*void import\('\.\/CheerFeedRuntimeContent'\);\s*\}/,
   );
   assert.equal(appRoutesSource.includes('shouldPreloadInitialCheerSidebar'), false);
   assert.equal(appRoutesSource.includes("void import('./CheerSidebarPanels');"), false);
@@ -185,6 +181,14 @@ test('preloads /cheer route chunks before nested lazy route rendering', () => {
   assert.ok(cheerFirstLoadGuard.includes("'src/components/CheerFeedRuntimeContent.tsx'"));
   assert.equal(cheerFirstLoadGuard.includes("'src/components/CheerComposerRuntime.tsx'"), false);
   assert.ok(cheerFirstLoadGuard.includes('maxJsGzipBytes: 155_000'));
+});
+
+test('preloads /mate public route shells in parallel', () => {
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialMateRoute = /^\\/mate\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;"));
+  assert.ok(appRoutesSource.includes("const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;"));
+  assert.ok(appRoutesSource.includes("const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));"));
+  assert.match(appRoutesSource, /<Route path="\/mate" element={<MatePage \/>} \/>/);
 });
 
 test('reserves /cheer feed and sidebar space to prevent CLS', () => {
