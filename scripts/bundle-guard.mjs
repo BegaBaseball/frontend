@@ -1795,10 +1795,11 @@ const routeStaticClosureTargets = [
   },
   {
     route: '/prediction',
-    label: '/prediction route static closure',
-    maxJsGzipBytes: 96_000,
+    label: '/prediction shell first-load static closure',
+    maxJsGzipBytes: 100_000,
     entrypoints: [
       'index.html',
+      'src/components/Layout.tsx',
       'src/components/Prediction.tsx',
     ],
   },

@@ -14,9 +14,11 @@ import {
 import { buildPredictionListPath } from '../../utils/predictionDeepLink';
 import { scheduleAfterNextPaint } from '../../utils/afterNextPaint';
 import { schedulePredictionPostPaintIdleWork } from '../../utils/predictionDeferredWork';
-import PredictionMatchRuntime from './PredictionMatchRuntime';
+import PredictionLoadingView from './PredictionLoadingView';
 import { PREDICTION_BRAND_GRADIENT_CLASS } from './predictionUiTokens';
 
+const AppQueryProvider = lazy(() => import('../AppQueryProvider'));
+const PredictionMatchRuntime = lazy(() => import('./PredictionMatchRuntime'));
 const loadPredictionRankingTab = () => import('./PredictionRankingTab');
 const loadPredictionAnimatedSections = () => import('../PredictionAnimatedSections');
 const loadRankingPrediction = () => import('../RankingPrediction');
@@ -24,6 +26,7 @@ const loadPredictionStatsPanel = () => import('./PredictionStatsPanel');
 
 const PredictionRankingTab = lazy(loadPredictionRankingTab);
 const PredictionAnimatedSections = lazy(loadPredictionAnimatedSections);
+const PREDICTION_RANKING_PRELOAD_DELAY_MS = 2500;
 
 export function preloadPredictionRankingTabResources(includeUserStats: boolean) {
   void loadPredictionAnimatedSections();
@@ -68,9 +71,17 @@ export default function PredictionRuntime() {
   );
 
   useEffect(() => {
-    return schedulePredictionPostPaintIdleWork(() => {
-      preloadPredictionRankingTabResources(isLoggedIn);
-    });
+    let cancelRankingPreload: (() => void) | undefined;
+    const rankingPreloadTimeoutId = globalThis.setTimeout(() => {
+      cancelRankingPreload = schedulePredictionPostPaintIdleWork(() => {
+        preloadPredictionRankingTabResources(isLoggedIn);
+      });
+    }, PREDICTION_RANKING_PRELOAD_DELAY_MS);
+
+    return () => {
+      globalThis.clearTimeout(rankingPreloadTimeoutId);
+      cancelRankingPreload?.();
+    };
   }, [isLoggedIn]);
 
   const handleTabChange = (nextTab: 'match' | 'ranking') => {
@@ -234,18 +245,22 @@ export default function PredictionRuntime() {
         </div>
 
         <div className="px-4 sm:px-0">
-          {shouldRenderAnimatedSections ? (
-            <Suspense fallback={contentTab === 'match' ? matchChildren : rankingChildren}>
-              <PredictionAnimatedSections
-                activeTab={contentTab}
-                topNotice={null}
-                matchChildren={matchChildren}
-                rankingChildren={rankingChildren}
-              />
-            </Suspense>
-          ) : (
-            contentTab === 'match' ? matchChildren : rankingChildren
-          )}
+          <Suspense fallback={<PredictionLoadingView topNotice={null} />}>
+            <AppQueryProvider>
+              {shouldRenderAnimatedSections ? (
+                <Suspense fallback={contentTab === 'match' ? matchChildren : rankingChildren}>
+                  <PredictionAnimatedSections
+                    activeTab={contentTab}
+                    topNotice={null}
+                    matchChildren={matchChildren}
+                    rankingChildren={rankingChildren}
+                  />
+                </Suspense>
+              ) : (
+                contentTab === 'match' ? matchChildren : rankingChildren
+              )}
+            </AppQueryProvider>
+          </Suspense>
         </div>
       </div>
     </div>

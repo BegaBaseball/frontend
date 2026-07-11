@@ -16,6 +16,10 @@ const predictionMatchScheduleDataRuntimeSource = readFileSync(
   new URL('../src/components/prediction/PredictionMatchScheduleDataRuntime.tsx', import.meta.url),
   'utf8',
 );
+const predictionRuntimeSource = readFileSync(
+  new URL('../src/components/prediction/PredictionRuntime.tsx', import.meta.url),
+  'utf8',
+);
 const appRoutesSource = readFileSync(new URL('../src/components/AppRoutes.tsx', import.meta.url), 'utf8');
 const rootEntryRouteSource = readFileSync(new URL('../src/components/RootEntryRoute.tsx', import.meta.url), 'utf8');
 const rootEntryRouteAuthAwareSource = readFileSync(new URL('../src/components/RootEntryRouteAuthAware.tsx', import.meta.url), 'utf8');
@@ -130,7 +134,7 @@ test('keeps GA4 network loading off the initial render critical path', () => {
 
 test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialHomeRoute = /^\\/home\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
   assert.ok(appRoutesSource.includes("const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;"));
   assert.ok(appRoutesSource.includes("const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;"));
   assert.ok(appRoutesSource.includes("void import('./home/HomeMatchPanel');"));
@@ -154,6 +158,54 @@ test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(bundleGuardSource.includes("'errorUtils-'"));
   assert.ok(bundleGuardSource.includes("'teams-'"));
   assert.ok(bundleGuardSource.includes("'sonner-'"));
+});
+
+test('keeps the /prediction shell outside the query provider critical path', () => {
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialPredictionRoute = /^\\/prediction(?:\\/matches\\/[^/]+)?\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes("const initialPredictionModulePromise = shouldPreloadInitialPredictionRoute ? loadPredictionPage() : null;"));
+  assert.ok(appRoutesSource.includes('const Prediction = lazy(() => initialPredictionModulePromise ?? loadPredictionPage());'));
+  assert.match(
+    appRoutesSource,
+    /<Route element={<Layout authenticated={false} \/>}>[\s\S]*?<Route path="\/prediction" element={<Prediction \/>} \/>[\s\S]*?<Route path="\/prediction\/matches\/:gameId" element={<Prediction \/>} \/>/,
+  );
+
+  const appQueryProviderRouteGroup = appRoutesSource.slice(
+    appRoutesSource.indexOf('<Route element={<AppQueryProvider />}>'),
+    appRoutesSource.indexOf('{import.meta.env.DEV'),
+  );
+  assert.equal(appQueryProviderRouteGroup.includes('<Route path="/prediction" element={<Prediction />} />'), false);
+
+  assert.ok(predictionRuntimeSource.includes("const AppQueryProvider = lazy(() => import('../AppQueryProvider'));"));
+  assert.match(
+    predictionRuntimeSource,
+    /<Suspense fallback={<PredictionLoadingView topNotice={null} \/>}>\s*<AppQueryProvider>[\s\S]*?<\/AppQueryProvider>\s*<\/Suspense>/,
+  );
+
+  const predictionFirstLoadGuard = bundleGuardSource.match(
+    /route: '\/prediction',[\s\S]*?\n\s*},\n/,
+  )?.[0];
+  assert.ok(predictionFirstLoadGuard);
+  assert.ok(predictionFirstLoadGuard.includes("label: '/prediction shell first-load static closure'"));
+  assert.ok(predictionFirstLoadGuard.includes("'src/components/Layout.tsx'"));
+  assert.equal(predictionFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"), false);
+});
+
+test('defers /prediction ranking preloads beyond the LCP window', () => {
+  assert.ok(predictionRuntimeSource.includes('const PREDICTION_RANKING_PRELOAD_DELAY_MS = 2500;'));
+  assert.match(
+    predictionRuntimeSource,
+    /const rankingPreloadTimeoutId = globalThis\.setTimeout\(\(\) => \{\s*cancelRankingPreload = schedulePredictionPostPaintIdleWork/,
+  );
+  assert.ok(predictionRuntimeSource.includes('globalThis.clearTimeout(rankingPreloadTimeoutId);'));
+});
+
+test('keeps the /prediction match runtime behind the query provider fallback', () => {
+  assert.ok(predictionRuntimeSource.includes("const PredictionMatchRuntime = lazy(() => import('./PredictionMatchRuntime'));"));
+  assert.equal(predictionRuntimeSource.includes("import PredictionMatchRuntime from './PredictionMatchRuntime';"), false);
+  assert.match(
+    predictionRuntimeSource,
+    /const matchChildren = \([\s\S]*?<PredictionMatchRuntime \/>[\s\S]*?<Suspense fallback={<PredictionLoadingView topNotice={null} \/>}>\s*<AppQueryProvider>[\s\S]*?contentTab === 'match' \? matchChildren : rankingChildren[\s\S]*?<\/AppQueryProvider>/,
+  );
 });
 
 test('preloads /cheer route chunks before nested lazy route rendering', () => {
@@ -202,13 +254,13 @@ test('loads the /cheer feed runtime after the composer can paint', () => {
 
 test('preloads /mate public route shells in parallel', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialMateRoute = /^\\/mate\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes("const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;"));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
   assert.ok(appRoutesSource.includes('const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;'));
   assert.ok(appRoutesSource.includes("const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;"));
   assert.ok(appRoutesSource.includes("const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));"));
   assert.match(
     appRoutesSource,
-    /<Route element={<Layout authenticated={false} \/>}>\s*<Route path="\/home" element={<Home \/>} \/>\s*<Route path="\/mate" element={<MatePage \/>} \/>/,
+    /<Route element={<Layout authenticated={false} \/>}>\s*<Route path="\/home" element={<Home \/>} \/>[\s\S]*?<Route path="\/mate" element={<MatePage \/>} \/>/,
   );
 
   const appQueryProviderRouteGroup = appRoutesSource.slice(
