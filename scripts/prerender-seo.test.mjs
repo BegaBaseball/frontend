@@ -5,6 +5,8 @@ import path from 'node:path';
 import { test } from 'node:test';
 
 import {
+  buildPerformanceRouteHeadMarkup,
+  buildRouteModulePreloadMarkup,
   buildSeoHeadMarkup,
   readSiteVerificationEnv,
 } from './prerender-seo.mjs';
@@ -19,6 +21,52 @@ const route = {
 };
 
 const escapeRegExp = (value) => String(value).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const manifestFixture = {
+  '_Landing-fixture.js': { file: 'assets/Landing-fixture.js', name: 'Landing' },
+  'src/components/Layout.tsx': { file: 'assets/Layout-fixture.js', name: 'Layout' },
+  'src/components/AppQueryProvider.tsx': { file: 'assets/AppQueryProvider-fixture.js', name: 'AppQueryProvider' },
+  '_Prediction-fixture.js': { file: 'assets/Prediction-fixture.js', name: 'Prediction' },
+  'src/components/Cheer.tsx': { file: 'assets/Cheer-fixture.js', name: 'Cheer' },
+  'src/components/CheerRuntime.tsx': { file: 'assets/CheerRuntime-fixture.js', name: 'CheerRuntime' },
+  'src/components/CheerComposerRuntime.tsx': { file: 'assets/CheerComposerRuntime-fixture.js', name: 'CheerComposerRuntime' },
+  'src/components/CheerFeedRuntimeContent.tsx': { file: 'assets/CheerFeedRuntimeContent-fixture.js', name: 'CheerFeedRuntimeContent' },
+  'src/components/MatePage.tsx': { file: 'assets/MatePage-fixture.js', name: 'MatePage' },
+};
+
+test('prerender injects only the current route LCP module preloads', () => {
+  const cheerMarkup = buildRouteModulePreloadMarkup('/cheer', manifestFixture);
+  assert.match(cheerMarkup, /href="\/assets\/Layout-fixture\.js"/);
+  assert.match(cheerMarkup, /href="\/assets\/AppQueryProvider-fixture\.js"/);
+  assert.match(cheerMarkup, /href="\/assets\/Cheer-fixture\.js"/);
+  assert.match(cheerMarkup, /href="\/assets\/CheerRuntime-fixture\.js"/);
+  assert.match(cheerMarkup, /href="\/assets\/CheerComposerRuntime-fixture\.js"/);
+  assert.match(cheerMarkup, /href="\/assets\/CheerFeedRuntimeContent-fixture\.js"/);
+  assert.doesNotMatch(cheerMarkup, /Prediction-fixture|MatePage-fixture|Landing-fixture/);
+
+  const predictionMarkup = buildRouteModulePreloadMarkup('/prediction', manifestFixture);
+  assert.match(predictionMarkup, /href="\/assets\/Prediction-fixture\.js"/);
+  assert.doesNotMatch(predictionMarkup, /Cheer-fixture|MatePage-fixture|Landing-fixture/);
+});
+
+test('prerender route preload markup is managed and safely empty for other routes', () => {
+  const rootMarkup = buildRouteModulePreloadMarkup('/', manifestFixture);
+  assert.match(rootMarkup, /^<!-- ROUTE-MODULE-PRELOAD:START -->/);
+  assert.match(rootMarkup, /href="\/assets\/Landing-fixture\.js"/);
+  assert.match(rootMarkup, /<!-- ROUTE-MODULE-PRELOAD:END -->$/);
+  assert.equal(buildRouteModulePreloadMarkup('/notice', manifestFixture), '');
+});
+
+test('performance-only route head is noindex and omits indexable metadata', () => {
+  const html = buildPerformanceRouteHeadMarkup({
+    path: '/prediction',
+    title: '승부예측 | BEGA',
+    description: '경기 승부를 예측하세요.',
+  });
+  assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
+  assert.match(html, /<meta name="description" content="경기 승부를 예측하세요\.">/);
+  assert.doesNotMatch(html, /rel="canonical"|application\/ld\+json|index,follow/);
+});
 
 test('prerender SEO head includes escaped search verification meta tags', () => {
   const html = buildSeoHeadMarkup(route, {

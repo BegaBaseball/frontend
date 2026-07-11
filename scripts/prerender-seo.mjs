@@ -14,8 +14,32 @@ import {
 import { createSeoRuntimeEnvReader } from './seo-runtime-env.mjs';
 
 const templatePath = path.join(distDir, 'index.html');
+const clientManifestPath = path.join(distDir, '.vite', 'client-manifest.json');
 const SEO_HEAD_SLOT = '<!-- SEO_HEAD_SLOT -->';
 const SEO_ROOT_SLOT = '<!-- SEO_ROOT_SLOT -->';
+const ROUTE_MODULE_PRELOAD_START = '<!-- ROUTE-MODULE-PRELOAD:START -->';
+const ROUTE_MODULE_PRELOAD_END = '<!-- ROUTE-MODULE-PRELOAD:END -->';
+const routeModulePreloadNames = new Map([
+  ['/', ['Landing']],
+  ['/home', ['Layout', 'Home', 'HomeMatchPanel']],
+  ['/prediction', ['Layout', 'AppQueryProvider', 'Prediction']],
+  ['/cheer', ['Layout', 'AppQueryProvider', 'Cheer', 'CheerRuntime', 'CheerComposerRuntime', 'CheerFeedRuntimeContent']],
+  ['/mate', ['Layout', 'AppQueryProvider', 'MatePage']],
+]);
+const performanceOnlyRoutes = [
+  {
+    path: '/prediction',
+    title: '승부예측 | BEGA',
+    description: 'KBO 경기 승부를 예측하고 결과를 확인하세요.',
+    heading: 'KBO 승부예측',
+  },
+  {
+    path: '/mate',
+    title: '직관 메이트 | BEGA',
+    description: '경기 일정과 좌석을 기준으로 함께 직관할 메이트를 찾아보세요.',
+    heading: '직관 메이트 찾기',
+  },
+];
 
 export const readSiteVerificationEnv = (options = {}) => {
   const readEnvValue = createSeoRuntimeEnvReader(options);
@@ -32,6 +56,47 @@ const stripManagedSeoBlock = (html) => (
 const stripManagedRootBlock = (html) => (
   html.replace(/<!-- SEO-PRERENDER:START -->[\s\S]*?<!-- SEO-PRERENDER:END -->/g, '')
 );
+
+const stripManagedRouteModulePreloadBlock = (html) => (
+  html.replace(/<!-- ROUTE-MODULE-PRELOAD:START -->[\s\S]*?<!-- ROUTE-MODULE-PRELOAD:END -->\s*/g, '')
+);
+
+export const buildRouteModulePreloadMarkup = (routePath, manifest) => {
+  const moduleNames = routeModulePreloadNames.get(routePath);
+  if (!moduleNames) {
+    return '';
+  }
+
+  const manifestEntries = Object.values(manifest || {});
+  const moduleFiles = moduleNames.map((moduleName) => {
+    const manifestEntry = manifestEntries.find((entry) => entry?.name === moduleName);
+    if (!manifestEntry?.file) {
+      throw new Error(`[seo:prerender] Missing ${moduleName} in ${clientManifestPath}`);
+    }
+    return manifestEntry.file;
+  });
+  const preloadLinks = [...new Set(moduleFiles)].map(
+    (file) => `<link rel="modulepreload" crossorigin href="/${escapeHtml(file)}">`,
+  );
+
+  return [
+    ROUTE_MODULE_PRELOAD_START,
+    ...preloadLinks,
+    ROUTE_MODULE_PRELOAD_END,
+  ].join('\n');
+};
+
+const injectRouteModulePreloads = (html, route, manifest) => {
+  const next = stripManagedRouteModulePreloadBlock(html);
+  const preloadMarkup = buildRouteModulePreloadMarkup(route.path, manifest);
+  if (!preloadMarkup) {
+    return next;
+  }
+  if (!/<\/head>/i.test(next)) {
+    throw new Error(`[seo:prerender] Route module preload injection failed for route "${route.path}". Missing </head>.`);
+  }
+  return next.replace(/<\/head>/i, `${preloadMarkup}\n</head>`);
+};
 
 const buildStructuredData = (route) => {
   const webPage = {
@@ -114,6 +179,29 @@ export const buildSeoHeadMarkup = (route, siteVerification = readSiteVerificatio
   return seoBlock;
 };
 
+export const buildPerformanceRouteHeadMarkup = (route) => (
+  [
+    '<!-- SEO:START -->',
+    `<meta name="description" content="${escapeHtml(route.description)}">`,
+    '<meta name="robots" content="noindex,nofollow">',
+    '<!-- SEO:END -->',
+  ].join('\n')
+);
+
+const injectPerformanceRouteHead = (html, route) => {
+  let next = stripManagedSeoBlock(html);
+  next = next.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(route.title)}</title>`);
+  const headBlock = buildPerformanceRouteHeadMarkup(route);
+
+  if (next.includes(SEO_HEAD_SLOT)) {
+    return next.replace(SEO_HEAD_SLOT, headBlock);
+  }
+  if (/<\/head>/i.test(next)) {
+    return next.replace(/<\/head>/i, `${headBlock}\n</head>`);
+  }
+  throw new Error(`[seo:prerender] Performance route head injection failed for route "${route.path}". Missing </head>.`);
+};
+
 const injectSeoHead = (html, route) => {
   let next = stripManagedSeoBlock(html);
   next = next.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(route.title)}</title>`);
@@ -187,12 +275,17 @@ export const prerenderSeo = () => {
   }
 
   const baseHtml = fs.readFileSync(templatePath, 'utf-8');
+  if (!fs.existsSync(clientManifestPath)) {
+    throw new Error(`[seo:prerender] ${clientManifestPath} not found. Run build first.`);
+  }
+  const clientManifest = JSON.parse(fs.readFileSync(clientManifestPath, 'utf-8'));
   const fallbackModes = [];
   const report = [];
 
   for (const route of indexableRoutes) {
     const headResult = injectSeoHead(baseHtml, route);
-    const rootResult = injectSeoRoot(headResult.html, route);
+    const htmlWithRoutePreloads = injectRouteModulePreloads(headResult.html, route, clientManifest);
+    const rootResult = injectSeoRoot(htmlWithRoutePreloads, route);
 
     if (headResult.mode !== 'slot') {
       fallbackModes.push(`${route.path}: ${headResult.mode}`);
@@ -209,18 +302,37 @@ export const prerenderSeo = () => {
       file: path.relative(distDir, outputFile),
       headInjection: headResult.mode,
       rootInjection: rootResult.mode,
+      modulePreloads: routeModulePreloadNames.get(route.path) || [],
     });
   }
 
   const reportPath = path.join(distDir, 'seo-prerender-report.json');
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8');
 
+  const performanceReport = [];
+  for (const route of performanceOnlyRoutes) {
+    const htmlWithHead = injectPerformanceRouteHead(baseHtml, route);
+    const htmlWithRoutePreloads = injectRouteModulePreloads(htmlWithHead, route, clientManifest);
+    const rootResult = injectSeoRoot(htmlWithRoutePreloads, route);
+    const outputFile = routeToOutputFile(route.path);
+    ensureDir(path.dirname(outputFile));
+    fs.writeFileSync(outputFile, rootResult.html, 'utf-8');
+    performanceReport.push({
+      path: route.path,
+      file: path.relative(distDir, outputFile),
+      robots: 'noindex,nofollow',
+      modulePreloads: routeModulePreloadNames.get(route.path) || [],
+    });
+  }
+  const performanceReportPath = path.join(distDir, 'performance-prerender-report.json');
+  fs.writeFileSync(performanceReportPath, JSON.stringify(performanceReport, null, 2), 'utf-8');
+
   if (fallbackModes.length > 0) {
     console.warn('[seo:prerender] fallback injection mode used:');
     fallbackModes.forEach((entry) => console.warn(`- ${entry}`));
   }
 
-  console.log(`[seo:prerender] prerendered ${report.length} route(s).`);
+  console.log(`[seo:prerender] prerendered ${report.length} indexable and ${performanceReport.length} performance route(s).`);
   return 0;
 };
 
