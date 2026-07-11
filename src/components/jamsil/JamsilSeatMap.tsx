@@ -38,6 +38,12 @@ const ZOOM_STEP = 0.25;
 const FINDER_FOCUS_ZOOM = 1.35;
 const MANUAL_OPERATOR_GUIDANCE_STATUS = MANUAL_BASEBALL_DATA_REQUIRED_CODE;
 
+const formatOperatorGuidanceValue = (value: string) => (
+  value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)
+    ? value
+    : formatManualBaseballDataDisplayValue(value)
+);
+
 interface SeatMapPan {
   x: number;
   y: number;
@@ -135,7 +141,7 @@ function JamsilOperatorVisitMeta({
           >
             <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
             <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
-              {formatManualBaseballDataDisplayValue(tile.value)}
+              {formatOperatorGuidanceValue(tile.value)}
             </div>
           </div>
         ))}
@@ -155,7 +161,7 @@ function JamsilOperatorVisitMeta({
           data-testid="jamsil-operator-data-status"
           className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
+          {operatorGuidance.operatorDataPendingLabel}
         </p>
       )}
     </div>

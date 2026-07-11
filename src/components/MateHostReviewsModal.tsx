@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchHostReviews } from '../api/mate';
 import { Button } from './ui/plain-button';
 import PlainDialog from './ui/plain-dialog';
-import { MateStarIcon } from './MateIcons';
+import { MateDetailStarIcon as MateStarIcon } from './icons/MateDetailIcons';
 
 interface MateHostReviewsModalProps {
   hostHandle: string;

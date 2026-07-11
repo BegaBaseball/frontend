@@ -1,14 +1,14 @@
 import { cn } from '../lib/utils';
 import type { FeatureCardProps } from '../types/landing';
 import {
-  BookOpenIcon,
-  ChevronDownIcon,
-  HomeIcon,
-  LineChartIcon,
-  MapPinIcon,
-  MegaphoneIcon,
-  UsersIcon,
-} from './icons/PublicShellIcons';
+  LandingBookOpenIcon as BookOpenIcon,
+  LandingChevronDownIcon as ChevronDownIcon,
+  LandingHomeIcon as HomeIcon,
+  LandingLineChartIcon as LineChartIcon,
+  LandingMapPinIcon as MapPinIcon,
+  LandingMegaphoneIcon as MegaphoneIcon,
+  LandingUsersIcon as UsersIcon,
+} from './icons/LandingIcons';
 
 const featureIconMap = {
   home: HomeIcon,

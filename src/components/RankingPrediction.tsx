@@ -4,7 +4,7 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import TeamLogo from './TeamLogo';
 import LoadingSpinner from './LoadingSpinner';
-import { LogInIcon, RotateCcwIcon } from './icons/PublicFeatureIcons';
+import { RankingLogInIcon, RankingRotateCcwIcon } from './ranking/RankingPredictionIcons';
 import RankingItem from './ranking/RankingItem';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
@@ -124,7 +124,7 @@ export default function RankingPrediction() {
         data-testid="ranking-root"
       >
         <div className="mx-auto mb-4 w-fit rounded-full bg-emerald-50 p-4 dark:bg-primary/20">
-          <LogInIcon className={`${PREDICTION_BRAND_TEXT_CLASS} h-8 w-8`} />
+          <RankingLogInIcon className={`${PREDICTION_BRAND_TEXT_CLASS} h-8 w-8`} />
         </div>
         <h3 className="mb-2 text-xl font-extrabold text-slate-950 dark:text-white">
           로그인이 필요합니다
@@ -206,7 +206,7 @@ export default function RankingPrediction() {
                 className="flex items-center gap-2 border border-emerald-200 bg-white text-primary hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-card dark:text-primary-light dark:hover:bg-primary/20"
                 variant="outline"
               >
-                <RotateCcwIcon className="w-4 h-4" />
+                <RankingRotateCcwIcon className="w-4 h-4" />
                 초기화
               </Button>
             )}

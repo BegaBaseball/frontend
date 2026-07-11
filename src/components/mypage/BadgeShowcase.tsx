@@ -6,7 +6,7 @@ import {
     MyPageMapPinIcon,
     MyPageSparklesIcon,
     MyPageTicketIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface BadgeShowcaseProps {
     earnedBadges: string[];

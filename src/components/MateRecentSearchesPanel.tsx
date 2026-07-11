@@ -2,7 +2,7 @@ import { useShallow } from 'zustand/react/shallow';
 import { useMateRecentSearchStore } from '../store/mateRecentSearchStore';
 import { useMateStore } from '../store/mateStore';
 import { normalizeMateSearchText } from '../utils/mateSearchTerms';
-import { MateCloseIcon, MateSearchIcon } from './MateIcons';
+import { MateCloseIcon, MateSearchIcon } from './icons/MateFlowIcons';
 
 const cardClass =
   'rounded-xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-card';

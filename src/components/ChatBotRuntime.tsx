@@ -3,7 +3,10 @@ import './ChatBot.css';
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { CloseIcon, SpinnerIcon } from './icons/PublicShellIcons';
+import {
+  ChatBotSessionCloseIcon as CloseIcon,
+  ChatBotSessionSpinnerIcon as SpinnerIcon,
+} from './chatbot/ChatBotSessionIcons';
 import { useIsMobile } from '../hooks/use-mobile';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import ChatBotFloatingButton from './ChatBotFloatingButton';

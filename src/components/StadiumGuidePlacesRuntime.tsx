@@ -19,7 +19,7 @@ import {
   RefreshIcon,
   SearchIcon,
   WarningTriangleIcon,
-} from './icons/PublicShellIcons';
+} from './icons/StadiumGuideIcons';
 import { Input } from './ui/input';
 import { Skeleton } from './ui/skeleton';
 

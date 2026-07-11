@@ -9,7 +9,18 @@ const distDir = path.join(projectRoot, 'dist');
 const assetsDir = path.join(distDir, 'assets');
 const defaultManifestPath = path.join(distDir, '.vite', 'client-manifest.json');
 const fallbackManifestPath = path.join(distDir, '.vite', 'manifest.json');
+const htmlEntryPath = path.join(distDir, 'index.html');
+const moduleFederationMetadataPaths = [
+  path.join(distDir, 'mf-manifest.json'),
+  path.join(distDir, 'mf-stats.json'),
+];
+const moduleFederationArtifactPaths = [
+  ...moduleFederationMetadataPaths,
+  path.join(distDir, 'remoteEntry.js'),
+  path.join(distDir, 'remoteEntry.ssr.js'),
+];
 const defaultReportPath = path.join(projectRoot, 'reports', 'dist-assets-report.json');
+const isModuleFederationBuild = process.env.VITE_ENABLE_MODULE_FEDERATION === 'true';
 
 const args = process.argv.slice(2);
 let shouldPrune = false;
@@ -65,27 +76,89 @@ try {
 }
 
 const referencedAssetSet = new Set();
+
+const addReferencedAsset = (assetPath) => {
+  if (typeof assetPath !== 'string') {
+    return;
+  }
+
+  const normalized = assetPath.split(path.sep).join('/').split(/[?#]/, 1)[0];
+  const assetsIndex = normalized.indexOf('assets/');
+  const relativeAssetPath = assetsIndex >= 0 ? normalized.slice(assetsIndex) : normalized;
+  if (relativeAssetPath.startsWith('assets/')) {
+    referencedAssetSet.add(relativeAssetPath);
+  }
+};
+
+const collectStringAssets = (value) => {
+  if (typeof value === 'string') {
+    addReferencedAsset(value);
+    return;
+  }
+
+  if (Array.isArray(value)) {
+    value.forEach(collectStringAssets);
+    return;
+  }
+
+  if (value && typeof value === 'object') {
+    Object.values(value).forEach(collectStringAssets);
+  }
+};
+
 for (const entry of Object.values(manifest)) {
   if (!entry || typeof entry !== 'object') {
     continue;
   }
   const file = typeof entry.file === 'string' ? entry.file : '';
-  if (file.startsWith('assets/')) {
-    referencedAssetSet.add(file);
-  }
+  addReferencedAsset(file);
 
   const css = Array.isArray(entry.css) ? entry.css : [];
   for (const cssFile of css) {
-    if (typeof cssFile === 'string' && cssFile.startsWith('assets/')) {
-      referencedAssetSet.add(cssFile);
-    }
+    addReferencedAsset(cssFile);
   }
 
   const assets = Array.isArray(entry.assets) ? entry.assets : [];
   for (const assetFile of assets) {
-    if (typeof assetFile === 'string' && assetFile.startsWith('assets/')) {
-      referencedAssetSet.add(assetFile);
+    addReferencedAsset(assetFile);
+  }
+}
+
+const htmlReferencedAssetPattern = /["'(]\/?(assets\/[^"'()\s>]+)/g;
+let htmlUsesModuleFederation = false;
+if (fs.existsSync(htmlEntryPath)) {
+  const html = fs.readFileSync(htmlEntryPath, 'utf-8');
+  htmlUsesModuleFederation =
+    html.includes('mf-entry-bootstrap') ||
+    html.includes('/remoteEntry.js') ||
+    html.includes('mf-manifest.json');
+  for (const match of html.matchAll(htmlReferencedAssetPattern)) {
+    addReferencedAsset(match[1]);
+  }
+}
+
+const shouldCollectModuleFederationMetadata = isModuleFederationBuild || htmlUsesModuleFederation;
+const moduleFederationMetadataFiles = [];
+if (shouldCollectModuleFederationMetadata) {
+  for (const metadataPath of moduleFederationMetadataPaths) {
+    if (!fs.existsSync(metadataPath)) {
+      continue;
     }
+
+    let metadata;
+    try {
+      metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
+    } catch (error) {
+      console.error(
+        `[dist-assets] failed to parse ${path.relative(projectRoot, metadataPath)}: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      process.exit(1);
+    }
+
+    moduleFederationMetadataFiles.push(path.relative(projectRoot, metadataPath));
+    collectStringAssets(metadata);
   }
 }
 
@@ -107,6 +180,12 @@ const collectAssetFiles = (dir, relativePrefix = 'assets') => {
 const diskAssets = collectAssetFiles(assetsDir).sort();
 const staleAssets = diskAssets.filter((assetPath) => !referencedAssetSet.has(assetPath));
 const removedAssets = [];
+const staleModuleFederationArtifacts = shouldCollectModuleFederationMetadata
+  ? []
+  : moduleFederationArtifactPaths
+      .filter((artifactPath) => fs.existsSync(artifactPath))
+      .map((artifactPath) => path.relative(projectRoot, artifactPath));
+const removedModuleFederationArtifacts = [];
 
 if (shouldPrune) {
   for (const assetPath of staleAssets) {
@@ -114,11 +193,21 @@ if (shouldPrune) {
     fs.rmSync(targetPath, { force: true });
     removedAssets.push(assetPath);
   }
+
+  for (const artifactPath of staleModuleFederationArtifacts) {
+    fs.rmSync(path.join(projectRoot, artifactPath), { force: true });
+    removedModuleFederationArtifacts.push(artifactPath);
+  }
 }
 
 const report = {
   generatedAt: new Date().toISOString(),
   manifestPath: path.relative(projectRoot, manifestPath),
+  htmlEntryPath: fs.existsSync(htmlEntryPath) ? path.relative(projectRoot, htmlEntryPath) : null,
+  moduleFederationBuild: shouldCollectModuleFederationMetadata,
+  moduleFederationMetadataFiles,
+  staleModuleFederationArtifacts,
+  removedModuleFederationArtifacts,
   assetsDirectory: path.relative(projectRoot, assetsDir),
   pruneEnabled: shouldPrune,
   referencedAssets: Array.from(referencedAssetSet).sort(),
@@ -129,6 +218,8 @@ const report = {
     diskAssets: diskAssets.length,
     staleAssets: staleAssets.length,
     removedAssets: removedAssets.length,
+    staleModuleFederationArtifacts: staleModuleFederationArtifacts.length,
+    removedModuleFederationArtifacts: removedModuleFederationArtifacts.length,
   },
 };
 

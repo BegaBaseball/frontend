@@ -5,7 +5,7 @@ import {
   MateUsersIcon,
   MateWifiIcon,
   MateWifiOffIcon,
-} from './MateIcons';
+} from './icons/MateFlowIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';

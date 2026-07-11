@@ -1,7 +1,10 @@
 import type { CSSProperties } from 'react';
 import type { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import EmbeddedPost from './EmbeddedPost';
-import { QuoteIcon, RepeatIcon } from './icons/CheerIcons';
+import {
+    CheerCardQuoteIcon as QuoteIcon,
+    CheerCardRepeatIcon as RepeatIcon,
+} from './icons/CheerCardIcons';
 
 interface CheerDetailEmbeddedPostRuntimeProps {
     detailAccent: string;

@@ -52,7 +52,7 @@ function OperatorDataPendingPanel() {
         data-testid="gocheok-operator-data-status"
         className="mb-1 inline-flex rounded-full bg-white px-2 py-0.5 text-10 font-black text-amber-700 shadow-sm dark:bg-slate-900 dark:text-amber-300"
       >
-        운영자 제공 자료 필요
+        {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel}
       </div>
       <p>{GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel}</p>
     </div>
@@ -84,7 +84,7 @@ function OperationNoticePanel() {
         </div>
       ) : (
         <div className="mt-3 rounded-lg bg-amber-50 px-3 py-2.5 text-12 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          오늘 유효한 운영자 제공 동선 공지가 없습니다. 운영자 자료가 제공되면 이곳에 표시합니다.
+          오늘 유효한 운영자 제공 동선 공지가 없습니다. {GOCHEOK_OPERATOR_FACILITY_DATA_REQUIREMENT.pendingLabel}
         </div>
       )}
     </div>

@@ -1,4 +1,4 @@
-import { MateAlertCircleIcon } from './MateIcons';
+import { MateCreateAlertCircleIcon as MateAlertCircleIcon } from './icons/MateCreateIcons';
 import { Alert, AlertDescription } from './ui/alert';
 import { Textarea } from './ui/textarea';
 import { FieldLabel } from './MateCreatePrimitives';

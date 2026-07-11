@@ -6,7 +6,7 @@ import {
   CrownIcon,
   TrendingUpIcon,
   TrophyIcon,
-} from './icons/PublicFeatureIcons';
+} from './icons/OffseasonIcons';
 import { OffseasonPill } from './offseason/offseasonUi';
 
 interface AwardData {

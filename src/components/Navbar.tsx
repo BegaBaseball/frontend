@@ -4,16 +4,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import React, { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { Button } from './ui/button';
 import {
-  CloseIcon,
-  LineChartIcon,
-  LogOutIcon,
-  MapIcon,
-  MegaphoneIcon,
-  MenuIcon,
-  MessageSquareIcon,
-  ShieldAlertIcon,
-  UsersIcon,
-} from './icons/PublicShellIcons';
+  NavbarCloseIcon as CloseIcon,
+  NavbarLineChartIcon as LineChartIcon,
+  NavbarLogOutIcon as LogOutIcon,
+  NavbarMapIcon as MapIcon,
+  NavbarMegaphoneIcon as MegaphoneIcon,
+  NavbarMenuIcon as MenuIcon,
+  NavbarMessageSquareIcon as MessageSquareIcon,
+  NavbarShieldAlertIcon as ShieldAlertIcon,
+  NavbarUsersIcon as UsersIcon,
+} from './icons/NavbarIcons';
 import { isAdminRole, useAuthAccessActions, useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';

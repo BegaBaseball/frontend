@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 
-import {
-  getAccountDeletionRecoveryInfo,
-  requestAccountDeletionRecovery,
-} from '../api/accountDeletionRecoveryPublic';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
 import {
   ArrowLeftIcon,
   CheckCircleIcon,
   ShieldAlertIcon,
-} from './icons/PublicShellIcons';
+} from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthHeader,
@@ -20,6 +16,13 @@ import {
 import { Button } from './ui/button';
 
 const ACCOUNT_SETTINGS_REDIRECT_PATH = '/mypage?view=accountSettings';
+
+let recoveryPublicModulePromise: Promise<typeof import('../api/accountDeletionRecoveryPublic')> | null = null;
+
+const loadRecoveryPublicModule = () => {
+  recoveryPublicModulePromise ??= import('../api/accountDeletionRecoveryPublic');
+  return recoveryPublicModulePromise;
+};
 
 const formatSchedule = (value?: string) => {
   if (!value) {
@@ -63,6 +66,7 @@ export default function AccountDeletionRecovery() {
       }
 
       try {
+        const { getAccountDeletionRecoveryInfo } = await loadRecoveryPublicModule();
         const info = await getAccountDeletionRecoveryInfo(token);
         if (!cancelled) {
           setScheduledFor(info.scheduledFor);
@@ -94,6 +98,7 @@ export default function AccountDeletionRecovery() {
     setError('');
 
     try {
+      const { requestAccountDeletionRecovery } = await loadRecoveryPublicModule();
       await requestAccountDeletionRecovery(token);
       setIsRecovered(true);
     } catch (recoverError) {

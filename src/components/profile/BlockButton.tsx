@@ -4,7 +4,10 @@ import { toast } from 'sonner';
 import { toggleBlockByHandle, BlockToggleResponse } from '../../api/blockApi';
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { Button } from '../ui/button';
-import { ProfileBanIcon, ProfileLoaderIcon } from './ProfileIcons';
+import {
+    UserProfileBanIcon as ProfileBanIcon,
+    UserProfileSpinnerIcon as ProfileLoaderIcon,
+} from './UserProfileIcons';
 
 interface BlockButtonProps {
     handle: string;

@@ -2,7 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 
 import { Card } from './ui/card';
 import type { Ranking } from '../types/home';
-import { ChevronLeftIcon, ClockIcon } from './icons/PublicFeatureIcons';
+import { ChevronLeftIcon, ClockIcon } from './icons/OffseasonIcons';
 import { OffseasonPill } from './offseason/offseasonUi';
 
 type AwardData = {

@@ -4,7 +4,11 @@ import { useTheme } from '../hooks/useTheme';
 import { Button } from './ui/button';
 import AutosizeTextarea from './ui/autosize-textarea';
 import TeamLogo from './TeamLogo';
-import { ImagePlusIcon, SmileIcon, XIcon } from './icons/CheerIcons';
+import {
+    CheerModalImagePlusIcon as ImagePlusIcon,
+    CheerModalSmileIcon as SmileIcon,
+    CheerModalXIcon as XIcon,
+} from './icons/CheerModalIcons';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { ShareMode } from '../api/cheerApi';

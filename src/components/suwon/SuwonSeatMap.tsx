@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { EyeIcon as Eye, PlusIcon as Plus, TrashIcon as Trash2, XIcon as X } from '@phosphor-icons/react';
+import { EyeIcon as Eye, PlusIcon as Plus, TrashIcon as Trash2, XIcon as X } from '../icons/StadiumGuideIcons';
 import { useTheme } from '../../hooks/useTheme';
 import { useAuthAccessActions } from '../../store/authStore';
 import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
@@ -44,6 +44,12 @@ const COMPARISON_LIMIT = 3;
 const RECENT_SELECTION_LIMIT = 4;
 const GUIDE_RESULT_LIMIT = 12;
 const MANUAL_OPERATOR_GUIDANCE_STATUS = MANUAL_BASEBALL_DATA_REQUIRED_CODE;
+
+const formatOperatorGuidanceValue = (value: string) => (
+  value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)
+    ? value
+    : formatManualBaseballDataDisplayValue(value)
+);
 
 type SuwonGuideIntent =
   | '전체'
@@ -624,7 +630,7 @@ function SuwonOperatorVisitMeta({
           >
             <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
             <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
-              {formatManualBaseballDataDisplayValue(tile.value)}
+              {formatOperatorGuidanceValue(tile.value)}
             </div>
           </div>
         ))}
@@ -644,7 +650,7 @@ function SuwonOperatorVisitMeta({
           data-testid="suwon-operator-data-status"
           className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
+          {operatorGuidance.operatorDataPendingLabel}
         </p>
       )}
     </div>

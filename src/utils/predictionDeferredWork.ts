@@ -1,6 +1,6 @@
 export type PredictionDeferredWorkCancel = () => void;
 
-const POST_PAINT_IDLE_TIMEOUT_MS = 2500;
+const POST_PAINT_IDLE_TIMEOUT_MS = 1200;
 const POST_PAINT_FALLBACK_DELAY_MS = 800;
 
 export const schedulePredictionPostPaintIdleWork = (

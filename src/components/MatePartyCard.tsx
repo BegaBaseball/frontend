@@ -3,7 +3,7 @@ import { memo } from 'react';
 import TeamLogo from './TeamLogo';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import { StatusBadge } from './ui/status-badge';
-import { MateHeartIcon, MateShieldIcon, MateStarIcon, MateUsersIcon } from './MateIcons';
+import { MateHeartIcon, MateShieldIcon, MateStarIcon, MateUsersIcon } from './icons/MateFlowIcons';
 import type { BadgeType, Party } from '../types/mate';
 import { KBO_STADIUMS } from '../utils/stadiumData';
 import { formatGameDate, getHostAverageRating } from '../utils/mate';

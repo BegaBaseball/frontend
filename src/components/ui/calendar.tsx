@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { cn } from "../../lib/utils";
-import { SharedChevronLeftIcon, SharedChevronRightIcon } from "../icons/SharedLeafIcons";
+import { CalendarChevronLeftIcon, CalendarChevronRightIcon } from "../icons/CalendarIcons";
 import { buttonVariants } from "./button";
 
 type CalendarProps = {
@@ -146,7 +146,7 @@ function Calendar({
             )}
             aria-label="이전 달"
           >
-            <SharedChevronLeftIcon className="size-4" />
+            <CalendarChevronLeftIcon className="size-4" />
           </button>
             <div className={cn("text-15 font-semibold", classNames?.caption_label)}>
               {displayedMonth.getFullYear()}년 {displayedMonth.getMonth() + 1}월
@@ -162,7 +162,7 @@ function Calendar({
             )}
             aria-label="다음 달"
           >
-            <SharedChevronRightIcon className="size-4" />
+            <CalendarChevronRightIcon className="size-4" />
           </button>
         </div>
 

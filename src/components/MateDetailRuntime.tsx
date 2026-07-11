@@ -8,11 +8,11 @@ import { Alert, AlertDescription } from './ui/alert';
 import { StatusBadge } from './ui/status-badge';
 import { useMateDetailController } from '../hooks/useMateDetailController';
 import {
-  MateAlertTriangleIcon,
-  MateChevronLeftIcon,
-  MateRefreshIcon,
-  MateShareIcon,
-} from './MateIcons';
+  MateDetailAlertTriangleIcon as MateAlertTriangleIcon,
+  MateDetailChevronLeftIcon as MateChevronLeftIcon,
+  MateDetailRefreshIcon as MateRefreshIcon,
+  MateDetailShareIcon as MateShareIcon,
+} from './icons/MateDetailIcons';
 import { getMateStatusBadgeMeta } from '../utils/statusBadgeMeta';
 import ViewportDeferred from './ViewportDeferred';
 

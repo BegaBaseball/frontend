@@ -1,7 +1,11 @@
-import { Lock, Shield, ShieldCheck } from '@phosphor-icons/react';
 import { useEffect, useId, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import {
+    VerificationDialogLockIcon as Lock,
+    VerificationDialogShieldCheckIcon as ShieldCheck,
+    VerificationDialogShieldIcon as Shield,
+} from './icons/VerificationDialogIcons';
 import { Button } from "./ui/button";
 
 interface VerificationRequiredDialogProps {

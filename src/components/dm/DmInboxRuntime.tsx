@@ -5,7 +5,7 @@ import { fetchMyDmRooms } from '../../api/dm';
 import { useAuthSession } from '../../store/authStore';
 import type { DmInboxRoom } from '../../types/dm';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
-import { MessageCircleIcon } from '../icons/PublicShellIcons';
+import { DirectMessageMessageCircleIcon as MessageCircleIcon } from './DirectMessageIcons';
 
 const DM_INBOX_QUERY_KEY = ['dm', 'inbox'] as const;
 

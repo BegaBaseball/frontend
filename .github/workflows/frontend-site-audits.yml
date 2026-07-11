@@ -13,6 +13,53 @@ on:
       - "public/_headers"
       - "public/_redirects"
       - "index.html"
+      - "vite.config.ts"
+      - "src/main.tsx"
+      - "src/index.css"
+      - "src/components/AppRoutes.tsx"
+      - "src/components/RootEntryRoute.tsx"
+      - "src/components/lazyRouteLoaders.ts"
+      - "src/components/Layout.tsx"
+      - "src/components/Navbar*.tsx"
+      - "src/components/PublicNavbar*.tsx"
+      - "src/components/Landing.tsx"
+      - "src/components/Home.tsx"
+      - "src/components/home/**"
+      - "src/components/Prediction.tsx"
+      - "src/components/prediction/**"
+      - "src/components/Cheer.tsx"
+      - "src/components/Cheer*.tsx"
+      - "src/components/cheer/**"
+      - "src/components/MatePage.tsx"
+      - "src/components/Mate*.tsx"
+      - "module-federation.config.ts"
+      - "src/vite-env.d.ts"
+      - "src/types/module-federation.d.ts"
+      - "src/components/moduleFederation/**"
+      - "src/utils/coreWebVitalsTelemetry.ts"
+      - "src/utils/coreWebVitalsTelemetry.test.ts"
+      - "scripts/bundle-guard.mjs"
+      - "scripts/dist-assets.mjs"
+      - "scripts/cwv-baseline.mjs"
+      - "scripts/cwv-baseline.test.mjs"
+      - "scripts/cwv-lab-audit.mjs"
+      - "scripts/cwv-lab-audit.test.mjs"
+      - "scripts/module-federation-config.test.ts"
+      - "scripts/module-federation-artifacts-smoke.mjs"
+      - "scripts/module-federation-artifacts-smoke.test.mjs"
+      - "scripts/module-federation-gate.mjs"
+      - "scripts/module-federation-gate.test.mjs"
+      - "scripts/module-federation-host-usage.test.mjs"
+      - "scripts/module-federation-probe-smoke.mjs"
+      - "scripts/module-federation-probe-smoke.test.mjs"
+      - "scripts/module-federation-readiness.mjs"
+      - "scripts/module-federation-readiness.test.mjs"
+      - "scripts/module-federation-remote-smoke.mjs"
+      - "scripts/module-federation-remote-smoke.test.mjs"
+      - "scripts/module-federation-types.test.mjs"
+      - "cypress/e2e/module-federation-probe.cy.ts"
+      - "docs/core-web-vitals.md"
+      - "docs/module-federation.md"
       - "package.json"
       - "package-lock.json"
       - ".github/workflows/_frontend-node-suite.yml"
@@ -27,6 +74,7 @@ on:
         options:
           - all
           - seo
+          - mf
           - cwv
   schedule:
     - cron: "0 3 * * 1"
@@ -39,6 +87,7 @@ jobs:
       contents: read
     with:
       timeout_minutes: 20
+      install_playwright: true
       env_exports: |
         VITE_SITE_URL=${{ vars.VITE_SITE_URL || 'https://www.begabaseball.xyz' }}
         VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'https://api.begabaseball.xyz' }}
@@ -108,11 +157,150 @@ jobs:
         dist/sitemap.xml
         dist/seo-prerender-report.json
 
+  module-federation-build:
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'mf' || github.event.inputs.suite == 'all')) }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 20
+      env_exports: |
+        VITE_SITE_URL=${{ vars.VITE_SITE_URL || 'https://www.begabaseball.xyz' }}
+        VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'https://api.begabaseball.xyz' }}
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=${{ vars.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION || 'false' }}
+        VITE_GA4_MEASUREMENT_ID=${{ vars.VITE_GA4_MEASUREMENT_ID || 'G-CI00000000' }}
+        VITE_GOOGLE_SITE_VERIFICATION=${{ vars.VITE_GOOGLE_SITE_VERIFICATION || 'ciGoogleVerificationToken2026' }}
+        VITE_NAVER_SITE_VERIFICATION=${{ vars.VITE_NAVER_SITE_VERIFICATION || 'ciNaverVerificationToken2026' }}
+        VITE_MF_DESIGN_SYSTEM_ENTRY=${{ vars.VITE_MF_DESIGN_SYSTEM_ENTRY || '' }}
+        VITE_MF_DESIGN_SYSTEM_NAME=${{ vars.VITE_MF_DESIGN_SYSTEM_NAME || 'design_system' }}
+      run_script: |
+        npm run gate:mf
+        npm run smoke:mf:probe
+        if [[ -n "${VITE_MF_DESIGN_SYSTEM_ENTRY}" ]]; then
+          npm run smoke:mf:probe:remote
+        fi
+      summary_script: |
+        echo "### Frontend Module Federation Build" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Commands: \`npm run gate:mf\`, \`npm run smoke:mf:probe\`" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -n "${VITE_MF_DESIGN_SYSTEM_ENTRY}" ]]; then
+          echo "- Remote entry configured: yes" >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "- Remote entry configured: no" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        echo "- Browser probe smoke: included" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -n "${VITE_MF_DESIGN_SYSTEM_ENTRY}" ]]; then
+          echo "- Browser remote probe smoke: included" >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "- Browser remote probe smoke: skipped" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [[ -f "reports/module-federation-readiness.json" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const report = JSON.parse(fs.readFileSync('reports/module-federation-readiness.json', 'utf8'));
+          console.log(`- Readiness: ${report.status}`);
+          console.log(`- Host ready: ${report.hostReady ? 'yes' : 'no'}`);
+          console.log(`- Remote configured: ${report.remoteEntryConfigured ? 'yes' : 'no'}`);
+          if (Array.isArray(report.blockers) && report.blockers.length > 0) {
+            console.log(`- Blockers: ${report.blockers.join(', ')}`);
+          }
+          NODE
+        else
+          echo "- Readiness: missing" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [[ -f "reports/bundle-guard-report.json" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const report = JSON.parse(fs.readFileSync('reports/bundle-guard-report.json', 'utf8'));
+          const mfBudgets = Array.isArray(report.moduleFederationBudgetResults)
+            ? report.moduleFederationBudgetResults
+            : [];
+          console.log(`- Module Federation mode: ${report.isModuleFederationBuild ? 'enabled' : 'disabled'}`);
+          console.log(`- MF budgets checked: ${mfBudgets.length}`);
+          console.log(`- Failures: ${Array.isArray(report.failures) ? report.failures.length : 0}`);
+          NODE
+        else
+          echo "- Bundle guard report: missing" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [[ -f "reports/module-federation-artifacts-smoke.json" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const report = JSON.parse(fs.readFileSync('reports/module-federation-artifacts-smoke.json', 'utf8'));
+          console.log(`- Artifact smoke: ${report.ok ? 'PASS' : 'FAIL'}`);
+          console.log(`- Artifacts checked: ${report.counts?.checkedArtifacts ?? '-'}`);
+          console.log(`- Bootstrap assets: ${report.counts?.bootstrapAssets ?? '-'}`);
+          NODE
+        else
+          echo "- Artifact smoke: missing" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+        if [[ -f "reports/module-federation-remote-smoke.json" ]]; then
+          node - <<'NODE' >> "${GITHUB_STEP_SUMMARY}"
+          const fs = require('fs');
+
+          const report = JSON.parse(fs.readFileSync('reports/module-federation-remote-smoke.json', 'utf8'));
+          console.log(`- Remote smoke: ${report.ok ? 'PASS' : 'FAIL'}`);
+          console.log(`- Remote name: ${report.remoteName ?? '-'}`);
+          console.log(`- Expected exposes: ${Array.isArray(report.expectedExposes) ? report.expectedExposes.join(', ') : '-'}`);
+          if (Array.isArray(report.missingExposes) && report.missingExposes.length > 0) {
+            console.log(`- Missing exposes: ${report.missingExposes.join(', ')}`);
+          }
+          NODE
+        else
+          echo "- Remote smoke: skipped" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-module-federation-artifacts
+      artifact_paths: |
+        reports/bundle-guard-report.json
+        reports/dist-assets-report.json
+        reports/module-federation-readiness.json
+        reports/module-federation-artifacts-smoke.json
+        reports/module-federation-remote-smoke.json
+        cypress/screenshots/module-federation-probe.cy.ts/**
+        dist/mf-manifest.json
+        dist/mf-stats.json
+        dist/remoteEntry.js
+        dist/assets/mf-entry-bootstrap-*.js
+        dist/begabaseball_frontend/remoteEntry.js
+        dist/begabaseball_frontend/mf-manifest.json
+        dist/begabaseball_frontend/mf-stats.json
+
+  cwv-lab:
+    if: ${{ github.event_name == 'pull_request' || github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'cwv' || github.event.inputs.suite == 'all')) }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 20
+      install_playwright: true
+      env_exports: |
+        VITE_SITE_URL=${{ vars.VITE_SITE_URL || 'https://www.begabaseball.xyz' }}
+      run_script: |
+        npm run gate:cwv:lab
+      summary_script: |
+        echo "### Frontend CWV Lab" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Mode: production build + local Vite preview" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Field INP proof: not available in lab; use the scheduled/manual CWV baseline job" >> "${GITHUB_STEP_SUMMARY}"
+        if [[ -f "reports/cwv-lab-audit.md" ]]; then
+          cat "reports/cwv-lab-audit.md" >> "${GITHUB_STEP_SUMMARY}"
+        else
+          echo "cwv-lab-audit report not found" >> "${GITHUB_STEP_SUMMARY}"
+        fi
+      artifact_name: frontend-cwv-lab-artifacts
+      artifact_paths: |
+        reports/cwv-lab-audit.json
+        reports/cwv-lab-audit.md
+        reports/bundle-guard-report.json
+        reports/dist-assets-report.json
+
   cwv-baseline:
     if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'cwv' || github.event.inputs.suite == 'all')) }}
     uses: ./.github/workflows/_frontend-node-suite.yml
     permissions:
       contents: read
+    secrets:
+      PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
     with:
       timeout_minutes: 20
       env_exports: |
@@ -127,7 +315,8 @@ jobs:
           echo "Repository variable VITE_SITE_URL must be https://www.begabaseball.xyz" >&2
           exit 1
         fi
-      run_script: npm run cwv:baseline
+      run_script: |
+        npm run gate:cwv:baseline
       summary_script: |
         echo "### Frontend CWV Baseline" >> "${GITHUB_STEP_SUMMARY}"
         echo "- VITE_SITE_URL: ${VITE_SITE_URL:-<unset>}" >> "${GITHUB_STEP_SUMMARY}"

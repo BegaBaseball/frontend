@@ -2,17 +2,17 @@ import { memo, type FormEvent, type KeyboardEvent, type MouseEvent, type RefObje
 
 import DeferredMarkdown from '../DeferredMarkdown';
 import {
-  ChatBotBrainCircuitIcon,
-  ChatBotCheckIcon,
-  ChatBotChevronDownIcon,
-  ChatBotChevronRightIcon,
-  ChatBotCopyIcon,
-  ChatBotSendIcon,
-  ChatBotSpinnerIcon,
-  ChatBotSquareIcon,
-  ChatBotStarIcon,
-  ChatBotZapIcon,
-} from './ChatBotIcons';
+  ChatBotConversationBrainCircuitIcon as ChatBotBrainCircuitIcon,
+  ChatBotConversationCheckIcon as ChatBotCheckIcon,
+  ChatBotConversationChevronDownIcon as ChatBotChevronDownIcon,
+  ChatBotConversationChevronRightIcon as ChatBotChevronRightIcon,
+  ChatBotConversationCopyIcon as ChatBotCopyIcon,
+  ChatBotConversationSendIcon as ChatBotSendIcon,
+  ChatBotConversationSpinnerIcon as ChatBotSpinnerIcon,
+  ChatBotConversationSquareIcon as ChatBotSquareIcon,
+  ChatBotConversationStarIcon as ChatBotStarIcon,
+  ChatBotConversationZapIcon as ChatBotZapIcon,
+} from './ChatBotConversationIcons';
 import type { ChatQueueStatus, Message } from '../../types/chatbot';
 
 type RateLimitCopy = {

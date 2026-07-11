@@ -4,25 +4,25 @@ import TeamLogo, { resolveTeamDisplayName } from './TeamLogo';
 import { Button } from './ui/plain-button';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import {
-  MateBoxIcon,
-  MateBulbIcon,
-  MateCameraIcon,
-  MateCheckCircleIcon,
-  MateClockIcon,
-  MateHeartIcon,
-  MateInfoIcon,
-  MateMapIcon,
-  MateMapPinIcon,
-  MateMessageSquareIcon,
-  MatePulseIcon,
-  MateQrCodeIcon,
-  MateQuoteIcon,
-  MateShieldIcon,
-  MateStarIcon,
-  MateThumbsUpIcon,
-  MateUsersIcon,
-  MateZapIcon,
-} from './MateIcons';
+  MateDetailBoxIcon as MateBoxIcon,
+  MateDetailBulbIcon as MateBulbIcon,
+  MateDetailCameraIcon as MateCameraIcon,
+  MateDetailCheckCircleIcon as MateCheckCircleIcon,
+  MateDetailClockIcon as MateClockIcon,
+  MateDetailHeartIcon as MateHeartIcon,
+  MateDetailInfoIcon as MateInfoIcon,
+  MateDetailMapIcon as MateMapIcon,
+  MateDetailMapPinIcon as MateMapPinIcon,
+  MateDetailMessageSquareIcon as MateMessageSquareIcon,
+  MateDetailPulseIcon as MatePulseIcon,
+  MateDetailQrCodeIcon as MateQrCodeIcon,
+  MateDetailQuoteIcon as MateQuoteIcon,
+  MateDetailShieldIcon as MateShieldIcon,
+  MateDetailStarIcon as MateStarIcon,
+  MateDetailThumbsUpIcon as MateThumbsUpIcon,
+  MateDetailUsersIcon as MateUsersIcon,
+  MateDetailZapIcon as MateZapIcon,
+} from './icons/MateDetailIcons';
 import type { HostReviewSnippet, Party, ReviewKeywordSummary } from '../types/mate';
 import { getTeamColorByAnyKey } from '../constants/teams';
 import { extractHashtags, formatGameDate, formatHostAverageRating, getHostAverageRating, stripHashtags } from '../utils/mate';
