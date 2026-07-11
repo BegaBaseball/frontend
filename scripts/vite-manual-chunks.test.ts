@@ -132,6 +132,19 @@ test('keeps GA4 network loading off the initial render critical path', () => {
   assert.ok(seoHeadSource.includes('return scheduleGa4ScriptLoad();'));
 });
 
+test('reveals the performance prerender shell before delayed React hydration', () => {
+  assert.ok(mainEntrySource.includes("rootEl.querySelector('[data-performance-prerender=\"true\"]')"));
+  assert.ok(mainEntrySource.includes('const PERFORMANCE_PRERENDER_PAINT_DELAY_MS = 100;'));
+  assert.match(
+    mainEntrySource,
+    /if \(shouldRevealPerformancePrerenderBeforeMount\(\)\) \{\s*removeShellLoader\(true\);\s*globalThis\.setTimeout\(renderApp, PERFORMANCE_PRERENDER_PAINT_DELAY_MS\);\s*return;\s*\}/,
+  );
+  assert.match(
+    mainEntrySource,
+    /if \(immediate\) \{\s*shellLoader\.remove\(\);\s*return;\s*\}/,
+  );
+});
+
 test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialHomeRoute = /^\\/home\\/?$/.test(initialPathname);"));
   assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
