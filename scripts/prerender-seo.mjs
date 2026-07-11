@@ -206,6 +206,21 @@ export const deferPerformanceShellStyles = (html) => html.replace(
   ].join(''),
 );
 
+export const deferPerformanceShellModule = (html) => html.replace(
+  /<script\s+type="module"[^>]*\ssrc="([^"]+)"[^>]*><\/script>/,
+  (_moduleScript, moduleSrc) => [
+    '<script data-performance-app-module="true">',
+    'globalThis.requestAnimationFrame(()=>{globalThis.setTimeout(()=>{',
+    `void import(${JSON.stringify(moduleSrc)});`,
+    '},0);});',
+    '</script>',
+  ].join(''),
+);
+
+const preparePerformanceShellHtml = (html) => deferPerformanceShellModule(
+  deferPerformanceShellStyles(html),
+);
+
 const injectSeoRoot = (html, route) => {
   const rootMarkup = buildRootMarkup(route);
   let next = stripManagedRootBlock(html);
@@ -261,7 +276,7 @@ export const prerenderSeo = () => {
     const outputFile = routeToOutputFile(route.path);
     ensureDir(path.dirname(outputFile));
     const outputHtml = route.performanceShell
-      ? deferPerformanceShellStyles(rootResult.html)
+      ? preparePerformanceShellHtml(rootResult.html)
       : rootResult.html;
     fs.writeFileSync(outputFile, outputHtml, 'utf-8');
     report.push({
@@ -281,7 +296,7 @@ export const prerenderSeo = () => {
     const rootResult = injectSeoRoot(htmlWithHead, route);
     const outputFile = routeToOutputFile(route.path);
     ensureDir(path.dirname(outputFile));
-    fs.writeFileSync(outputFile, deferPerformanceShellStyles(rootResult.html), 'utf-8');
+    fs.writeFileSync(outputFile, preparePerformanceShellHtml(rootResult.html), 'utf-8');
     performanceReport.push({
       path: route.path,
       file: path.relative(distDir, outputFile),
