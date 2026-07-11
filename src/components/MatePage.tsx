@@ -34,7 +34,7 @@ function MateLoggedOutEntry() {
           <p className="mb-2 text-13 font-semibold leading-snug text-gray-500 dark:text-white/70">
             Mate Flow
           </p>
-          <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+          <h1 className="text-2xl font-native font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
             로그인하고 직관 메이트를 찾아보세요
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-body font-bold leading-relaxed text-gray-500 dark:text-white">
