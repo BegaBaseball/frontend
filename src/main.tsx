@@ -16,6 +16,7 @@ const defaultRenderPerf: RenderPerfController = {
   onReactRender: null,
 };
 const PERFORMANCE_PRERENDER_PAINT_DELAY_MS = 100;
+const PERFORMANCE_STYLE_READY_TIMEOUT_MS = 3000;
 
 const rootEl = document.getElementById("root")!;
 
@@ -53,6 +54,45 @@ const shouldRevealPerformancePrerenderBeforeMount = () => Boolean(
   rootEl.querySelector('[data-performance-prerender="true"]')
 );
 
+const waitForDelay = (delayMs: number) => new Promise<void>((resolve) => {
+  globalThis.setTimeout(resolve, delayMs);
+});
+
+const waitForPerformanceStyles = async () => {
+  const styleLinks = Array.from(
+    document.querySelectorAll<HTMLLinkElement>('link[data-performance-app-style="true"]')
+  );
+  if (styleLinks.length === 0) {
+    return;
+  }
+
+  await Promise.all(styleLinks.map((link) => {
+    if (link.dataset.performanceStyleReady === 'true' || link.sheet) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>((resolve) => {
+      let settled = false;
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        resolve();
+      };
+      link.addEventListener('load', finish, { once: true });
+      link.addEventListener('error', finish, { once: true });
+      globalThis.setTimeout(finish, PERFORMANCE_STYLE_READY_TIMEOUT_MS);
+    });
+  }));
+
+  await new Promise<void>((resolve) => {
+    globalThis.requestAnimationFrame(() => {
+      globalThis.requestAnimationFrame(() => resolve());
+    });
+  });
+};
+
 const mountApp = (renderPerf: RenderPerfController) => {
   const RootMode = renderPerf.disableStrictMode ? Fragment : StrictMode;
   const appTree = renderPerf.enabled && renderPerf.onReactRender ? (
@@ -78,9 +118,17 @@ const mountApp = (renderPerf: RenderPerfController) => {
     }
   };
 
+  const mountPerformanceApp = async () => {
+    await Promise.all([
+      waitForPerformanceStyles(),
+      waitForDelay(PERFORMANCE_PRERENDER_PAINT_DELAY_MS),
+    ]);
+    renderApp();
+  };
+
   if (shouldRevealPerformancePrerenderBeforeMount()) {
     removeShellLoader(true);
-    globalThis.setTimeout(renderApp, PERFORMANCE_PRERENDER_PAINT_DELAY_MS);
+    void mountPerformanceApp();
     return;
   }
 
