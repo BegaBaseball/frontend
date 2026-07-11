@@ -61,7 +61,6 @@ import {
 import type { PredictionNavigationOptions } from '../utils/predictionDeepLink';
 import { usePredictionRangeState } from './usePredictionRangeState';
 import * as predictionRangeApi from '../api/predictionRange';
-import * as predictionRangeWindow from '../utils/predictionRangeWindow';
 import * as predictionScheduleBoundaryLoaders from './predictionScheduleBoundaryLoaders';
 import * as predictionScheduleDeepLinkRuntime from './predictionScheduleDeepLinkRuntime';
 import * as predictionScheduleAdjacentPrefetch from './predictionScheduleAdjacentPrefetch';
@@ -696,7 +695,7 @@ export const usePredictionSchedule = ({
 
   const fetchMatchRangeWindow = useCallback(async (request: MatchRangeLoadRequest) => {
     const { fetchMatchesByRangeWithMeta } = predictionRangeApi;
-    const { buildPredictionRangeWindow } = predictionRangeWindow;
+    const { buildPredictionRangeWindow } = await import('../utils/predictionRangeWindow');
     const rangeWindow = buildPredictionRangeWindow({
       anchorDate: request.anchorDate,
       direction: request.direction,

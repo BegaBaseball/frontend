@@ -31,7 +31,7 @@ function MateLoggedOutEntry() {
           <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <span className="text-lg font-black" aria-hidden="true">M</span>
           </div>
-          <p className="mb-2 text-body font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white">
+          <p className="mb-2 text-13 font-semibold leading-snug text-gray-500 dark:text-white/70">
             Mate Flow
           </p>
           <h1 className="text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -68,8 +68,16 @@ function MateLoggedOutEntry() {
 }
 
 export default function MatePage() {
-  const { isAuthBootstrapPending, isAuthLoading, isLoggedIn } = useAuthBootstrapUiState();
-  const shouldShowAuthLoading = !isLoggedIn && (isAuthLoading || isAuthBootstrapPending);
+  const {
+    authBootstrapMode,
+    isAuthBootstrapPending,
+    isAuthLoading,
+    isLoggedIn,
+  } = useAuthBootstrapUiState();
+  const shouldShowAuthLoading = !isLoggedIn
+    && authBootstrapMode !== 'public-home'
+    && authBootstrapMode !== 'skip'
+    && (isAuthLoading || isAuthBootstrapPending);
 
   if (shouldShowAuthLoading) {
     return <MateFallback />;

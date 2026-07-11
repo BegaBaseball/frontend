@@ -35,7 +35,7 @@ import {
   loadMateApplyDraft,
   saveMateApplyDraft,
 } from '../utils/mateApplyDraft';
-import { mateMobileBarClass } from '../utils/mateFlowUi';
+import { mateMetaLabelClass, mateMobileBarClass } from '../utils/mateFlowUi';
 import { validateMateApplyMessage } from '../utils/mateValidation';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
@@ -162,7 +162,7 @@ export default function MateApply() {
   const ticketAmount = party.ticketPrice || 0;
   const sellingPrice = party.price || 0;
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
-  const insetPanelClass = 'rounded-2xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
+  const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
   const primaryAmount = isSelling ? sellingPrice : (reservationDepositAmount > 0 ? reservationDepositAmount : ticketAmount);
   const submitLabel = isSubmitting
     ? '신청 중...'
@@ -257,7 +257,7 @@ export default function MateApply() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_58%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_46%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-primary/5 dark:bg-primary/10" />
       <OptimizedImage
         src={grassDecor}
         alt=""
@@ -301,7 +301,7 @@ export default function MateApply() {
         <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
           <div className="flex flex-col gap-4 sm:gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/90 px-3 py-3 dark:border-border/70 dark:bg-secondary/70 sm:w-auto sm:gap-3 sm:px-4">
+              <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200/80 bg-gray-50/90 px-3 py-3 dark:border-border/70 dark:bg-secondary/70 sm:w-auto sm:gap-3 sm:px-4">
                 <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
                   <TeamLogo teamId={party.homeTeam} size="full" />
                 </div>
@@ -319,9 +319,9 @@ export default function MateApply() {
                 </p>
               </div>
             </div>
-            <div className="w-full rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
+            <div className="w-full rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
               <div className="flex items-center justify-between gap-4 sm:block">
-                <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-white">
+                <p className={mateMetaLabelClass}>
                   {summaryAmountLabel}
                 </p>
                 <p className="text-xl font-black text-primary sm:mt-2 sm:text-2xl">
@@ -333,19 +333,19 @@ export default function MateApply() {
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">좌석</p>
+              <p className={mateMetaLabelClass}>좌석</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white line-clamp-2">{party.section}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">호스트</p>
+              <p className={mateMetaLabelClass}>호스트</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">{party.hostName}</p>
             </div>
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">신뢰 신호</p>
+              <p className={mateMetaLabelClass}>신뢰 신호</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">현재 상태</p>
+              <p className={mateMetaLabelClass}>현재 상태</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">{isSelling ? '구매 신청 가능' : '참여 신청 가능'}</p>
             </div>
           </div>
@@ -379,7 +379,7 @@ export default function MateApply() {
 
         {!isSelling && (
           <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
-            <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted/70" />}>
+            <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted/70" />}>
               <MateApplyTicketVerificationPanel
                 gameDate={party.gameDate}
                 ticketVerified={ticketVerified}
@@ -488,7 +488,7 @@ export default function MateApply() {
       <div className={`${mateMobileBarClass} lg:hidden`}>
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 basis-[180px]">
-            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className={mateMetaLabelClass}>
               {summaryAmountLabel}
             </p>
             <p className="mt-1 text-lg font-black text-primary">

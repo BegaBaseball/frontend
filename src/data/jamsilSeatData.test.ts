@@ -357,7 +357,7 @@ test('잠실 일반 좌석도 UI에는 햇빛/날씨 레이어 잔여 코드가 
   const files = [
     '../components/jamsil/JamsilSeatMap.tsx',
     '../components/jamsil/JamsilSeatMapSvg.tsx',
-    '../components/jamsil/JamsilUploadFlowModal.tsx',
+    '../components/stadiumSeatMap/SeatViewDirectUploadModal.tsx',
     '../components/stadiumSeatMap/SeatMapDetailPanel.tsx',
     '../components/stadiumSeatMap/SeatMapBottomSheet.tsx',
     './jamsilSeatData.ts',

@@ -137,9 +137,11 @@ const expectNoHorizontalOverflow = () => {
   });
 };
 
-const expectElementInsideViewport = (subject: Cypress.Chainable<JQuery<HTMLElement>>) => {
-  subject.should('be.visible').then(($element) => {
-    const rect = $element[0].getBoundingClientRect();
+type ViewportElementSubject = Cypress.Chainable<JQuery<HTMLElement>> | Cypress.Chainable<undefined>;
+
+const expectElementInsideViewport = (subject: ViewportElementSubject) => {
+  (subject as Cypress.Chainable<JQuery<HTMLElement>>).should('be.visible').then(($element) => {
+    const rect = ($element as JQuery<HTMLElement>)[0].getBoundingClientRect();
     cy.window().then((win) => {
       expect(rect.left, 'left edge').to.be.gte(0);
       expect(rect.right, 'right edge').to.be.lte(win.innerWidth + 1);

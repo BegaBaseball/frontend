@@ -20,6 +20,7 @@ import { createCheckIn } from '../api/mate';
 import { getApiErrorMessage } from '../utils/errorUtils';
 import {
   matePageShellClass,
+  mateMetaLabelClass,
   mateSectionCardClass,
 } from '../utils/mateFlowUi';
 import { hasSameMateUserIdentity, isPartyHostedByUser } from '../utils/mate';
@@ -156,7 +157,7 @@ export default function MateCheckIn() {
 
   return (
     <div className={`${matePageShellClass} pb-40 lg:pb-10`}>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.10),_transparent_55%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.18),_transparent_48%)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[28rem] bg-primary/5 dark:bg-primary/10" />
       <img
         src={grassDecor}
         alt=""
@@ -180,10 +181,10 @@ export default function MateCheckIn() {
                 <div className="h-6 w-40 rounded bg-muted" />
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                   {Array.from({ length: 4 }).map((_, index) => (
-                    <div key={index} className="h-28 rounded-2xl bg-muted/70" />
+                    <div key={index} className="h-28 rounded-xl bg-muted/70" />
                   ))}
                 </div>
-                <div className="h-48 rounded-3xl bg-muted/70" />
+                <div className="h-48 rounded-xl bg-muted/70" />
               </div>
             </Card>
           )}
@@ -191,8 +192,8 @@ export default function MateCheckIn() {
           <Card className={`mb-6 p-5 sm:p-6 ${mateSectionCardClass}`}>
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
-                <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
-                  Check-In Credential
+                <p className={mateMetaLabelClass}>
+                  체크인 인증
                 </p>
                 <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">
                   {qrSessionId ? 'QR 세션이 연결된 체크인' : '수동 체크인 코드 입력'}

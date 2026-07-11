@@ -2,10 +2,10 @@ import { useShallow } from 'zustand/react/shallow';
 import { useMateRecentSearchStore } from '../store/mateRecentSearchStore';
 import { useMateStore } from '../store/mateStore';
 import { normalizeMateSearchText } from '../utils/mateSearchTerms';
-import { MateSearchIcon } from './MateIcons';
+import { MateCloseIcon, MateSearchIcon } from './MateIcons';
 
 const cardClass =
-  'rounded-2xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-[#000000]';
+  'rounded-xl border border-gray-200/80 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-card';
 
 interface MateRecentSearchesPanelProps {
   onTermClick?: (term: string) => void;
@@ -81,9 +81,7 @@ export default function MateRecentSearchesPanel({
                 onClick={() => removeRecentSearch(term)}
                 className="inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-600 dark:hover:bg-white/10 dark:hover:text-zinc-200"
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" aria-hidden="true">
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
+                <MateCloseIcon className="h-2.5 w-2.5" aria-hidden="true" />
               </button>
             </span>
           ))}

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
@@ -24,6 +25,26 @@ const budgets = {
   apiWarmP95Ms: 200,
   apiColdP95Ms: 500,
 };
+
+const predictionPerformanceAuditSource = readFileSync(
+  new URL('./prediction-performance-audit.mjs', import.meta.url),
+  'utf8',
+);
+
+test('mock authenticated scenarios enable auth bootstrap instead of the Cypress public skip', () => {
+  assert.match(
+    predictionPerformanceAuditSource,
+    /window\.localStorage\.setItem\('auth-bootstrap-hint', '1'\)/,
+  );
+  assert.match(
+    predictionPerformanceAuditSource,
+    /window\.sessionStorage\.removeItem\('cypress:skip-public-auth-bootstrap'\)/,
+  );
+  assert.match(
+    predictionPerformanceAuditSource,
+    /scenario\.authenticated === true/,
+  );
+});
 
 test('percentile uses nearest-rank calculation', () => {
   assert.equal(percentile([10, 50, 20, 30, 40], 0.5), 30);

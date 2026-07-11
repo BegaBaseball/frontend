@@ -6,6 +6,8 @@ import {
   getPartyFlowLabel,
   mateHeroCardClass,
   mateInsetPanelClass,
+  mateMetaLabelClass,
+  mateSummaryGridClass,
 } from '../utils/mateFlowUi';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import { getMateStatusBadgeMeta } from '../utils/statusBadgeMeta';
@@ -50,7 +52,7 @@ function SummaryItem({ icon: Icon, label, value, detail }: SummaryItemProps) {
           <Icon className="h-4 w-4 text-primary" />
         </div>
         <div className="min-w-0">
-          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+          <p className={mateMetaLabelClass}>
             {label}
           </p>
           <p className="mt-2 text-base font-bold text-gray-900 dark:text-white">{value}</p>
@@ -134,7 +136,7 @@ export default function MateCheckInOverviewRuntime({
                 <TeamLogo teamId={getMatePartyDisplayTeamId(party)} size="md" />
               </div>
               <div className="min-w-0">
-                <p className="text-body font-semibold uppercase tracking-[0.2em] text-primary/80 dark:text-emerald-300">
+                <p className="text-13 font-semibold text-primary/80 dark:text-emerald-300">
                   Arrival Status
                 </p>
                 <h1 className="mt-2 text-2xl font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">
@@ -168,7 +170,7 @@ export default function MateCheckInOverviewRuntime({
                 <div className="flex items-start gap-3">
                   <MateCalendarIcon className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
-                    <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">일정</p>
+                    <p className={mateMetaLabelClass}>일정</p>
                     <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                       {formatGameDate(party.gameDate)} {party.gameTime}
                     </p>
@@ -177,7 +179,7 @@ export default function MateCheckInOverviewRuntime({
                 <div className="flex items-start gap-3">
                   <MateMapPinIcon className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
-                    <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">경기장 / 좌석</p>
+                    <p className={mateMetaLabelClass}>경기장 / 좌석</p>
                     <p className="mt-1 font-semibold text-gray-900 dark:text-white">{stadiumDisplayName}</p>
                     <p className="text-body text-gray-500 dark:text-white">{party.section}</p>
                   </div>
@@ -185,7 +187,7 @@ export default function MateCheckInOverviewRuntime({
                 <div className="flex items-start gap-3">
                   <MateUsersIcon className="mt-0.5 h-4 w-4 text-primary" />
                   <div>
-                    <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">참여 인원</p>
+                    <p className={mateMetaLabelClass}>참여 인원</p>
                     <p className="mt-1 font-semibold text-gray-900 dark:text-white">
                       {checkedInCount}/{totalParticipants}명 체크인
                     </p>
@@ -200,7 +202,7 @@ export default function MateCheckInOverviewRuntime({
         </div>
       </Card>
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4" data-testid="checkin-summary-strip">
+      <div className={mateSummaryGridClass} data-testid="checkin-summary-strip">
         {summaryItems.map((item) => (
           <SummaryItem key={item.label} {...item} />
         ))}

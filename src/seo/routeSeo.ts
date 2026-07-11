@@ -13,6 +13,7 @@ type SeoRouteConfig = {
 };
 
 type SeoPolicy = {
+  defaultOgImagePath?: string;
   indexableRoutes: SeoRouteConfig[];
   noindexPrefixes: string[];
   noindexRegex: string[];
@@ -23,12 +24,20 @@ const DEFAULT_SITE_URL = 'https://www.begabaseball.xyz';
 const DEFAULT_TITLE = 'BEGA | KBO 야구 플랫폼';
 const DEFAULT_DESCRIPTION = 'KBO 팬을 위한 경기 정보와 커뮤니티를 제공합니다.';
 const DEFAULT_HEADING = 'BEGA';
-const OG_IMAGE_PATH = '/favicon.png';
+const FALLBACK_OG_IMAGE_PATH = '/favicon.png';
 
 const seoPolicy = rawSeoRoutes as SeoPolicy;
 const viteEnv = ((import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env || {});
 
 const normalizeSiteUrl = (value: string): string => value.replace(/\/+$/, '');
+const normalizePublicPath = (value: string): string => {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return FALLBACK_OG_IMAGE_PATH;
+  }
+
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
 const normalizePathname = (value: string): string => {
   if (!value) {
     return '/';
@@ -57,6 +66,8 @@ const indexableRouteMap = new Map(
 );
 
 export const SITE_URL = normalizeSiteUrl(viteEnv.VITE_SITE_URL || DEFAULT_SITE_URL);
+export const DEFAULT_OG_IMAGE_PATH = normalizePublicPath(seoPolicy.defaultOgImagePath || FALLBACK_OG_IMAGE_PATH);
+export const DEFAULT_OG_IMAGE_URL = `${SITE_URL}${DEFAULT_OG_IMAGE_PATH}`;
 export const INDEXABLE_ROUTE_PATHS = seoPolicy.indexableRoutes.map((route) => route.path);
 export const PRERENDER_ROUTE_PATHS = [...INDEXABLE_ROUTE_PATHS];
 export const ROBOTS_DISALLOW_PATHS = [...seoPolicy.robotsDisallow];
@@ -102,7 +113,6 @@ const buildRule = (
   const heading = routeConfig?.heading || DEFAULT_HEADING;
   const canonicalUrl = buildCanonicalUrl(normalizedPath);
   const robots: SeoRouteRule['robots'] = isIndexable ? 'index,follow' : 'noindex,nofollow';
-  const ogImage = `${SITE_URL}${OG_IMAGE_PATH}`;
 
   return {
     pathname: normalizedPath,
@@ -115,7 +125,7 @@ const buildRule = (
       type: 'website',
       title,
       description,
-      image: ogImage,
+      image: DEFAULT_OG_IMAGE_URL,
       url: canonicalUrl,
     },
     twitterCard: 'summary_large_image',

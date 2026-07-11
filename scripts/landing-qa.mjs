@@ -93,6 +93,7 @@ const getArtifactPaths = (directory) => ({
   mobile: join(directory, 'landing-mobile.png'),
   tablet: join(directory, 'landing-tablet.png'),
   desktop: join(directory, 'landing-desktop.png'),
+  capabilities: join(directory, 'landing-capabilities.png'),
   features: join(directory, 'landing-features.png'),
 });
 
@@ -575,7 +576,7 @@ const buildSummaryMarkdown = (report) => {
       `- First feature after click: ${report.interaction.firstAfterClick}`,
       `- Fourth feature after click: ${report.interaction.fourthAfterClick}`,
       `- First feature after fourth click: ${report.interaction.firstAfterFourth}`,
-      `- Mockup offset after scroll: ${report.interaction.mockupStyleAfter}`,
+      `- Mockup image: ${report.interaction.mockupImageBefore} -> ${report.interaction.mockupImageAfter}`,
     );
   }
 
@@ -706,11 +707,17 @@ const main = async () => {
       '[data-testid="landing-header-cta"]',
       '[data-testid="landing-hero-cta-primary"]',
       '[data-testid="landing-hero-cta-secondary"]',
+      '[data-testid="landing-capability-showcase"]',
+      '[data-testid="landing-capability-grid"]',
       '[data-testid="landing-cta-button"]',
     ];
     const landingFeatureSelectors = [
       ...landingInitialSelectors,
       '[data-testid="landing-feature-layout"]',
+    ];
+    const landingCapabilitySelectors = [
+      ...landingInitialSelectors,
+      '[data-testid="landing-capability-grid"] img',
     ];
     const loadDeferredFeatures = async (description) => {
       await client.send('Runtime.evaluate', {
@@ -793,13 +800,20 @@ const main = async () => {
     await delay(400);
     await ensureReady(landingFeatureSelectors, 'landing desktop interaction');
 
+    await client.send('Runtime.evaluate', {
+      expression: `document.querySelector('[data-testid="landing-capability-showcase"]')?.scrollIntoView({ block: 'start' }); 'ok';`,
+      returnByValue: true,
+    });
+    await delay(700);
+    await ensureReady(landingCapabilitySelectors, 'landing capability capture');
+    await captureScreenshot(client, artifacts.capabilities);
+
     const interaction = await evaluateJson(client, `
       new Promise((resolve) => {
         const first = document.querySelector('[data-testid="landing-feature-card-0"]');
         const fourth = document.querySelector('[data-testid="landing-feature-card-3"]');
-        const fifth = document.querySelector('[data-testid="landing-feature-card-4"]');
         const mockup = document.querySelector('[data-testid="landing-laptop-mockup"]');
-        const before = mockup?.getAttribute('style') || '';
+        const before = mockup?.querySelector('img')?.getAttribute('alt') || '';
 
         first?.click();
         setTimeout(() => {
@@ -808,15 +822,13 @@ const main = async () => {
           setTimeout(() => {
             const fourthAfterClick = fourth?.getAttribute('aria-expanded') || null;
             const firstAfterFourth = first?.getAttribute('aria-expanded') || null;
-            const top = fifth?.getBoundingClientRect().top || 0;
-            window.scrollBy({ top, behavior: 'auto' });
             setTimeout(() => {
               resolve(JSON.stringify({
                 firstAfterClick,
                 fourthAfterClick,
                 firstAfterFourth,
-                mockupStyleBefore: before,
-                mockupStyleAfter: mockup?.getAttribute('style') || '',
+                mockupImageBefore: before,
+                mockupImageAfter: mockup?.querySelector('img')?.getAttribute('alt') || '',
                 scrollY: window.scrollY,
                 guideVisible: !!Array.from(document.querySelectorAll('h4')).find((node) => node.textContent?.includes('사용 가이드')),
               }));
@@ -948,8 +960,8 @@ const main = async () => {
       failures.push('Interaction: feature guide did not render after expansion.');
     }
 
-    if (interaction.mockupStyleBefore === interaction.mockupStyleAfter || /0px/.test(interaction.mockupStyleAfter)) {
-      failures.push(`Interaction: laptop mockup scroll offset did not change. before=${interaction.mockupStyleBefore} after=${interaction.mockupStyleAfter}`);
+    if (interaction.mockupImageBefore === interaction.mockupImageAfter || interaction.mockupImageAfter !== '전력분석실') {
+      failures.push(`Interaction: laptop mockup image did not change. before=${interaction.mockupImageBefore} after=${interaction.mockupImageAfter}`);
     }
 
     if (secondaryScroll.path !== '/') {

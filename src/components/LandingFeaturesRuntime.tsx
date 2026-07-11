@@ -1,7 +1,6 @@
 import { useState } from 'react';
 
 import { LANDING_FEATURES } from '../constants/landing';
-import { useLandingScroll } from '../hooks/useLandingScroll';
 import FeatureCard from './FeatureCard';
 import LaptopMockup from './LaptopMockup';
 import { Container, Section, SectionHeader } from './ui/page-primitives';
@@ -10,13 +9,6 @@ import './LandingFeaturesRuntime.css';
 export default function LandingFeaturesRuntime() {
   const [activeFeature, setActiveFeature] = useState(0);
   const [expandedFeature, setExpandedFeature] = useState<number | null>(null);
-  const {
-    scrollProgress,
-    scrollDistance,
-    featureRefs,
-    laptopRef,
-    featuresContainerRef,
-  } = useLandingScroll();
 
   const handleFeatureToggle = (index: number) => {
     setActiveFeature(index);
@@ -24,26 +16,25 @@ export default function LandingFeaturesRuntime() {
   };
 
   return (
-    <Section id="features" className="bg-background" data-testid="landing-features">
+    <Section id="features" className="landing-feature-section bg-background" data-testid="landing-features">
       <Container>
         <SectionHeader
-          eyebrow="주요 기능"
           title={
             <>
-              비율과 간격을 정리해 한눈에 이해되는 야구 경험
+              경기 전, 현장, 경기 후가 이어집니다
             </>
           }
-          description="모든 기능을 같은 리듬으로 배치해 무엇이 중요한지 빠르게 파악할 수 있도록 구성했습니다."
+          description="오늘 경기 확인, 예측, 메이트, 구장 가이드, 응원, 다이어리를 실제 사용 순서로 정리했습니다."
           measure="default"
-          className="lg:mb-16"
+          align="start"
+          className="landing-feature-header lg:mb-16"
         />
 
         <div
           className="landing-feature-layout"
-          ref={featuresContainerRef}
           data-testid="landing-feature-layout"
         >
-          <div className="space-y-6">
+          <div className="landing-feature-list">
             {LANDING_FEATURES.map((feature, index) => (
               <FeatureCard
                 key={index}
@@ -52,9 +43,6 @@ export default function LandingFeaturesRuntime() {
                 isActive={activeFeature === index}
                 isExpanded={expandedFeature === index}
                 onToggle={() => handleFeatureToggle(index)}
-                featureRef={(el) => {
-                  featureRefs.current[index] = el;
-                }}
               />
             ))}
           </div>
@@ -63,9 +51,6 @@ export default function LandingFeaturesRuntime() {
             <LaptopMockup
               activeFeature={activeFeature}
               features={LANDING_FEATURES}
-              scrollProgress={scrollProgress}
-              scrollDistance={scrollDistance}
-              laptopRef={laptopRef}
             />
           </div>
         </div>

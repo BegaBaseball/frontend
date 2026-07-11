@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react';
-import { Search } from 'lucide-react';
+import {
+  ImageSquareIcon,
+  MagnifyingGlassIcon as Search,
+  MapPinIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 
 import SeatViewGallery from '../SeatViewGallery';
 import type {
@@ -39,10 +44,7 @@ function EmptyState({ copy, mode }: { copy?: SeatMapCommonCopy; mode: SeatMapThe
           color: isDark ? STADIUM_SEATMAP_DARK_COLORS.accent : undefined,
         }}
       >
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-          <circle cx="12" cy="10" r="3" />
-        </svg>
+        <MapPinIcon size={28} weight="regular" aria-hidden="true" />
       </div>
       <p className="mb-1.5 text-sm font-bold text-slate-700 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
         {copy?.emptyTitle ?? '구역을 선택하세요'}
@@ -129,9 +131,7 @@ export function SeatMapDetailPanel<TSection>({
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6L6 18M6 6l12 12" />
-          </svg>
+          <XIcon size={18} weight="bold" aria-hidden="true" />
         </button>
 
         <div className="mb-2 flex flex-wrap items-center gap-2 pr-10">
@@ -257,11 +257,7 @@ export function SeatMapDetailPanel<TSection>({
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           style={{ background: uploadDisabled ? '#94a3b8' : accent }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <path d="M21 15l-5-5L5 21" />
-          </svg>
+          <ImageSquareIcon size={16} weight="bold" aria-hidden="true" />
           {getUploadLabel?.(section) ?? copy?.uploadLabel ?? '이 구역 시야 사진 올리기'}
         </button>
       </div>

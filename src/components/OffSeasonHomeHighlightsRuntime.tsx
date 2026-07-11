@@ -27,6 +27,8 @@ export default function OffSeasonHomeHighlightsRuntime({
   rankings,
   isLargeScreen,
 }: OffSeasonHomeHighlightsRuntimeProps) {
+  const [featuredAward, ...secondaryAwards] = awards;
+
   return (
     <>
       <section>
@@ -37,26 +39,53 @@ export default function OffSeasonHomeHighlightsRuntime({
           <h3 className="text-xl md:text-2xl font-black text-primary">시상식 결과</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {awards.map((award, index) => (
-            <Card key={index} className="overflow-hidden hover:shadow-xl transition-all border-none bg-white dark:bg-background group ring-1 ring-black/5 dark:ring-white/10">
-              <div className="p-5 md:p-6">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="flex h-14 w-14 md:h-16 md:w-16 items-center justify-center rounded-xl md:rounded-2xl bg-gray-50 dark:bg-card border border-gray-100 dark:border-border shadow-sm transition-transform group-hover:rotate-6">
-                    <TeamLogo team={award.team} size={36} className="md:w-11 md:h-11" />
+        {featuredAward ? (
+          <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
+            <Card className="overflow-hidden border-none bg-white ring-1 ring-black/5 transition-all hover:shadow-xl dark:bg-background dark:ring-white/10">
+              <div className="flex h-full flex-col justify-between gap-6 p-5">
+                <div className="flex items-center gap-5">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-gray-100 bg-gray-50 shadow-sm dark:border-border dark:bg-card md:h-20 md:w-20">
+                    <TeamLogo team={featuredAward.team} size={46} className="md:h-14 md:w-14" />
                   </div>
-                  <div className="flex-1">
-                    <h4 className="text-15 md:text-15 font-black text-primary uppercase tracking-wider mb-0.5 md:mb-1">{award.award}</h4>
-                    <p className="text-lg md:text-xl font-bold text-gray-900 dark:text-white">{award.playerName}</p>
+                  <div className="min-w-0">
+                    <h4 className="mb-1 text-13 font-semibold text-primary/80">{featuredAward.award}</h4>
+                    <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white md:text-3xl">
+                      {featuredAward.playerName}
+                    </p>
                   </div>
                 </div>
-                <div className="pt-3 md:pt-4 border-t border-gray-100 dark:border-border">
-                  <p className="text-15 md:text-15 text-gray-600 dark:text-white font-semibold leading-relaxed">{award.stats}</p>
+                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 dark:border-white/10 dark:bg-card">
+                  <p className="text-base font-semibold leading-relaxed text-gray-700 dark:text-white md:text-lg">
+                    {featuredAward.stats}
+                  </p>
                 </div>
               </div>
             </Card>
-          ))}
-        </div>
+
+            {secondaryAwards.length > 0 ? (
+              <div className="grid gap-4">
+                {secondaryAwards.map((award) => (
+                  <Card key={`${award.award}-${award.playerName}`} className="overflow-hidden border-none bg-white ring-1 ring-black/5 transition-all hover:shadow-lg dark:bg-background dark:ring-white/10">
+                    <div className="flex items-center gap-4 p-4 md:p-5">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-gray-100 bg-gray-50 shadow-sm dark:border-border dark:bg-card md:h-14 md:w-14">
+                        <TeamLogo team={award.team} size={32} className="md:h-10 md:w-10" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                          <h4 className="text-13 font-semibold text-primary/80">{award.award}</h4>
+                          <p className="font-bold text-gray-900 dark:text-white">{award.playerName}</p>
+                        </div>
+                        <p className="mt-2 text-15 font-semibold leading-relaxed text-gray-600 dark:text-white">
+                          {award.stats}
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
 
       <section>

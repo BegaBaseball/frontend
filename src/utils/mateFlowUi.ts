@@ -5,19 +5,25 @@ export const matePageShellClass =
   'relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200';
 
 export const mateHeroCardClass =
-  'overflow-hidden rounded-20 border border-gray-200/90 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/15 dark:bg-[#000000] dark:shadow-[0_10px_28px_rgba(0,0,0,0.35)]';
+  'overflow-hidden rounded-xl border border-gray-200/90 bg-white shadow-[0_8px_24px_rgba(15,23,42,0.06)] dark:border-white/15 dark:bg-card dark:shadow-[0_10px_28px_rgba(0,0,0,0.35)]';
 
 export const mateSectionCardClass =
-  'border border-gray-200/90 bg-white dark:border-white/15 dark:bg-[#000000]';
+  'border border-gray-200/90 bg-white dark:border-white/15 dark:bg-card';
 
 export const mateInsetPanelClass =
-  'rounded-14 border border-gray-200/80 bg-gray-50/90 dark:border-white/10 dark:bg-secondary/70';
+  'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-white/10 dark:bg-secondary/70';
+
+export const mateMetaLabelClass =
+  'text-13 font-semibold leading-snug text-gray-500 dark:text-white/70';
+
+export const mateSummaryGridClass =
+  'grid gap-3 sm:grid-cols-2';
 
 export const mateSubtlePanelClass =
   'rounded-xl border border-dashed border-gray-200 bg-white/80 dark:border-border/70 dark:bg-card/70';
 
 export const mateMobileBarClass =
-  'fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[60] border-t border-gray-200/90 bg-white/95 px-4 pt-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] backdrop-blur-sm dark:border-border dark:bg-card/95 min-h-[74px] pb-3 md:bottom-0 md:pb-[calc(env(safe-area-inset-bottom)+0.75rem)]';
+  'fixed inset-x-0 bottom-[calc(5.5rem+env(safe-area-inset-bottom))] z-[60] border-t border-gray-200/90 bg-white px-4 pt-3 shadow-[0_-12px_30px_rgba(15,23,42,0.08)] dark:border-border dark:bg-card min-h-[74px] pb-3 md:bottom-0 md:pb-[calc(env(safe-area-inset-bottom)+0.75rem)]';
 
 export const getPartyStatusMeta = (status: PartyStatus): { label: string; className: string } => {
   const meta = getMateStatusBadgeMeta(status);

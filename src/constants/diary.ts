@@ -6,7 +6,7 @@ import happyEmoji from '../assets/e2bd5a0f58df48e435d03f049811638d849de606.png';
 import type { WinningType } from '../types/diary';
 
 type WinningOption = {
-  value: Exclude<WinningType, ''>;
+  value: Exclude<WinningType, '' | null>;
   label: string;
   bg: string;
   lightBg: string;

@@ -27,40 +27,6 @@ const FALLBACK_TEXT_SIZE_MAP: Record<NonNullable<ProfileImageProps['size']>, str
   xl: 'text-lg',
 };
 
-const ICON_SIZE_MAP: Record<NonNullable<ProfileImageProps['size']>, number> = {
-  xs: 12,
-  sm: 14,
-  md: 18,
-  lg: 22,
-  xl: 28,
-};
-
-function ProfileImageFallbackIcon({
-  size,
-  className,
-}: {
-  size: number;
-  className?: string;
-}) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      width={size}
-      height={size}
-      className={className}
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="8" r="4" />
-      <path d="M5 20a7 7 0 0 1 14 0" />
-    </svg>
-  );
-}
-
 /**
  * 레거시 storage URL 또는 로컬 에셋 경로를 감지하여 null을 반환합니다.
  * authStore.ts의 normalizeProfileImageUrl 로직과 동일한 규칙을 따릅니다.
@@ -114,7 +80,6 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
 
   const sizeClass = SIZE_CLASS_MAP[size];
   const fallbackTextClass = FALLBACK_TEXT_SIZE_MAP[size];
-  const iconSize = ICON_SIZE_MAP[size];
   const imageAlt = alt ?? username ?? '프로필';
 
   return (
@@ -140,7 +105,7 @@ export const ProfileImage: React.FC<ProfileImageProps> = ({
           {initial ? (
             <span className={fallbackTextClass}>{initial}</span>
           ) : (
-            <ProfileImageFallbackIcon size={iconSize} className="text-slate-400 dark:text-white" />
+            <span className={fallbackTextClass} aria-hidden="true">?</span>
           )}
         </div>
       )}

@@ -26,6 +26,9 @@ type QualityOption = {
   hint: string;
 };
 
+const adminFieldLabelClassName =
+  'text-caption font-semibold text-slate-400';
+
 const getSectionBadgeClass = (section: string) => {
   if (section.includes('FA')) {
     return 'bg-sky-500/20 text-sky-300 border-0';
@@ -34,7 +37,7 @@ const getSectionBadgeClass = (section: string) => {
     return 'bg-orange-500/20 text-orange-300 border-0';
   }
   if (section.includes('외국인')) {
-    return 'bg-violet-500/20 text-violet-300 border-0';
+    return 'bg-amber-500/20 text-amber-300 border-0';
   }
   if (section.includes('방출') || section.includes('웨이버')) {
     return 'bg-slate-700 text-slate-200 border-0';
@@ -110,7 +113,7 @@ export default function OffseasonMovementAdminResultsRuntime({
           </div>
           {csvReport.errors.length > 0 && (
             <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/80 p-3">
-              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Failed Rows</p>
+              <p className={adminFieldLabelClassName}>실패 행</p>
               <div className="mt-2 space-y-1 text-caption text-slate-300">
                 {csvReport.errors.slice(0, 5).map((message) => (
                   <p key={message}>{message}</p>
@@ -126,7 +129,7 @@ export default function OffseasonMovementAdminResultsRuntime({
 
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <div className="h-8 w-8 rounded-full border-2 border-emerald-400 border-t-transparent animate-spin" />
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-400 border-t-transparent motion-reduce:animate-none" />
         </div>
       ) : (
         <div className="rounded-2xl border border-slate-800 overflow-hidden">
@@ -155,11 +158,10 @@ export default function OffseasonMovementAdminResultsRuntime({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredMovements.map((movement, index) => (
+                filteredMovements.map((movement) => (
                   <TableRow
                     key={movement.id}
-                    className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
-                    style={{ animationDelay: `${index * 35}ms` }}
+                    className="border-slate-800 transition-colors duration-150 hover:bg-slate-800/30"
                   >
                     <TableCell className="text-slate-300 text-caption font-semibold">{formatDate(movement.movementDate)}</TableCell>
                     <TableCell>
@@ -190,7 +192,7 @@ export default function OffseasonMovementAdminResultsRuntime({
                             <AdminBadge className="border-0 bg-amber-500/15 text-12 text-amber-200">상세 메모 없음</AdminBadge>
                           )}
                           {!hasStructuredValue(movement) && (
-                            <AdminBadge className="border-0 bg-violet-500/15 text-12 text-violet-200">구조화 없음</AdminBadge>
+                            <AdminBadge className="border-0 bg-amber-500/15 text-12 text-amber-200">구조화 없음</AdminBadge>
                           )}
                           {!hasSourceValue(movement) && (
                             <AdminBadge className="border-0 bg-sky-500/15 text-12 text-sky-200">출처 없음</AdminBadge>

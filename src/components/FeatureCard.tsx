@@ -25,14 +25,13 @@ export default function FeatureCard({
   isActive,
   isExpanded,
   onToggle,
-  featureRef
 }: FeatureCardProps) {
   const Icon = featureIconMap[feature.iconKey];
   const imageSource = feature.mobileImage || feature.image;
   const fallbackImage = feature.image;
 
   return (
-    <div ref={featureRef} className="space-y-4">
+    <div className="space-y-4">
       <button
         type="button"
         onClick={onToggle}
@@ -93,9 +92,7 @@ export default function FeatureCard({
           <ul className="space-y-4">
             {feature.guide.map((step, stepIndex) => (
               <li key={stepIndex} className="flex items-start gap-3 text-body leading-6 text-foreground/80">
-                <span className="landing-step-badge flex-shrink-0">
-                  {stepIndex + 1}
-                </span>
+                <span className="landing-guide-marker flex-shrink-0" aria-hidden="true" />
                 <span className="pt-0.5">{step}</span>
               </li>
             ))}

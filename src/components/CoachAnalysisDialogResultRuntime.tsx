@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useMemo, useState, type SVGProps } from 'react';
+import { SpinnerGap } from '@phosphor-icons/react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import ErrorBoundary from './common/ErrorBoundary';
 
@@ -24,23 +25,6 @@ import {
 } from '../utils/coachAnalysisText';
 
 const CoachAnalysisResultView = lazy(() => import('./prediction/CoachAnalysisResultView'));
-
-function CoachResultLoaderIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            {...props}
-        >
-            <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-        </svg>
-    );
-}
 
 type ParsedCoachAnalysisData = {
     dashboard?: {
@@ -856,12 +840,12 @@ export default function CoachAnalysisDialogResultRuntime({
         <>
             {loading && !analysisData && (
                 <div className="p-6">
-                    <div className="rounded-20 border border-[#e5e7eb] bg-[#f7fafc] p-6 dark:border-white/10 dark:bg-white/[0.03]">
-                        <div className="flex items-center gap-3 text-[#2d5f4f] dark:text-emerald-200">
-                            <CoachResultLoaderIcon className="h-5 w-5 animate-spin shrink-0" />
+                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-white/10 dark:bg-white/[0.03]">
+                        <div className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
+                            <SpinnerGap className="h-5 w-5 animate-spin shrink-0" aria-hidden="true" />
                             <span className="text-15 font-extrabold">{analysisStep || loadingFallbackMessage}</span>
                         </div>
-                        <p className="mt-2 break-keep text-13 font-bold leading-relaxed text-[#64748b] dark:text-white">
+                        <p className="mt-2 break-keep text-13 font-bold leading-relaxed text-slate-500 dark:text-white">
                             응답을 C1 코치 리포트 구조로 정리하고 있습니다.
                         </p>
                     {!result && (

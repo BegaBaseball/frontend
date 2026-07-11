@@ -28,6 +28,7 @@ export default function DeferredPretendardFont() {
     let idleId: number | null = null;
     let fallbackId: number | null = null;
     let homeFallbackId: number | null = null;
+    const setWindowTimeout = window.setTimeout.bind(window);
 
     const appendStylesheet = () => {
       if (cancelled || document.getElementById(PRETENDARD_STYLESHEET_ID)) {
@@ -59,7 +60,7 @@ export default function DeferredPretendardFont() {
         return;
       }
 
-      fallbackId = window.setTimeout(appendStylesheet, 0);
+      fallbackId = setWindowTimeout(appendStylesheet, 0);
     };
 
     const homeWindow = window as HomeFirstCardReadyWindow;
@@ -79,7 +80,7 @@ export default function DeferredPretendardFont() {
         requestFontWhenReady();
       } else {
         window.addEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);
-        homeFallbackId = window.setTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);
+        homeFallbackId = setWindowTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);
       }
     } else {
       requestFontWhenReady();

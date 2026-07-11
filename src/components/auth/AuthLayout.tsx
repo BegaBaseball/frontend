@@ -45,7 +45,6 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
                 priority={true}
               />
               <div className="space-y-3">
-                <p className="auth-eyebrow mx-auto">KBO Fan Guide</p>
                 <div className="space-y-2">
                   <h2 className="text-5xl font-bold tracking-[-0.08em] text-white sm:text-6xl">
                     BEGA
