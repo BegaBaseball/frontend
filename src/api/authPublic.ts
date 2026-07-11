@@ -1,6 +1,7 @@
 import { SERVER_BASE_URL } from '../constants/config';
 import { parseError } from '../utils/errorUtils';
 import { sanitizeLoginRedirect } from '../utils/loginRedirect';
+import { getApiBaseUrl } from './apiBase';
 import {
   PublicApiError,
   publicGet,
@@ -351,13 +352,44 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
   }
 };
 
-const OAUTH_LOGIN_BASE_URL = SERVER_BASE_URL;
+type SocialLoginProvider = 'kakao' | 'google' | 'naver';
 
-export const getSocialLoginUrl = (
-  provider: 'kakao' | 'google' | 'naver',
-  params?: { mode?: 'link'; linkToken?: string },
+type SocialLoginParams = {
+  mode?: 'link';
+  linkToken?: string;
+};
+
+const normalizeBaseUrl = (value: string): string => value.trim().replace(/\/+$/, '');
+
+const isAbsoluteHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+
+export const resolveOAuthLoginBaseUrl = (
+  apiBaseUrl = getApiBaseUrl(),
+  serverBaseUrl = SERVER_BASE_URL,
 ): string => {
-  const url = `${OAUTH_LOGIN_BASE_URL}/oauth2/authorization/${provider}`;
+  const normalizedApiBaseUrl = normalizeBaseUrl(apiBaseUrl || '');
+
+  if (isAbsoluteHttpUrl(normalizedApiBaseUrl)) {
+    try {
+      const parsed = new URL(normalizedApiBaseUrl);
+      const servicePath = parsed.pathname
+        .replace(/\/+$/, '')
+        .replace(/\/api$/i, '');
+      return normalizeBaseUrl(`${parsed.origin}${servicePath}`);
+    } catch {
+      // Fall back to the direct backend URL below.
+    }
+  }
+
+  return normalizeBaseUrl(serverBaseUrl);
+};
+
+export const buildSocialLoginUrl = (
+  provider: SocialLoginProvider,
+  params?: SocialLoginParams,
+  oauthLoginBaseUrl = resolveOAuthLoginBaseUrl(),
+): string => {
+  const url = `${normalizeBaseUrl(oauthLoginBaseUrl)}/oauth2/authorization/${provider}`;
   if (params) {
     const query = new URLSearchParams();
     if (params.mode) query.append('mode', params.mode);
@@ -366,6 +398,11 @@ export const getSocialLoginUrl = (
   }
   return url;
 };
+
+export const getSocialLoginUrl = (
+  provider: SocialLoginProvider,
+  params?: SocialLoginParams,
+): string => buildSocialLoginUrl(provider, params);
 
 export const requestPasswordReset = async (
   email: string,

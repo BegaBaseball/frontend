@@ -146,6 +146,10 @@ const buildProviderUrl = (backendOrigin, provider) => (
   new URL(`/oauth2/authorization/${provider}`, backendOrigin).toString()
 );
 
+const buildExpectedRedirectUri = (backendOrigin, provider) => (
+  new URL(`/login/oauth2/code/${provider}`, backendOrigin).toString()
+);
+
 const inspectProviderRedirect = async (backendOrigin, provider, timeoutMs) => {
   const expectation = PROVIDER_EXPECTATIONS[provider];
   if (!expectation) {
@@ -153,6 +157,7 @@ const inspectProviderRedirect = async (backendOrigin, provider, timeoutMs) => {
   }
 
   const url = buildProviderUrl(backendOrigin, provider);
+  const expectedRedirectUri = buildExpectedRedirectUri(backendOrigin, provider);
   const response = await fetch(url, {
     redirect: 'manual',
     headers: {
@@ -183,12 +188,25 @@ const inspectProviderRedirect = async (backendOrigin, provider, timeoutMs) => {
     );
   }
 
+  const redirectUri = parsedLocation.searchParams.get('redirect_uri') || '';
+  if (!redirectUri) {
+    throw new Error(`${provider} authorization Location is missing redirect_uri`);
+  }
+
+  if (redirectUri !== expectedRedirectUri) {
+    throw new Error(
+      `${provider} redirect_uri was ${redirectUri}, expected ${expectedRedirectUri}`,
+    );
+  }
+
   return {
     provider,
     status: response.status,
     authorizationHost: parsedLocation.hostname,
     hasState: parsedLocation.searchParams.has('state'),
-    hasRedirectUri: parsedLocation.searchParams.has('redirect_uri'),
+    hasRedirectUri: true,
+    redirectUri,
+    expectedRedirectUri,
     hasClientId: parsedLocation.searchParams.has('client_id'),
   };
 };
