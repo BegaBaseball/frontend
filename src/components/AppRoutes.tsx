@@ -9,7 +9,7 @@ const shouldPreloadInitialHomeRoute = /^\/home\/?$/.test(initialPathname);
 const shouldPreloadInitialCheerRoute = /^\/cheer(?:\/write)?\/?$/.test(initialPathname);
 const shouldPreloadInitialMateRoute = /^\/mate\/?$/.test(initialPathname);
 const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;
-const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;
+const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;
 const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;
 const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;
 const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;
@@ -97,6 +97,7 @@ export default function AppRoutes() {
 
       <Route element={<Layout authenticated={false} />}>
         <Route path="/home" element={<Home />} />
+        <Route path="/mate" element={<MatePage />} />
       </Route>
 
       <Route element={<AppQueryProvider />}>
@@ -116,7 +117,6 @@ export default function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
-          <Route path="/mate" element={<MatePage />} />
         </Route>
 
         <Route element={<Layout authenticated={true} />}>

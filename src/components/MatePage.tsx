@@ -7,6 +7,7 @@ import { Button } from './ui/button';
 
 const MateRuntime = lazy(() => import('./Mate'));
 const MateGuestSampleList = lazy(() => import('./MateGuestSampleList'));
+const AppQueryProvider = lazy(() => import('./AppQueryProvider'));
 
 const MateFallback = () => (
   <div className="min-h-screen bg-white py-8 dark:bg-background">
@@ -89,7 +90,9 @@ export default function MatePage() {
 
   return (
     <Suspense fallback={<MateFallback />}>
-      <MateRuntime />
+      <AppQueryProvider>
+        <MateRuntime />
+      </AppQueryProvider>
     </Suspense>
   );
 }

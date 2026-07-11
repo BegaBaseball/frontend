@@ -1834,12 +1834,12 @@ const routeStaticClosureTargets = [
   },
   {
     route: '/mate',
-    label: '/mate route static closure',
-    maxJsGzipBytes: 122_000,
+    label: '/mate guest first-load static closure',
+    maxJsGzipBytes: 90_000,
     entrypoints: [
       'index.html',
+      'src/components/Layout.tsx',
       'src/components/MatePage.tsx',
-      'src/components/Mate.tsx',
     ],
   },
 ];
