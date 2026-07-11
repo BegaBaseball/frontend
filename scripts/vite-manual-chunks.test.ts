@@ -560,6 +560,9 @@ test('defers home match error UI outside the successful first-card static path',
   assert.equal(homeMatchPanelSource.includes('HOME_MATCH_REFRESH_ICON_CLASS'), false);
   assert.ok(homeMatchPanelSource.includes('경기 상태를 확인하고 있습니다.'));
   assert.ok(homeMatchPanelErrorStateSource.includes('HOME_MATCH_ERROR_PANEL_CLASS'));
+  assert.ok(homeMatchPanelErrorStateSource.includes('HOME_MATCH_ERROR_DESCRIPTION_CLASS'));
+  assert.ok(homeMatchPanelErrorStateSource.includes('text-sm font-semibold leading-5'));
+  assert.equal(homeMatchPanelErrorStateSource.includes('text-body font-bold mb-4'), false);
   assert.ok(homeMatchPanelErrorStateSource.includes('HOME_MATCH_RETRY_BUTTON_CLASS'));
   assert.ok(homeMatchPanelErrorStateSource.includes('다시 시도'));
   assert.ok(bundleGuardSource.includes("'HomeMatchPanelErrorState-'"));
