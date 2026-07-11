@@ -82,7 +82,7 @@ const fetchWithTimeout = async (url) => {
       headers: {
         'user-agent': 'bega-seo-postdeploy-smoke/1.0',
       },
-      redirect: 'follow',
+      redirect: 'manual',
       signal: controller.signal,
     });
   } finally {
@@ -90,9 +90,38 @@ const fetchWithTimeout = async (url) => {
   }
 };
 
+export const describeHttpStatusFailure = (response) => {
+  const location = response.headers.get('location');
+  if (location && response.status >= 300 && response.status < 400) {
+    return `HTTP ${response.status} redirect location=${location}`;
+  }
+  return `HTTP ${response.status}`;
+};
+
+export const resolveRedirectLocation = (candidateUrl, location) => {
+  if (!location) {
+    return '';
+  }
+
+  try {
+    return new URL(location, candidateUrl).toString().replace(/\/+$/, '');
+  } catch {
+    return '';
+  }
+};
+
+export const isRedirectToExpectedCanonical = (response, candidateUrl, canonicalUrl) => {
+  if (response.status < 300 || response.status >= 400) {
+    return false;
+  }
+
+  const location = response.headers.get('location');
+  return resolveRedirectLocation(candidateUrl, location) === normalizeSiteUrl(canonicalUrl);
+};
+
 const readTextOrFail = async (response, label) => {
   if (!response.ok) {
-    addFailure(`${label} 요청 실패: status=${response.status}`);
+    addFailure(`${label} 요청 실패: ${describeHttpStatusFailure(response)}`);
     return '';
   }
   return response.text();
@@ -384,9 +413,10 @@ const main = async () => {
 
   for (const route of indexableRoutes) {
     const candidates = buildRouteCandidates(baseUrl, route.path);
+    const canonicalUrl = buildUrl(expectedSiteUrl, route.path);
     const routeResult = { path: route.path, url: candidates[0], ok: false, status: 0, failures: [], candidates: [] };
 
-    for (const candidateUrl of candidates) {
+    for (const [candidateIndex, candidateUrl] of candidates.entries()) {
       const candidateResult = {
         url: candidateUrl,
         finalUrl: candidateUrl,
@@ -400,7 +430,15 @@ const main = async () => {
         candidateResult.status = response.status;
         candidateResult.finalUrl = response.url;
         if (!response.ok) {
-          candidateResult.failures.push(`HTTP ${response.status}`);
+          if (candidateIndex > 0 && isRedirectToExpectedCanonical(response, candidateUrl, canonicalUrl)) {
+            candidateResult.ok = true;
+            candidateResult.finalUrl = normalizeSiteUrl(canonicalUrl);
+            candidateResult.redirectToCanonical = true;
+            routeResult.candidates.push(candidateResult);
+            continue;
+          }
+
+          candidateResult.failures.push(describeHttpStatusFailure(response));
           routeResult.candidates.push(candidateResult);
           continue;
         }

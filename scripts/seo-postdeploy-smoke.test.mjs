@@ -8,6 +8,9 @@ import {
 } from './seo-policy.mjs';
 import { buildSeoHeadMarkup } from './prerender-seo.mjs';
 import {
+  describeHttpStatusFailure,
+  isRedirectToExpectedCanonical,
+  resolveRedirectLocation,
   summarizeHtmlContract,
   validatePrerenderedHtmlContract,
 } from './seo-postdeploy-smoke.mjs';
@@ -83,6 +86,26 @@ test('postdeploy smoke rejects generic tags with wrong route policy values', () 
 
   assert.ok(failures.some((failure) => failure.includes('title 값 불일치')));
   assert.ok(failures.some((failure) => failure.includes('description 값 불일치')));
+});
+
+test('postdeploy smoke reports redirect responses as SEO failures', () => {
+  const response = Response.redirect('https://www.begabaseball.xyz/home/', 307);
+
+  assert.equal(
+    describeHttpStatusFailure(response),
+    'HTTP 307 redirect location=https://www.begabaseball.xyz/home/',
+  );
+});
+
+test('postdeploy smoke accepts alias redirects only when they point at the expected canonical URL', () => {
+  const candidateUrl = 'https://www.begabaseball.xyz/home/';
+  const canonicalUrl = 'https://www.begabaseball.xyz/home';
+  const canonicalRedirect = Response.redirect(canonicalUrl, 301);
+  const nonCanonicalRedirect = Response.redirect('https://www.begabaseball.xyz/other', 301);
+
+  assert.equal(resolveRedirectLocation(candidateUrl, '/home'), canonicalUrl);
+  assert.equal(isRedirectToExpectedCanonical(canonicalRedirect, candidateUrl, canonicalUrl), true);
+  assert.equal(isRedirectToExpectedCanonical(nonCanonicalRedirect, candidateUrl, canonicalUrl), false);
 });
 
 test('postdeploy smoke rejects duplicate singleton SEO tags', () => {
