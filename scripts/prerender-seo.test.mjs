@@ -8,6 +8,7 @@ import {
   buildPerformanceRouteHeadMarkup,
   buildRootMarkup,
   buildSeoHeadMarkup,
+  deferPerformanceShellStyles,
   readSiteVerificationEnv,
 } from './prerender-seo.mjs';
 import { defaultOgImageUrl } from './seo-policy.mjs';
@@ -55,6 +56,15 @@ test('core indexable routes opt into the paintable performance shell', () => {
     const configuredRoute = seoPolicy.indexableRoutes.find((item) => item.path === routePath);
     assert.equal(configuredRoute?.performanceShell, true, `${routePath} performanceShell`);
   }
+});
+
+test('performance shell styles load without blocking the first paint', () => {
+  const stylesheet = '<link rel="stylesheet" crossorigin href="/assets/index-test.css">';
+  const html = deferPerformanceShellStyles(`<head>${stylesheet}</head>`);
+
+  assert.match(html, /rel="preload" as="style" data-performance-app-style="true"/);
+  assert.match(html, /onload="this\.onload=null;this\.rel='stylesheet';this\.dataset\.performanceStyleReady='true'"/);
+  assert.match(html, new RegExp(`<noscript>${escapeRegExp(stylesheet)}</noscript>`));
 });
 
 test('prerender SEO head includes escaped search verification meta tags', () => {

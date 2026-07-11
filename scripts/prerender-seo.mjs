@@ -198,6 +198,14 @@ export const buildRootMarkup = (route) => {
   ].join('');
 };
 
+export const deferPerformanceShellStyles = (html) => html.replace(
+  /<link rel="stylesheet"([^>]*href="[^"]+\.css[^"]*"[^>]*)>/g,
+  (stylesheetLink, attributes) => [
+    `<link rel="preload" as="style" data-performance-app-style="true"${attributes} onload="this.onload=null;this.rel='stylesheet';this.dataset.performanceStyleReady='true'">`,
+    `<noscript>${stylesheetLink}</noscript>`,
+  ].join(''),
+);
+
 const injectSeoRoot = (html, route) => {
   const rootMarkup = buildRootMarkup(route);
   let next = stripManagedRootBlock(html);
@@ -252,7 +260,10 @@ export const prerenderSeo = () => {
 
     const outputFile = routeToOutputFile(route.path);
     ensureDir(path.dirname(outputFile));
-    fs.writeFileSync(outputFile, rootResult.html, 'utf-8');
+    const outputHtml = route.performanceShell
+      ? deferPerformanceShellStyles(rootResult.html)
+      : rootResult.html;
+    fs.writeFileSync(outputFile, outputHtml, 'utf-8');
     report.push({
       path: route.path,
       file: path.relative(distDir, outputFile),
@@ -270,7 +281,7 @@ export const prerenderSeo = () => {
     const rootResult = injectSeoRoot(htmlWithHead, route);
     const outputFile = routeToOutputFile(route.path);
     ensureDir(path.dirname(outputFile));
-    fs.writeFileSync(outputFile, rootResult.html, 'utf-8');
+    fs.writeFileSync(outputFile, deferPerformanceShellStyles(rootResult.html), 'utf-8');
     performanceReport.push({
       path: route.path,
       file: path.relative(distDir, outputFile),

@@ -139,10 +139,11 @@ test('reveals the performance prerender shell before delayed React hydration', (
   );
   assert.ok(mainEntrySource.includes("rootEl.querySelector('[data-performance-prerender=\"true\"]')"));
   assert.ok(mainEntrySource.includes('const PERFORMANCE_PRERENDER_PAINT_DELAY_MS = 100;'));
-  assert.match(
-    mainEntrySource,
-    /if \(shouldRevealPerformancePrerenderBeforeMount\(\)\) \{\s*removeShellLoader\(true\);\s*globalThis\.setTimeout\(renderApp, PERFORMANCE_PRERENDER_PAINT_DELAY_MS\);\s*return;\s*\}/,
-  );
+  assert.ok(mainEntrySource.includes("link[data-performance-app-style=\"true\"]"));
+  assert.ok(mainEntrySource.includes('await Promise.all(['));
+  assert.ok(mainEntrySource.includes('waitForPerformanceStyles(),'));
+  assert.ok(mainEntrySource.includes('waitForDelay(PERFORMANCE_PRERENDER_PAINT_DELAY_MS),'));
+  assert.match(mainEntrySource, /removeShellLoader\(true\);\s*void mountPerformanceApp\(\);/);
   assert.match(
     mainEntrySource,
     /if \(immediate\) \{\s*shellLoader\.remove\(\);\s*return;\s*\}/,
