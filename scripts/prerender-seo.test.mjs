@@ -6,6 +6,7 @@ import { test } from 'node:test';
 
 import {
   buildPerformanceRouteHeadMarkup,
+  buildRootMarkup,
   buildSeoHeadMarkup,
   readSiteVerificationEnv,
 } from './prerender-seo.mjs';
@@ -29,6 +30,20 @@ test('performance-only route shell remains noindex without preload metadata', ()
   assert.match(html, /<meta name="robots" content="noindex,nofollow">/);
   assert.match(html, /<meta name="description" content="경기 승부를 예측하세요\.">/);
   assert.doesNotMatch(html, /modulepreload|ROUTE-MODULE-PRELOAD|index,follow/);
+});
+
+test('performance-only route root is a fixed paintable shell', () => {
+  const html = buildRootMarkup({
+    title: '승부예측 | BEGA',
+    description: '경기 승부를 예측하세요.',
+    heading: 'KBO 승부예측',
+    performanceShell: true,
+  });
+
+  assert.match(html, /data-performance-prerender="true"/);
+  assert.match(html, /style="position:fixed;inset:0;z-index:1;display:flex;/);
+  assert.match(html, /<h1 style="margin:0;font-size:24px;/);
+  assert.match(html, /<p style="margin:12px 0 0;/);
 });
 
 test('prerender SEO head includes escaped search verification meta tags', () => {

@@ -22,12 +22,14 @@ const performanceOnlyRoutes = [
     title: '승부예측 | BEGA',
     description: 'KBO 경기 승부를 예측하고 결과를 확인하세요.',
     heading: 'KBO 승부예측',
+    performanceShell: true,
   },
   {
     path: '/mate',
     title: '직관 메이트 | BEGA',
     description: '경기 일정과 좌석을 기준으로 함께 직관할 메이트를 찾아보세요.',
     heading: '직관 메이트 찾기',
+    performanceShell: true,
   },
 ];
 
@@ -175,16 +177,26 @@ const injectSeoHead = (html, route) => {
   );
 };
 
-const buildRootMarkup = (route) => (
-  [
+export const buildRootMarkup = (route) => {
+  const performanceShellAttributes = route.performanceShell
+    ? ' data-performance-prerender="true" style="position:fixed;inset:0;z-index:1;display:flex;min-height:100vh;box-sizing:border-box;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:inherit;color:inherit;text-align:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"'
+    : '';
+  const headingStyle = route.performanceShell
+    ? ' style="margin:0;font-size:24px;line-height:1.3;font-weight:800"'
+    : '';
+  const descriptionStyle = route.performanceShell
+    ? ' style="margin:12px 0 0;max-width:32rem;font-size:15px;line-height:1.6;font-weight:600;opacity:.72"'
+    : '';
+
+  return [
     '<!-- SEO-PRERENDER:START -->',
-    '<main data-seo-prerender="true">',
-    `<h1>${escapeHtml(route.heading)}</h1>`,
-    `<p>${escapeHtml(route.description)}</p>`,
+    `<main data-seo-prerender="true"${performanceShellAttributes}>`,
+    `<h1${headingStyle}>${escapeHtml(route.heading)}</h1>`,
+    `<p${descriptionStyle}>${escapeHtml(route.description)}</p>`,
     '</main>',
     '<!-- SEO-PRERENDER:END -->',
-  ].join('')
-);
+  ].join('');
+};
 
 const injectSeoRoot = (html, route) => {
   const rootMarkup = buildRootMarkup(route);

@@ -15,6 +15,7 @@ const defaultRenderPerf: RenderPerfController = {
   enabled: false,
   onReactRender: null,
 };
+const PERFORMANCE_PRERENDER_PAINT_DELAY_MS = 100;
 
 const rootEl = document.getElementById("root")!;
 
@@ -32,9 +33,14 @@ const isRenderPerfRequested = (): boolean => {
   return params.get('perf') === 'render' || params.get('debugRenderPerf') === '1';
 };
 
-const removeShellLoader = () => {
+const removeShellLoader = (immediate = false) => {
   const shellLoader = document.getElementById('app-shell-loader');
   if (!shellLoader) {
+    return;
+  }
+
+  if (immediate) {
+    shellLoader.remove();
     return;
   }
 
@@ -42,6 +48,10 @@ const removeShellLoader = () => {
   shellLoader.style.pointerEvents = 'none';
   setTimeout(() => shellLoader.remove(), 200);
 };
+
+const shouldRevealPerformancePrerenderBeforeMount = () => Boolean(
+  rootEl.querySelector('[data-performance-prerender="true"]')
+);
 
 const mountApp = (renderPerf: RenderPerfController) => {
   const RootMode = renderPerf.disableStrictMode ? Fragment : StrictMode;
@@ -53,19 +63,29 @@ const mountApp = (renderPerf: RenderPerfController) => {
     <App />
   );
 
-  removeShellLoader();
-  createRoot(rootEl).render(
-    <RootMode>
-      {appTree}
-    </RootMode>
-  );
+  const renderApp = () => {
+    createRoot(rootEl).render(
+      <RootMode>
+        {appTree}
+      </RootMode>
+    );
 
-  if (import.meta.env.PROD) {
-    void import('./utils/coreWebVitalsTelemetry')
-      .then(({ startCoreWebVitalsTelemetry }) => {
-        startCoreWebVitalsTelemetry();
-      });
+    if (import.meta.env.PROD) {
+      void import('./utils/coreWebVitalsTelemetry')
+        .then(({ startCoreWebVitalsTelemetry }) => {
+          startCoreWebVitalsTelemetry();
+        });
+    }
+  };
+
+  if (shouldRevealPerformancePrerenderBeforeMount()) {
+    removeShellLoader(true);
+    globalThis.setTimeout(renderApp, PERFORMANCE_PRERENDER_PAINT_DELAY_MS);
+    return;
   }
+
+  removeShellLoader();
+  renderApp();
 };
 
 const boot = async () => {
