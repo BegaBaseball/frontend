@@ -44,6 +44,7 @@ jobs:
     permissions:
       contents: read
       issues: write
+      pull-requests: write
     with:
       timeout_minutes: 25
       install_playwright: true
@@ -52,7 +53,7 @@ jobs:
       post_run_script: |
         node scripts/prediction-mobile-summary-gate.mjs \
           --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
-          --expected-states "match,detail-loading,detail-error,top-notice" \
+          --expected-states "match,vote-panel,date-sheet,detail-loading,detail-error,top-notice" \
           --expected-devices "mobile-390"
       summary_script: |
         SUMMARY_FILE="${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.md"
@@ -106,7 +107,7 @@ jobs:
         mkdir -p reports/prediction-mobile
         node scripts/prediction-mobile-pr-comment.mjs \
           --summary "${GITHUB_WORKSPACE}/output/playwright/prediction-mobile-regression-summary.json" \
-          --expected-states "match,detail-loading,detail-error,top-notice" \
+          --expected-states "match,vote-panel,date-sheet,detail-loading,detail-error,top-notice" \
           --expected-devices "mobile-390" \
           --run-url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
           --artifact "frontend-prediction-mobile-qa-artifacts" \

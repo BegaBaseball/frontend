@@ -202,9 +202,6 @@ export default defineConfig(({ mode, command }) => {
             ) {
               return 'vendor-realtime';
             }
-            if (id.includes('/@phosphor-icons/react/')) {
-              return 'vendor-icons';
-            }
           },
         },
       },
