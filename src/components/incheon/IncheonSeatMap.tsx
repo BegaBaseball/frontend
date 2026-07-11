@@ -6,9 +6,9 @@ import {
   MinusIcon as Minus,
   PlusIcon as Plus,
   TrashIcon as Trash2,
-  WarningIcon as AlertTriangle,
+  WarningTriangleIcon as AlertTriangle,
   XIcon as X,
-} from '@phosphor-icons/react';
+} from '../icons/StadiumGuideIcons';
 import {
   INCHEON_BLOCKS,
   INCHEON_CATEGORIES,

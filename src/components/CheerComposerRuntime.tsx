@@ -7,7 +7,10 @@ import { getCheerPostsFeedQueryKey } from '../hooks/cheerQueryKeys';
 import { parseError } from '../utils/errorUtils';
 import { useAuthProfileActions } from '../store/authStore';
 import AutosizeTextarea from './ui/autosize-textarea';
-import { ImagePlusIcon, SmileIcon } from './icons/CheerIcons';
+import {
+    CheerComposerImagePlusIcon,
+    CheerComposerSmileIcon,
+} from './icons/CheerComposerIcons';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import TeamLogo from './TeamLogo';
 import type { CheerWritePayload } from './CheerWriteModal';
@@ -371,7 +374,7 @@ export default function CheerComposerRuntime({
             >
                 {composerDragging && (
                     <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-lg bg-sky-50/30 backdrop-blur-sm dark:bg-sky-900/30">
-                        <ImagePlusIcon className="h-8 w-8 text-sky-500 dark:text-sky-400" />
+                        <CheerComposerImagePlusIcon className="h-8 w-8 text-sky-500 dark:text-sky-400" />
                         <span className="text-body font-bold text-sky-700 dark:text-sky-300">이미지를 놓으세요</span>
                     </div>
                 )}
@@ -431,7 +434,7 @@ export default function CheerComposerRuntime({
                                     aria-label="이미지 첨부"
                                     disabled={composerFiles.length >= 10}
                                 >
-                                    <ImagePlusIcon className="h-5 w-5" />
+                                    <CheerComposerImagePlusIcon className="h-5 w-5" />
                                     <span className="absolute bottom-full left-1/2 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded bg-slate-800 px-2 py-1 text-body text-white shadow-lg group-hover:block dark:bg-secondary">
                                         최대 10장, 각 5MB 이하
                                     </span>
@@ -441,7 +444,7 @@ export default function CheerComposerRuntime({
                                 ) : composerFiles.length > 0 ? (
                                     <span className="text-body font-bold text-slate-400">{composerFiles.length}/10</span>
                                 ) : null}
-                                <SmileIcon className="h-5 w-5" />
+                                <CheerComposerSmileIcon className="h-5 w-5" />
                                 <input
                                     ref={fileInputRef}
                                     type="file"

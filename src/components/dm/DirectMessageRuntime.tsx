@@ -11,8 +11,13 @@ import { parseError, type ParsedError } from '../../utils/errorUtils';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
-import { TrashIcon } from '../icons/CheerIcons';
-import { ArrowLeftIcon, MessageCircleIcon, SpinnerIcon, XCircleIcon } from '../icons/PublicShellIcons';
+import {
+  DirectMessageArrowLeftIcon as ArrowLeftIcon,
+  DirectMessageMessageCircleIcon as MessageCircleIcon,
+  DirectMessageSpinnerIcon as SpinnerIcon,
+  DirectMessageTrashIcon as TrashIcon,
+  DirectMessageXCircleIcon as XCircleIcon,
+} from './DirectMessageIcons';
 
 const DM_QUERY_KEYS = {
   roomBootstrap: (handle: string) => ['dmRoomBootstrap', handle] as const,

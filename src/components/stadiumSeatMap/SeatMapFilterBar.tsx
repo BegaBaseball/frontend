@@ -1,5 +1,5 @@
-import { CaretDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
+import { CaretDownIcon } from '../icons/StadiumGuideIcons';
 import type { SeatMapFilterGroup, SeatMapThemeMode } from './seatMapCommonTypes';
 import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
@@ -133,8 +133,7 @@ export function SeatMapFilterBar({
           >
             {secondaryLabels}
             <CaretDownIcon
-              size={10}
-              weight="bold"
+              className="h-2.5 w-2.5"
               aria-hidden="true"
               style={{ transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.18s' }}
             />

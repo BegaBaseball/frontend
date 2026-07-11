@@ -1,7 +1,13 @@
-import { Baseball, Brain, Wind, type IconProps } from '@phosphor-icons/react';
+import type { SVGProps } from 'react';
+
 import { CoachRiskItem } from '../../api/coach';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import TeamLogo from '../TeamLogo';
+import {
+    PredictionBaseballOutlineIcon,
+    PredictionBrainIcon,
+    PredictionWindIcon,
+} from './PredictionShellIcons';
 import {
     resolveRiskAreaLabel,
     resolveRiskImpactTo,
@@ -12,8 +18,8 @@ import {
 } from './coachRiskHelpers';
 import { getCoachTokens, IMPACT } from './coachStyleTokens';
 
-function RiskIcon({ level, ...props }: IconProps & { level: 0 | 1 | 2 }) {
-    const Icon = level === 0 ? Baseball : level === 1 ? Wind : Brain;
+function RiskIcon({ level, ...props }: SVGProps<SVGSVGElement> & { level: 0 | 1 | 2 }) {
+    const Icon = level === 0 ? PredictionBaseballOutlineIcon : level === 1 ? PredictionWindIcon : PredictionBrainIcon;
     return <Icon aria-hidden="true" {...props} />;
 }
 

@@ -6,14 +6,14 @@ import { fetchNoticePosts } from '../api/noticePublic';
 import type { CheerPost } from '../api/cheerApi';
 import { isAdminRole, useAuthProfileSnapshot } from '../store/authStore';
 import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  HeartIcon,
-  MegaphoneIcon,
-  MessageSquareIcon,
-  PenSquareIcon,
-  RefreshIcon,
-} from './icons/PublicFeatureIcons';
+  NoticeChevronLeftIcon as ChevronLeftIcon,
+  NoticeChevronRightIcon as ChevronRightIcon,
+  NoticeHeartIcon as HeartIcon,
+  NoticeMegaphoneIcon as MegaphoneIcon,
+  NoticeMessageSquareIcon as MessageSquareIcon,
+  NoticePenSquareIcon as PenSquareIcon,
+  NoticeRefreshIcon as RefreshIcon,
+} from './icons/NoticePageIcons';
 import { Button } from './ui/button';
 
 const ITEMS_PER_PAGE = 15;

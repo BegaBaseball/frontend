@@ -8,7 +8,10 @@ import {
   MateDetailReferenceCard,
   buildMateDetailViewModel,
 } from './MateDetailReferenceBlocks';
-import { MateClockIcon, MateShareIcon } from './MateIcons';
+import {
+  MateDetailClockIcon as MateClockIcon,
+  MateDetailShareIcon as MateShareIcon,
+} from './icons/MateDetailIcons';
 import { mateMobileBarClass } from '../utils/mateFlowUi';
 import type { Party } from '../types/mate';
 

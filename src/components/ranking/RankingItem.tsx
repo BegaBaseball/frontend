@@ -2,11 +2,11 @@
 import React from 'react';
 import { Button } from '../ui/button';
 import {
-  SharedChevronDownIcon,
-  SharedChevronUpIcon,
-  SharedCloseIcon,
-  SharedGripVerticalIcon,
-} from '../icons/SharedLeafIcons';
+  RankingChevronDownIcon,
+  RankingChevronUpIcon,
+  RankingCloseIcon,
+  RankingGripVerticalIcon,
+} from './RankingPredictionIcons';
 import TeamLogo from '../TeamLogo';
 import { RankingItemProps } from '../../types/ranking';
 import { PLAYOFF_TEAMS } from '../../constants/ranking';
@@ -147,7 +147,7 @@ const RankingItem = React.memo(function RankingItem({
           {team ? (
             <>
               <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
-                {!alreadySaved && <SharedGripVerticalIcon className="hidden w-4 h-4 text-gray-400 dark:text-white flex-shrink-0 sm:block" />}
+                {!alreadySaved && <RankingGripVerticalIcon className="hidden w-4 h-4 text-gray-400 dark:text-white flex-shrink-0 sm:block" />}
                 <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 dark:border-border dark:bg-secondary/40">
                   <TeamLogo team={team.shortName} size={32} />
                 </div>
@@ -164,7 +164,7 @@ const RankingItem = React.memo(function RankingItem({
                     data-testid={`ranking-move-up-${team.id}`}
                     className="rounded-lg text-slate-600 hover:bg-emerald-50 hover:text-primary dark:text-white dark:hover:bg-primary/20"
                   >
-                    <SharedChevronUpIcon className="w-4 h-4" />
+                    <RankingChevronUpIcon className="w-4 h-4" />
                   </Button>
                   <Button
                     onClick={handleMoveButtonClick(1)}
@@ -175,7 +175,7 @@ const RankingItem = React.memo(function RankingItem({
                     data-testid={`ranking-move-down-${team.id}`}
                     className="rounded-lg text-slate-600 hover:bg-emerald-50 hover:text-primary dark:text-white dark:hover:bg-primary/20"
                   >
-                    <SharedChevronDownIcon className="w-4 h-4" />
+                    <RankingChevronDownIcon className="w-4 h-4" />
                   </Button>
                   <Button
                     onClick={() => onRemove(index)}
@@ -185,7 +185,7 @@ const RankingItem = React.memo(function RankingItem({
                     data-testid={`ranking-remove-${team.id}`}
                     className="rounded-lg text-red-500 hover:bg-red-50 hover:text-red-600 dark:text-red-400 dark:hover:bg-secondary"
                   >
-                    <SharedCloseIcon className="w-4 h-4" />
+                    <RankingCloseIcon className="w-4 h-4" />
                   </Button>
                 </div>
               )}

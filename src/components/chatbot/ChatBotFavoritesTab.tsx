@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react';
 
 import { listChatFavorites } from '../../api/chatSessions';
 import type { ChatFavoriteItem } from '../../types/chatbot';
-import { ChatBotSpinnerIcon, ChatBotStarIcon } from './ChatBotIcons';
+import {
+  ChatBotSessionSpinnerIcon as ChatBotSpinnerIcon,
+  ChatBotSessionStarIcon as ChatBotStarIcon,
+} from './ChatBotSessionIcons';
 
 interface ChatBotFavoritesTabProps {
   refreshKey: number;

@@ -9,7 +9,7 @@ import {
   MatePlusIcon,
   MateRefreshIcon,
   MateUsersIcon,
-} from './MateIcons';
+} from './icons/MateFlowIcons';
 import { useTodayKey } from '../hooks/useTodayKey';
 import type { Party } from '../types/mate';
 

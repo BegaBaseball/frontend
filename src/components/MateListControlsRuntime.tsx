@@ -10,7 +10,7 @@ import {
   normalizeMateSearchText,
   normalizeRecordableMateSearchTerm,
 } from '../utils/mateSearchTerms';
-import { MatePlusIcon, MateSearchIcon, MateTicketIcon } from './MateIcons';
+import { MatePlusIcon, MateSearchIcon, MateTicketIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 

@@ -10,7 +10,7 @@ import type {
 } from '../../types/diary';
 import { formatDateString } from '../../utils/diary';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
-import { MyPageTicketIcon } from './MyPageIcons';
+import { MyPageTicketIcon } from './MyPageFlowIcons';
 
 const MyPageSeasonTimelineRuntime = lazy(() => import('./MyPageSeasonTimelineRuntime'));
 

@@ -1,14 +1,14 @@
-import { CaretDownIcon } from '@phosphor-icons/react';
 import { lazy, Suspense } from 'react';
 import { Card } from './ui/card';
 import { Button } from './ui/button';
 import { KAKAO_API_KEY, CATEGORY_CONFIGS, THEME_COLORS } from '../utils/constants';
 import { openKakaoMapRoute } from '../utils/kakaoMap';
 import {
+  CaretDownIcon,
   MapPinIcon,
   RefreshIcon,
   WarningTriangleIcon,
-} from './icons/PublicShellIcons';
+} from './icons/StadiumGuideIcons';
 import { resolveStadiumSeatMapEntry } from './stadiumSeatMapRegistry';
 import { StadiumSeatMapManualRequired } from './StadiumSeatMapStates';
 import { SeatMapRuntimeShell } from './stadiumSeatMap/SeatMapRuntimeShell';
@@ -281,9 +281,8 @@ export default function StadiumGuideRuntime() {
                 </select>
                 <div className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 sm:right-6">
                   <CaretDownIcon
-                    size={28}
-                    weight="bold"
-                    color={isDark ? STADIUM_DARK_COLORS.accentHex : THEME_COLORS.primary}
+                    className="h-7 w-7"
+                    style={{ color: isDark ? STADIUM_DARK_COLORS.accentHex : THEME_COLORS.primary }}
                     aria-hidden="true"
                   />
                 </div>

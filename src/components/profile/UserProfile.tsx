@@ -7,16 +7,15 @@ import { getPublicFollowCounts, type FollowCountResponse, type FollowToggleRespo
 import { ProfileAvatar } from '../ui/ProfileAvatar';
 import { Button } from '../ui/button';
 import {
-    ArrowLeftIcon,
-    DiamondIcon,
-    MessageCircleIcon,
-    PenSquareIcon,
-    SpinnerIcon,
-    TrophyIcon,
-    UserIcon,
-    UsersIcon,
-    XCircleIcon,
-} from '../icons/PublicShellIcons';
+    UserProfileArrowLeftIcon,
+    UserProfileDiamondIcon,
+    UserProfileMessageCircleIcon,
+    UserProfilePenSquareIcon,
+    UserProfileTrophyIcon,
+    UserProfileUserIcon,
+    UserProfileUsersIcon,
+    UserProfileXCircleIcon,
+} from './UserProfileIcons';
 import { Skeleton } from '../ui/skeleton';
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { getTeamTheme } from '../../utils/teamColors';
@@ -204,7 +203,7 @@ export default function UserProfile() {
     if (profileError || !profile) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-                <XCircleIcon className="h-12 w-12 text-red-500 mb-4" />
+                <UserProfileXCircleIcon className="h-12 w-12 text-red-500 mb-4" />
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
                     사용자를 찾을 수 없습니다.
                 </h2>
@@ -216,7 +215,7 @@ export default function UserProfile() {
                     onClick={() => navigate(-1)}
                     className="flex items-center text-primary font-semibold hover:underline"
                 >
-                    <ArrowLeftIcon className="w-4 h-4 mr-2" />
+                    <UserProfileArrowLeftIcon className="w-4 h-4 mr-2" />
                     뒤로 가기
                 </button>
             </div>
@@ -254,7 +253,7 @@ export default function UserProfile() {
                 onClick={() => navigate(-1)}
                 className="flex items-center text-gray-500 hover:text-gray-700 dark:text-white dark:hover:text-gray-200 px-4 py-4 transition-colors"
             >
-                <ArrowLeftIcon className="w-5 h-5 mr-1" />
+                <UserProfileArrowLeftIcon className="w-5 h-5 mr-1" />
                 <span>뒤로</span>
             </button>
 
@@ -299,7 +298,7 @@ export default function UserProfile() {
                                 color: theme.accent,
                             }}
                         >
-                            <DiamondIcon className="w-3.5 h-3.5 mr-1" />
+                            <UserProfileDiamondIcon className="w-3.5 h-3.5 mr-1" />
                             {profile.cheerPoints?.toLocaleString() || 0} P
                         </ProfileBadge>
 
@@ -312,7 +311,7 @@ export default function UserProfile() {
                                     color: theme.contrastText,
                                 }}
                             >
-                                <TrophyIcon className="w-3.5 h-3.5 mr-1" />
+                                <UserProfileTrophyIcon className="w-3.5 h-3.5 mr-1" />
                                 {getTeamKoreanName(profile.favoriteTeam)}
                             </ProfileBadge>
                         )}
@@ -327,7 +326,7 @@ export default function UserProfile() {
                             {formatCount(totalPosts)}
                         </span>
                         <span className="text-body text-gray-500 dark:text-white flex items-center justify-center gap-1">
-                            <PenSquareIcon className="w-3.5 h-3.5" />
+                            <UserProfilePenSquareIcon className="w-3.5 h-3.5" />
                             게시글
                         </span>
                     </div>
@@ -340,7 +339,7 @@ export default function UserProfile() {
                             {formatCount(followCounts?.followerCount || 0)}
                         </span>
                         <span className="text-body text-gray-500 dark:text-white flex items-center justify-center gap-1">
-                            <UsersIcon className="w-3.5 h-3.5" />
+                            <UserProfileUsersIcon className="w-3.5 h-3.5" />
                             팔로워
                         </span>
                     </button>
@@ -353,7 +352,7 @@ export default function UserProfile() {
                             {formatCount(followCounts?.followingCount || 0)}
                         </span>
                         <span className="text-body text-gray-500 dark:text-white flex items-center justify-center gap-1">
-                            <UserIcon className="w-3.5 h-3.5" />
+                            <UserProfileUserIcon className="w-3.5 h-3.5" />
                             팔로잉
                         </span>
                     </button>
@@ -389,7 +388,7 @@ export default function UserProfile() {
                                 className="flex-1"
                                 onClick={scrollToPostsSection}
                             >
-                                <PenSquareIcon className="w-4 h-4 mr-2" />
+                                <UserProfilePenSquareIcon className="w-4 h-4 mr-2" />
                                 작성글 보기
                             </Button>
                         </div>
@@ -407,12 +406,12 @@ export default function UserProfile() {
                                 color: theme.contrastText,
                             } : undefined}
                         >
-                            <MessageCircleIcon className="w-4 h-4 mr-2" />
+                            <UserProfileMessageCircleIcon className="w-4 h-4 mr-2" />
                             메시지 보내기
                         </Button>
                         {messageDisabledReason ? (
                             <p className="text-body text-gray-500 dark:text-white flex items-center gap-1.5">
-                                <MessageCircleIcon className="w-3.5 h-3.5" />
+                                <UserProfileMessageCircleIcon className="w-3.5 h-3.5" />
                                 {messageDisabledReason}
                             </p>
                         ) : null}
@@ -444,7 +443,7 @@ export default function UserProfile() {
             <div ref={postsSectionRef} className="mt-6 px-4">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                        <PenSquareIcon className="w-5 h-5" style={{ color: theme.accent }} />
+                        <UserProfilePenSquareIcon className="w-5 h-5" style={{ color: theme.accent }} />
                         작성한 게시글
                     </h2>
                     <span className="text-body text-gray-500 dark:text-white">

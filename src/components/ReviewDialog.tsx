@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { createReview } from '../api/mate';
 import { getApiErrorStatus } from '../api/errorStatus';
 import { getApiErrorMessage } from '../utils/errorUtils';
-import { MateStarIcon } from './MateIcons';
+import { MateStarIcon } from './icons/MateFlowIcons';
 
 interface ReviewDialogProps {
   isOpen: boolean;

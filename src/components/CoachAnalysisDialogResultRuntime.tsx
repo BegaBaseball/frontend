@@ -1,7 +1,7 @@
-import { SpinnerGap } from '@phosphor-icons/react';
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Button } from './ui/button';
 import ErrorBoundary from './common/ErrorBoundary';
+import { CoachAnalysisResultLoaderIcon } from './icons/CoachAnalysisResultIcons';
 
 import {
     type CoachAnalyzeResponse,
@@ -842,7 +842,7 @@ export default function CoachAnalysisDialogResultRuntime({
                 <div className="p-6">
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-white/10 dark:bg-white/[0.03]">
                         <div className="flex items-center gap-3 text-emerald-800 dark:text-emerald-200">
-                            <SpinnerGap className="h-5 w-5 animate-spin shrink-0" aria-hidden="true" />
+                            <CoachAnalysisResultLoaderIcon className="h-5 w-5 animate-spin shrink-0" aria-hidden="true" />
                             <span className="text-15 font-extrabold">{analysisStep || loadingFallbackMessage}</span>
                         </div>
                         <p className="mt-2 break-keep text-13 font-bold leading-relaxed text-slate-500 dark:text-white">

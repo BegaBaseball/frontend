@@ -4,12 +4,12 @@ import { lazy, Suspense, useEffect, useState } from 'react';
 import { useChatBot } from '../../hooks/useChatBot';
 import type { ChatFavoriteItem } from '../../types/chatbot';
 import {
-  ChatBotCloseIcon,
-  ChatBotHistoryIcon,
-  ChatBotMessageSquareTextIcon,
-  ChatBotSpinnerIcon,
-  ChatBotStarIcon,
-} from './ChatBotIcons';
+  ChatBotSessionCloseIcon as ChatBotCloseIcon,
+  ChatBotSessionHistoryIcon as ChatBotHistoryIcon,
+  ChatBotSessionMessageSquareTextIcon as ChatBotMessageSquareTextIcon,
+  ChatBotSessionSpinnerIcon as ChatBotSpinnerIcon,
+  ChatBotSessionStarIcon as ChatBotStarIcon,
+} from './ChatBotSessionIcons';
 import type { ChatBotSessionRuntimeProps } from './ChatBotSessionRuntime';
 
 const ChatBotConversationRuntime = lazy(() => import('./ChatBotConversationRuntime'));

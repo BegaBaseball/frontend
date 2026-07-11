@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   getPredictionOtherGamesLinkState,
   getPredictionTabActivationState,
+  preloadPredictionRankingTabResources,
 } from './PredictionRuntime';
 
 const readRuntimeSource = () => readFileSync(
@@ -35,6 +36,45 @@ test('PredictionRuntime는 prediction 전용 우측 상단 toast 영역을 렌�
 
   assert.match(source, /import \{ Toaster \} from '\.\.\/ui\/sonner';/);
   assert.match(source, /<Toaster position="top-right" \/>/);
+});
+
+test('PredictionRuntime는 ranking 탭 청크를 post-paint idle에 선로딩한다', () => {
+  const source = readRuntimeSource();
+
+  assert.match(
+    source,
+    /import \{ schedulePredictionPostPaintIdleWork \} from '\.\.\/\.\.\/utils\/predictionDeferredWork';/
+  );
+  assert.match(source, /const loadPredictionRankingTab = \(\) => import\('\.\/PredictionRankingTab'\);/);
+  assert.match(source, /const loadPredictionAnimatedSections = \(\) => import\('\.\.\/PredictionAnimatedSections'\);/);
+  assert.match(source, /const loadRankingPrediction = \(\) => import\('\.\.\/RankingPrediction'\);/);
+  assert.match(source, /const loadPredictionStatsPanel = \(\) => import\('\.\/PredictionStatsPanel'\);/);
+  assert.match(source, /schedulePredictionPostPaintIdleWork\(\(\) => \{\s*preloadPredictionRankingTabResources\(isLoggedIn\);/);
+});
+
+test('PredictionRuntime는 탭 표시 후 다음 paint에서 ranking 콘텐츠 렌더를 시작한다', () => {
+  const source = readRuntimeSource();
+  const handler = source.match(
+    /const handleTabChange = \(nextTab: 'match' \| 'ranking'\) => \{[\s\S]*?\n  \};/
+  );
+
+  assert.ok(handler);
+  assert.match(source, /import \{ lazy, Suspense, startTransition, useEffect, useState \} from 'react';/);
+  assert.match(source, /scheduleAfterNextPaint/);
+  assert.match(source, /const \[contentTab, setContentTab\] = useState<'match' \| 'ranking'>\('match'\);/);
+  assert.match(handler[0], /setActiveTab\(nextTab\);/);
+  assert.doesNotMatch(handler[0], /startTransition/);
+  assert.doesNotMatch(handler[0], /preloadPredictionRankingTabResources/);
+  assert.match(
+    source,
+    /scheduleAfterNextPaint\(\(\) => \{\s*startTransition\(\(\) => \{\s*setContentTab\(activeTab\);/
+  );
+  assert.doesNotMatch(source, /onPointerEnter=\{/);
+  assert.doesNotMatch(source, /onFocus=\{/);
+});
+
+test('preloadPredictionRankingTabResources는 호출 가능한 public preload contract를 유지한다', () => {
+  assert.equal(typeof preloadPredictionRankingTabResources, 'function');
 });
 
 test('getPredictionOtherGamesLinkState는 상세 날짜로 경기 목록 링크를 만든다', () => {

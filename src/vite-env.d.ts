@@ -14,6 +14,10 @@ interface ImportMetaEnv {
   readonly VITE_GOOGLE_SITE_VERIFICATION?: string;
   readonly VITE_NAVER_SITE_VERIFICATION?: string;
   readonly VITE_MOCK_CHATBOT_RATE_LIMIT?: 'true' | 'false' | 'cycling' | '10' | '20' | '40';
+  readonly VITE_ENABLE_MODULE_FEDERATION?: 'true' | 'false';
+  readonly VITE_MF_APP_NAME?: string;
+  readonly VITE_MF_DESIGN_SYSTEM_NAME?: string;
+  readonly VITE_MF_DESIGN_SYSTEM_ENTRY?: string;
 }
 
 interface ImportMeta {

@@ -6,7 +6,7 @@ import { VALIDATION_RULES } from '../constants/validation';
 import { useSignUpForm } from '../hooks/useSignUpForm';
 import { buildLoginPath } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
-import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from './icons/PublicShellIcons';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,

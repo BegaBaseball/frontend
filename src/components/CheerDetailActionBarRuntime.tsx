@@ -1,12 +1,12 @@
 import { cn } from '../lib/utils';
-import { RotateCcwIcon } from './icons/PublicFeatureIcons';
 import {
-    BookmarkIcon,
-    HeartIcon,
-    MessageSquareIcon,
-    PenSquareIcon,
-    RepeatIcon,
-} from './icons/PublicShellIcons';
+    CheerCardBookmarkIcon as BookmarkIcon,
+    CheerCardHeartIcon as HeartIcon,
+    CheerCardMessageSquareIcon as MessageSquareIcon,
+    CheerCardPenSquareIcon as PenSquareIcon,
+    CheerCardRepeatIcon as RepeatIcon,
+    CheerCardRotateCcwIcon as RotateCcwIcon,
+} from './icons/CheerCardIcons';
 import PlainMenu from './ui/plain-menu';
 
 interface CheerDetailActionBarRuntimeProps {

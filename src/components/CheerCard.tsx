@@ -7,14 +7,14 @@ import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
 import EmbeddedPost from './EmbeddedPost';
 import {
-    BookmarkIcon,
-    EditIcon,
-    HeartIcon,
-    MessageCircleIcon,
-    MoreHorizontalIcon,
-    RepeatIcon,
-    TrashIcon,
-} from './icons/CheerIcons';
+    CheerCardBookmarkIcon as BookmarkIcon,
+    CheerCardEditIcon as EditIcon,
+    CheerCardHeartIcon as HeartIcon,
+    CheerCardMessageCircleIcon as MessageCircleIcon,
+    CheerCardMoreHorizontalIcon as MoreHorizontalIcon,
+    CheerCardRepeatIcon as RepeatIcon,
+    CheerCardTrashIcon as TrashIcon,
+} from './icons/CheerCardIcons';
 import { useCheerMutations } from '../hooks/useCheerQueries';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import PlainMenu from './ui/plain-menu';

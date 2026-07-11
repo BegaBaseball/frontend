@@ -4,8 +4,13 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/button';
 import { Textarea } from '../ui/textarea';
 import { ProfileAvatar } from '../ui/ProfileAvatar';
-import { CornerDownRightIcon, HeartIcon, SendIcon, TrashIcon } from '../icons/CheerIcons';
-import { Comment as CheerComment } from '../../api/cheerApi';
+import type { Comment as CheerComment } from '../../api/cheerApi';
+import {
+  CommentCornerDownRightIcon,
+  CommentHeartIcon,
+  CommentSendIcon,
+  CommentTrashIcon,
+} from './CommentItemIcons';
 
 interface CommentItemProps {
   comment: CheerComment & { isPending?: boolean };
@@ -73,7 +78,7 @@ function CommentItemComponent({
     >
       <div className="flex gap-4">
         <div className="flex flex-col items-center gap-2">
-          {isReply ? <CornerDownRightIcon className="h-4 w-4 text-gray-300 dark:text-white" /> : null}
+          {isReply ? <CommentCornerDownRightIcon className="h-4 w-4 text-gray-300 dark:text-white" /> : null}
           <div
             className="cursor-pointer hover:opacity-80 transition-opacity"
             onClick={() => {
@@ -114,7 +119,7 @@ function CommentItemComponent({
                 className="text-gray-400 hover:text-red-500 transition-colors p-1"
                 title="삭제"
               >
-                <TrashIcon className="h-4 w-4" />
+                <CommentTrashIcon className="h-4 w-4" />
               </button>
             )}
           </div>
@@ -133,7 +138,7 @@ function CommentItemComponent({
                 {isCommentLikeAnimating && (
                   <span className="pointer-events-none absolute inset-0 rounded-full bg-red-500/20 animate-like-ring" />
                 )}
-                <HeartIcon
+                <CommentHeartIcon
                   className={`h-4 w-4 ${isCommentLiked ? 'fill-red-500 text-red-500' : ''} ${isCommentLikeAnimating ? 'animate-like-pop' : ''}`}
                 />
               </span>
@@ -175,7 +180,7 @@ function CommentItemComponent({
                   }
                   className="flex items-center gap-2 text-white bg-primary"
                 >
-                  <SendIcon className="h-4 w-4" />
+                  <CommentSendIcon className="h-4 w-4" />
                   답글 작성
                 </Button>
               </div>

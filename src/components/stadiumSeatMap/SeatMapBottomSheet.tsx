@@ -1,6 +1,6 @@
-import { MapPinIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { MapPinIcon, XIcon } from '../icons/StadiumGuideIcons';
 import SeatViewGallery from '../SeatViewGallery';
 import type {
   SeatMapCategoryMeta,
@@ -89,7 +89,7 @@ export function SeatMapBottomSheet<TSection>({
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.accent : undefined,
           }}
         >
-          <MapPinIcon size={18} weight="bold" aria-hidden="true" />
+          <MapPinIcon className="h-[18px] w-[18px]" />
         </div>
         <div>
           <div className="text-sm font-bold text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
@@ -174,7 +174,7 @@ export function SeatMapBottomSheet<TSection>({
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
           }}
         >
-          <XIcon size={16} weight="bold" aria-hidden="true" />
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
 

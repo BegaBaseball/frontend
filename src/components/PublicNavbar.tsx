@@ -10,7 +10,15 @@ import NavbarNotificationControls from './NavbarNotificationControls';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { mergeNavbarCompactProgress, useNavbarViewportCompactProgress } from '../hooks/useNavbarViewportCompactProgress';
 import { publicNavbarNavItems, type PublicNavbarNavItemId } from './publicNavbarNavItems';
-import { CloseIcon, LineChartIcon, MapIcon, MegaphoneIcon, MenuIcon, MessageSquareIcon, UsersIcon } from './icons/PublicShellIcons';
+import {
+  NavbarCloseIcon as CloseIcon,
+  NavbarLineChartIcon as LineChartIcon,
+  NavbarMapIcon as MapIcon,
+  NavbarMegaphoneIcon as MegaphoneIcon,
+  NavbarMenuIcon as MenuIcon,
+  NavbarMessageSquareIcon as MessageSquareIcon,
+  NavbarUsersIcon as UsersIcon,
+} from './icons/NavbarIcons';
 import { useScrollMetrics } from '../hooks/useScrollStage';
 import { useTheme } from '../hooks/useTheme';
 import { cn } from '../lib/utils';

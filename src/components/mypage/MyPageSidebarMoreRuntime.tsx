@@ -9,7 +9,7 @@ import {
   MyPageFlameIcon,
   MyPageSearchIcon,
   MyPageUsersIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 type MyPageSidebarMoreRuntimeProps = {
   viewMode: ViewMode;
