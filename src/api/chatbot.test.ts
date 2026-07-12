@@ -23,8 +23,11 @@ const invalidTypedRequest = {
     { role: 'system', content: '금지된 역할' },
   ],
 } satisfies ChatStreamRequest;
+// @ts-expect-error Chat v2 requests require a question from the generated contract.
+const missingQuestionRequest = { history: null } satisfies ChatStreamRequest;
 void validTypedRequest;
 void invalidTypedRequest;
+void missingQuestionRequest;
 
 type MetaPayload = {
   verified: boolean;

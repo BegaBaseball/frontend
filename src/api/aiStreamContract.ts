@@ -223,10 +223,12 @@ const validateCoachStructuredResponse = (value: unknown) => {
       rejectUnknownKeys(metric, ['label', 'value', 'trend', 'status', 'is_critical'], metricPath);
       requireString(metric.label, `${metricPath}.label`);
       requireString(metric.value, `${metricPath}.value`, true);
-      validateOptionalEnum(metric.trend, ['up', 'down', 'neutral'], `${metricPath}.trend`);
-      validateOptionalEnum(metric.status, ['good', 'warning', 'danger'], `${metricPath}.status`);
-      if (metric.trend === undefined) fail(`${metricPath}.trend is required`);
-      if (metric.status === undefined) fail(`${metricPath}.status is required`);
+      if (metric.trend !== 'up' && metric.trend !== 'down' && metric.trend !== 'neutral') {
+        fail(`${metricPath}.trend is invalid`);
+      }
+      if (metric.status !== 'good' && metric.status !== 'warning' && metric.status !== 'danger') {
+        fail(`${metricPath}.status is invalid`);
+      }
       requireBoolean(metric.is_critical, `${metricPath}.is_critical`);
     });
   }
@@ -316,9 +318,9 @@ const validateEventData = (type: AiStreamV2Event['type'], value: unknown) => {
     case 'chat.queue':
       rejectUnknownKeys(data, ['state', 'queue_position', 'estimated_wait_time', 'rpm_limit'], 'data');
       if (data.state !== 'queued' && data.state !== 'processing') fail('data.state is invalid');
-      requireNumber(data.queue_position, 'data.queue_position', 0);
-      requireNumber(data.estimated_wait_time, 'data.estimated_wait_time', 0);
-      requireNumber(data.rpm_limit, 'data.rpm_limit', 0);
+      requireInteger(data.queue_position, 'data.queue_position', 0);
+      requireInteger(data.estimated_wait_time, 'data.estimated_wait_time', 0);
+      requireInteger(data.rpm_limit, 'data.rpm_limit', 0);
       break;
     case 'chat.message.delta':
     case 'coach.message.delta':

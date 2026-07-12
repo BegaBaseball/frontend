@@ -57,9 +57,12 @@ const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
 
 type ChatMetaV2 = AiStreamComponents['schemas']['ChatMetaData'];
 type ChatStreamRequestWire = AiStreamComponents['schemas']['ChatStreamRequest'];
-export type ChatStreamRequest = Omit<ChatStreamRequestWire, 'history'> & {
+export type ChatStreamRequest = Pick<
+  ChatStreamRequestWire,
+  'question' | 'cache_bypass' | 'filters' | 'style'
+> & {
   history: AiStreamComponents['schemas']['ChatHistoryMessage'][] | null;
-};
+} & Record<string, unknown>;
 
 const toLegacyChatMetaPayload = (data: ChatMetaV2): AiStreamMetaPayload => ({
   verified: data.verified ?? undefined,
