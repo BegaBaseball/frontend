@@ -1,7 +1,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { createComment, fetchComments, fetchPosts, uploadPostImages } from './cheerApi';
+import {
+  createComment,
+  createPost,
+  fetchComments,
+  fetchLinkedPostTarget,
+  fetchPostDetail,
+  fetchPosts,
+  uploadPostImages,
+} from './cheerApi';
 
 const resolveRequestUrl = (input: string | URL | Request): string =>
   typeof input === 'string'
@@ -9,6 +17,138 @@ const resolveRequestUrl = (input: string | URL | Request): string =>
     : input instanceof URL
       ? input.toString()
       : input.url;
+
+const buildPostResponse = (postType?: string) => ({
+  id: 1,
+  teamId: 'LG',
+  content: 'content',
+  author: 'Writer',
+  authorHandle: '@writer',
+  createdAt: '2026-03-10T00:00:00Z',
+  updatedAt: '2026-03-10T00:00:00Z',
+  commentCount: 0,
+  likeCount: 0,
+  bookmarkCount: 0,
+  repostCount: 0,
+  views: 0,
+  liked: false,
+  isBookmarked: false,
+  isOwner: true,
+  repostedByMe: false,
+  isHot: false,
+  ...(postType === undefined ? {} : { postType }),
+  imageUrls: [],
+});
+
+test('fetchPostDetail preserves all four supported post types', async (t) => {
+  const postTypes = ['NORMAL', 'NOTICE', 'CHECKIN', 'RECRUITMENT'] as const;
+  let callIndex = 0;
+
+  t.mock.method(globalThis, 'fetch', async () => new Response(
+    JSON.stringify(buildPostResponse(postTypes[callIndex++])),
+    { headers: { 'content-type': 'application/json' }, status: 200 },
+  ) as never);
+
+  for (const postType of postTypes) {
+    assert.equal((await fetchPostDetail(1)).postType, postType);
+  }
+});
+
+test('fetchPostDetail defaults only an absent post type to NORMAL', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(
+    JSON.stringify(buildPostResponse()),
+    { headers: { 'content-type': 'application/json' }, status: 200 },
+  ) as never);
+
+  assert.equal((await fetchPostDetail(1)).postType, 'NORMAL');
+});
+
+test('fetchPostDetail rejects present empty and unknown post types', async (t) => {
+  const postTypes = ['', 'FUTURE_TYPE'];
+  let callIndex = 0;
+
+  t.mock.method(globalThis, 'fetch', async () => new Response(
+    JSON.stringify(buildPostResponse(postTypes[callIndex++])),
+    { headers: { 'content-type': 'application/json' }, status: 200 },
+  ) as never);
+
+  await assert.rejects(() => fetchPostDetail(1), /UNKNOWN_CHEER_POST_TYPE:/);
+  await assert.rejects(() => fetchPostDetail(1), /UNKNOWN_CHEER_POST_TYPE:FUTURE_TYPE/);
+});
+
+test('createPost preserves linked post types and source IDs in request payloads', async (t) => {
+  const requestBodies: unknown[] = [];
+  const responseTypes = ['CHECKIN', 'RECRUITMENT'];
+  let callIndex = 0;
+
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => {
+    requestBodies.push(JSON.parse(String(init?.body)));
+    return new Response(JSON.stringify(buildPostResponse(responseTypes[callIndex++])), {
+      headers: { 'content-type': 'application/json' },
+      status: 201,
+    });
+  });
+
+  await createPost({ teamId: 'LG', content: 'checked in', postType: 'CHECKIN', diaryId: 17 });
+  await createPost({ teamId: 'LG', content: 'join us', postType: 'RECRUITMENT', partyId: 29 });
+
+  assert.deepEqual(requestBodies, [
+    { teamId: 'LG', content: 'checked in', postType: 'CHECKIN', diaryId: 17 },
+    { teamId: 'LG', content: 'join us', postType: 'RECRUITMENT', partyId: 29 },
+  ]);
+});
+
+test('createPost rejects present empty and unknown post types before fetch', async (t) => {
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return new Response(JSON.stringify(buildPostResponse('NORMAL')), {
+      headers: { 'content-type': 'application/json' },
+      status: 201,
+    });
+  });
+
+  const invalidPayloads = [
+    { teamId: 'LG', content: 'empty', postType: '' },
+    { teamId: 'LG', content: 'unknown', postType: 'FUTURE_TYPE' },
+  ] as unknown as Array<Parameters<typeof createPost>[0]>;
+
+  for (const payload of invalidPayloads) {
+    await assert.rejects(() => createPost(payload), /UNKNOWN_CHEER_POST_TYPE:/);
+  }
+  assert.equal(fetchCalls, 0);
+});
+
+test('fetchLinkedPostTarget sends authenticated diary and party lookup params', async (t) => {
+  const requestUrls: string[] = [];
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestUrls.push(resolveRequestUrl(input));
+    return new Response(JSON.stringify({
+      postId: null,
+      preview: {
+        kind: 'CHECKIN',
+        available: false,
+        unavailableReason: 'SOURCE_MISSING',
+      },
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const diaryLookup = await fetchLinkedPostTarget({ diaryId: 17 });
+  await fetchLinkedPostTarget({ partyId: 29 });
+
+  assert.deepEqual(diaryLookup.preview, {
+    kind: 'CHECKIN',
+    available: false,
+    unavailableReason: 'SOURCE_MISSING',
+  });
+  assert.deepEqual(requestUrls, [
+    '/api/cheer/posts/linked?diaryId=17',
+    '/api/cheer/posts/linked?partyId=29',
+  ]);
+});
 
 test('fetchPosts는 공개 응답에서 authorId 없이 cheer post를 정규화한다', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
