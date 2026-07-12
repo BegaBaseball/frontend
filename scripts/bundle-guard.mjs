@@ -1795,10 +1795,11 @@ const routeStaticClosureTargets = [
   },
   {
     route: '/prediction',
-    label: '/prediction route static closure',
-    maxJsGzipBytes: 96_000,
+    label: '/prediction shell first-load static closure',
+    maxJsGzipBytes: 100_000,
     entrypoints: [
       'index.html',
+      'src/components/Layout.tsx',
       'src/components/Prediction.tsx',
     ],
   },
@@ -1830,17 +1831,16 @@ const routeStaticClosureTargets = [
       'src/components/AppQueryProvider.tsx',
       'src/components/Cheer.tsx',
       'src/components/CheerRuntime.tsx',
-      'src/components/CheerFeedRuntimeContent.tsx',
     ],
   },
   {
     route: '/mate',
-    label: '/mate route static closure',
-    maxJsGzipBytes: 122_000,
+    label: '/mate guest first-load static closure',
+    maxJsGzipBytes: 90_000,
     entrypoints: [
       'index.html',
+      'src/components/Layout.tsx',
       'src/components/MatePage.tsx',
-      'src/components/Mate.tsx',
     ],
   },
 ];
