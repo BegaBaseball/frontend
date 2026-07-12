@@ -165,6 +165,51 @@ test('decodeAiStreamV2Event enforces style enums and integer attempts', () => {
     }),
     /attempt/,
   );
+  assert.throws(
+    () => decodeAiStreamV2Event({
+      event: 'chat.queue',
+      data: JSON.stringify({
+        version: 2,
+        type: 'chat.queue',
+        data: {
+          state: 'queued',
+          queue_position: 1.5,
+          estimated_wait_time: 2,
+          rpm_limit: 60,
+        },
+      }),
+    }),
+    /queue_position/,
+  );
+});
+
+test('decodeAiStreamV2Event rejects null required key metric enums', () => {
+  assert.throws(
+    () => decodeAiStreamV2Event({
+      event: 'coach.meta',
+      data: JSON.stringify({
+        version: 2,
+        type: 'coach.meta',
+        data: {
+          structured_response: {
+            headline: '분석',
+            sentiment: 'neutral',
+            analysis: {},
+            detailed_markdown: '',
+            coach_note: '',
+            key_metrics: [{
+              label: '지표',
+              value: '1',
+              trend: null,
+              status: null,
+              is_critical: false,
+            }],
+          },
+        },
+      }),
+    }),
+    /key_metrics/,
+  );
 });
 
 test('resolveAiEventVersion defaults to v2 and rejects unsupported config', () => {
