@@ -1,11 +1,12 @@
 import React, { Suspense, lazy, useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheerPost } from '../api/cheerApi';
+import type { CheerPost, CheerPostType } from '../api/cheerApi';
 import ImageGrid from './ImageGrid';
 import RollingNumber from './RollingNumber';
 import TeamLogo from './TeamLogo';
 import { TEAM_DATA } from '../constants/teams';
 import EmbeddedPost from './EmbeddedPost';
+import CheerLinkedContentCard from './cheer/CheerLinkedContentCard';
 import {
     CheerCardBookmarkIcon as BookmarkIcon,
     CheerCardEditIcon as EditIcon,
@@ -64,6 +65,45 @@ const renderCheerContent = (
 
 // 게시글 타입 배지 색상 — 「응원석 구현 명세」 THEMES 무관(모드 불변 고정값)
 const CHEER_TYPE_BADGE = { label: '응원', color: '#8fb4de', bg: 'rgba(49, 82, 136, 0.2)' };
+const LINKED_TYPE_BADGES = {
+    CHECKIN: {
+        label: '직관 인증',
+        className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200',
+    },
+    RECRUITMENT: {
+        label: '동행 모집',
+        className: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200',
+    },
+} as const;
+
+const renderPostTypeBadge = (postType: CheerPostType, teamColor: string) => {
+    if (postType === 'NOTICE') {
+        return (
+            <span
+                className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold text-white"
+                style={{ backgroundColor: normalizeHexColor(teamColor, DEFAULT_BRAND_COLOR) }}
+            >
+                공지
+            </span>
+        );
+    }
+    if (postType === 'CHECKIN' || postType === 'RECRUITMENT') {
+        const badge = LINKED_TYPE_BADGES[postType];
+        return (
+            <span className={`shrink-0 rounded-full px-2 py-0.5 text-body font-bold ${badge.className}`}>
+                {badge.label}
+            </span>
+        );
+    }
+    return (
+        <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold"
+            style={{ backgroundColor: CHEER_TYPE_BADGE.bg, color: CHEER_TYPE_BADGE.color }}
+        >
+            {CHEER_TYPE_BADGE.label}
+        </span>
+    );
+};
 
 interface CheerCardProps {
     post: CheerPost;
@@ -91,7 +131,10 @@ function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardPro
         navigate(`/cheer?q=${encodeURIComponent(tag)}`);
     }, [navigate]);
 
-    const contentText = post.content?.trim() || '';
+    const isSimpleRepost = post.repostType === 'SIMPLE' && Boolean(post.originalPost);
+    const contentText = isSimpleRepost && post.originalPost
+        ? post.originalPost.content?.trim() || ''
+        : post.content?.trim() || '';
     const resolveProfileImage = (imageUrl?: string) => {
         if (!imageUrl) return null;
         if (imageUrl.includes('/assets/') || imageUrl.includes('/src/assets/')) return null;
@@ -121,6 +164,12 @@ function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardPro
     const likeActive = Boolean(post.liked);
     const bookmarkActive = Boolean(post.bookmarked);
     const repostButtonActive = Boolean(post.repostedByMe);
+    const effectivePostType = isSimpleRepost && post.originalPost
+        ? post.originalPost.postType
+        : post.postType;
+    const effectiveLinkedContent = isSimpleRepost && post.originalPost
+        ? post.originalPost.linkedContent
+        : post.linkedContent;
 
     const handleEdit = (event: React.MouseEvent) => {
         event.stopPropagation();
@@ -149,11 +198,20 @@ function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardPro
     if (isHotItem) {
         return (
             <div
-                onClick={() => navigate(`/cheer/${post.id}`)}
+                onClick={(event) => {
+                    const target = event.target as HTMLElement;
+                    if (target?.closest?.('[data-skip-cheer-card-nav]')) {
+                        return;
+                    }
+                    navigate(`/cheer/${isSimpleRepost && post.originalPost ? post.originalPost.id : post.id}`);
+                }}
                 className="px-2 py-3 transition-all duration-200 cursor-pointer hover:bg-slate-50 dark:hover:bg-secondary rounded-lg dark:bg-card dark:border dark:border-border"
             >
                 <div className="flex items-center justify-between mb-2 text-body font-semibold text-[#536471] dark:text-white">
-                    <span className="font-bold">{post.team}</span>
+                    <span className="flex min-w-0 items-center gap-2 font-bold">
+                        <span className="truncate">{post.team}</span>
+                        {renderPostTypeBadge(effectivePostType, post.teamColor)}
+                    </span>
                     <span>{post.timeAgo}</span>
                 </div>
                 <div className="text-body font-bold text-[#0f1419] dark:text-white leading-relaxed mb-3">
@@ -171,6 +229,9 @@ function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardPro
                     >
                         {isExpanded ? '접기' : '더보기'}
                     </button>
+                )}
+                {effectiveLinkedContent && (
+                    <CheerLinkedContentCard linkedContent={effectiveLinkedContent} variant="compact" />
                 )}
                 <div className="flex items-center gap-4 text-body font-semibold text-[#536471] dark:text-white">
                     <span className="flex items-center gap-1">
@@ -292,29 +353,7 @@ function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardPro
                                     : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
                                 · {post.timeAgo}
                             </span>
-                            {(() => {
-                                const effectivePostType = (post.repostType === 'SIMPLE' && post.originalPost)
-                                    ? post.originalPost.postType
-                                    : post.postType;
-                                if (effectivePostType === 'NOTICE') {
-                                    return (
-                                        <span
-                                            className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold text-white"
-                                            style={{ backgroundColor: normalizeHexColor(post.teamColor, DEFAULT_BRAND_COLOR) }}
-                                        >
-                                            공지
-                                        </span>
-                                    );
-                                }
-                                return (
-                                    <span
-                                        className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold"
-                                        style={{ backgroundColor: CHEER_TYPE_BADGE.bg, color: CHEER_TYPE_BADGE.color }}
-                                    >
-                                        {CHEER_TYPE_BADGE.label}
-                                    </span>
-                                );
-                            })()}
+                            {renderPostTypeBadge(effectivePostType, post.teamColor)}
                             {((post.repostType === 'SIMPLE' && post.originalPost && post.isHot) || (!post.repostType && post.isHot)) && (
                                 <span className="text-body font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
                                     HOT
@@ -393,6 +432,10 @@ function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardPro
                         >
                             {isExpanded ? '접기' : '더보기'}
                         </button>
+                    )}
+
+                    {effectiveLinkedContent && (
+                        <CheerLinkedContentCard linkedContent={effectiveLinkedContent} variant="compact" />
                     )}
 
                     {/* 원본 게시글 임베드 (리포스트인 경우 - Quote만 표시, Simple은 본문으로 통합됨) */}
