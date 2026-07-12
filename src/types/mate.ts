@@ -33,6 +33,19 @@ export interface Party {
   createdAt: string;
 }
 
+export type MatePaymentBusinessMode = 'DIRECT_TRADE' | 'IN_APP_PAYMENT';
+
+export interface MatePaymentCapability {
+  paymentMode: 'DIRECT_TRADE' | 'TOSS_TEST' | 'IN_APP_PAYMENT';
+  businessMode: MatePaymentBusinessMode;
+  provider: string;
+  environment: 'NONE' | 'TEST' | 'LIVE';
+  tossPaymentEnabled: boolean;
+  sellingPaymentRequired: boolean;
+  payoutEnabled: boolean;
+  payoutProvider: string;
+}
+
 export interface MemberSummary {
   initial: string;
   profileImageUrl?: string | null;

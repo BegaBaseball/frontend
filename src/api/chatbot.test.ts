@@ -7,7 +7,27 @@ import {
   convertVoiceToText,
   RateLimitError,
   sendChatMessageStream,
+  type ChatStreamRequest,
 } from './chatbot';
+
+process.env.VITE_AI_EVENT_VERSION = '1';
+
+const validTypedRequest = {
+  question: '질문',
+  history: [{ role: 'user', content: '이전 질문' }],
+} satisfies ChatStreamRequest;
+const invalidTypedRequest = {
+  question: '질문',
+  history: [
+    // @ts-expect-error Chat v2 history roles are restricted by the generated contract.
+    { role: 'system', content: '금지된 역할' },
+  ],
+} satisfies ChatStreamRequest;
+// @ts-expect-error Chat v2 requests require a question from the generated contract.
+const missingQuestionRequest = { history: null } satisfies ChatStreamRequest;
+void validTypedRequest;
+void invalidTypedRequest;
+void missingQuestionRequest;
 
 type MetaPayload = {
   verified: boolean;
@@ -19,7 +39,10 @@ type MetaPayload = {
   toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
 };
 
-const buildStreamResponse = (chunks: string[]) => {
+const buildStreamResponse = (
+  chunks: string[],
+  headers: Record<string, string> = {},
+) => {
   let chunkIndex = 0;
 
   return new Response(new ReadableStream<Uint8Array>({
@@ -34,9 +57,100 @@ const buildStreamResponse = (chunks: string[]) => {
     },
   }), {
     status: 200,
-    headers: { 'Content-Type': 'text/event-stream' },
+    headers: { 'Content-Type': 'text/event-stream', ...headers },
   });
 };
+
+test('sendChatMessageStream consumes negotiated v2 chat events', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  });
+
+  let requestHeaders: Headers | null = null;
+  t.mock.method(globalThis, 'fetch', async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
+    requestHeaders = new Headers(init?.headers);
+    return buildStreamResponse([
+      'event: chat.queue\n',
+      'data: {"version":2,"type":"chat.queue","data":{"state":"queued","queue_position":2,"estimated_wait_time":4,"rpm_limit":60}}\n\n',
+      'event: chat.message.delta\n',
+      'data: {"version":2,"type":"chat.message.delta","data":{"delta":"안녕"}}\n\n',
+      'event: chat.meta\n',
+      'data: {"version":2,"type":"chat.meta","data":{"verified":true,"style":"markdown","tool_calls":[],"data_sources":[]}}\n\n',
+      'event: stream.done\n',
+      'data: {"version":2,"type":"stream.done","data":{"reason":"completed"}}\n\n',
+    ], { 'X-AI-Event-Version': '2' });
+  });
+
+  const deltas: string[] = [];
+  const queues: ChatQueueStatus[] = [];
+  let verified = false;
+  await sendChatMessageStream(
+    { question: '테스트 질문', history: null },
+    (delta) => deltas.push(delta),
+    (meta) => {
+      verified = meta.verified;
+    },
+    { onQueueStatus: (status) => queues.push(status) },
+  );
+
+  const capturedHeaders = requestHeaders as unknown as Headers;
+  assert.equal(capturedHeaders.get('X-AI-Event-Version'), '2');
+  assert.deepEqual(deltas, ['안녕']);
+  assert.deepEqual(queues, [{
+    state: 'queued',
+    queuePosition: 2,
+    estimatedWaitTime: 4,
+    rpmLimit: 60,
+  }]);
+  assert.equal(verified, true);
+});
+
+test('sendChatMessageStream rejects v2 when response negotiation header is missing', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  });
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: stream.done\n',
+    'data: {"version":2,"type":"stream.done","data":{"reason":"completed"}}\n\n',
+  ]));
+
+  await assert.rejects(
+    () => sendChatMessageStream(
+      { question: '테스트 질문', history: null },
+      () => undefined,
+    ),
+    /negotiated version/,
+  );
+});
+
+test('sendChatMessageStream sends explicit v1 header in rollback mode', async (t) => {
+  let requestHeaders: Headers | null = null;
+  t.mock.method(globalThis, 'fetch', async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
+    requestHeaders = new Headers(init?.headers);
+    return buildStreamResponse([
+      'event: done\n',
+      'data: [DONE]\n\n',
+    ]);
+  });
+
+  await sendChatMessageStream(
+    { question: '테스트 질문', history: null },
+    () => undefined,
+  );
+
+  const capturedHeaders = requestHeaders as unknown as Headers;
+  assert.equal(capturedHeaders.get('X-AI-Event-Version'), '1');
+});
 
 test('sendChatMessageStream rejects when SSE error event is received', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([

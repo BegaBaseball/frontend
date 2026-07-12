@@ -1,11 +1,11 @@
-import { Message } from '../types/chatbot';
+import { ChatRequest, Message } from '../types/chatbot';
 
 const HISTORY_MESSAGE_LIMIT = 8;
 
 /**
  * 대화 기록을 API payload 형식으로 변환
  */
-export const buildHistoryPayload = (conversation: Message[]) => {
+export const buildHistoryPayload = (conversation: Message[]): ChatRequest['history'] => {
   const trimmed = conversation
     .filter((msg) => !msg.isSystem)
     .filter((msg) => msg.status === 'COMPLETED')

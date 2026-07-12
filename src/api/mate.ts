@@ -23,6 +23,7 @@ import type {
   MatePartySortBy,
   MatePartySortDir,
   PartyReview,
+  MatePaymentCapability,
   PartyStatus,
   UpdatePartyRequest,
 } from '../types/mate';
@@ -290,6 +291,10 @@ export async function fetchPartyReviews(
   );
 }
 
+export async function fetchMatePaymentCapability(): Promise<MatePaymentCapability> {
+  return privateGet<MatePaymentCapability>('/payments/capability');
+}
+
 export async function fetchHostReviews(handle: string): Promise<PartyReview[]> {
   return publicGet<PartyReview[]>(`/reviews/host/${encodeURIComponent(handle)}`);
 }
@@ -308,11 +313,23 @@ export async function fetchPartyCheckIns(
   );
 }
 
+export interface FetchPartyMessagesOptions {
+  limit?: number;
+  beforeId?: number;
+}
+
 export async function fetchPartyMessages(
   partyId: number | string,
+  options: FetchPartyMessagesOptions = {},
 ): Promise<ChatMessage[]> {
   return privateGet<Array<JsonResponse<'/api/chat/party/{partyId}', 'get'>[number] & ChatMessage>>(
     `/chat/party/${partyId}`,
+    {
+      params: {
+        limit: options.limit ?? 50,
+        beforeId: options.beforeId,
+      },
+    },
   );
 }
 

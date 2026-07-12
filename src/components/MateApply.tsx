@@ -1,5 +1,5 @@
 import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import {
@@ -21,7 +21,7 @@ import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createApplication } from '../api/mate';
+import { createApplication, fetchMatePaymentCapability } from '../api/mate';
 import { getApiErrorStatus } from '../api/errorStatus';
 import { formatGameDate } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
@@ -73,6 +73,13 @@ export default function MateApply() {
   const [isDraftHydrated, setIsDraftHydrated] = useState(false);
   const restoredDraftPartyIdRef = useRef<string | null>(null);
   const previousPartyIdRef = useRef<string | null>(null);
+  const paymentCapabilityQuery = useQuery({
+    queryKey: ['mate', 'payment-capability'],
+    queryFn: fetchMatePaymentCapability,
+    enabled: Boolean(currentUserId && !isAuthLoading && party),
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
   const redirectToLogin = (replace = false) => {
     logout(true);
@@ -161,24 +168,44 @@ export default function MateApply() {
   }
 
   const isSelling = party.status === 'SELLING';
+  const isSellingPaymentBlocked = isSelling && (
+    paymentCapabilityQuery.isPending
+    || paymentCapabilityQuery.isError
+    || paymentCapabilityQuery.data?.sellingPaymentRequired === true
+  );
+  const paymentCapabilityNotice = paymentCapabilityQuery.isError
+    ? '결제 모드 정보를 확인할 수 없어 판매 신청을 잠시 막았습니다.'
+    : paymentCapabilityQuery.isPending
+      ? '결제 모드를 확인하는 중입니다.'
+      : '현재 서버가 앱 결제를 요구하지만 결제 화면이 아직 연결되지 않았습니다.';
   const reservationDepositAmount = party.reservationDepositAmount || 0;
   const ticketAmount = party.ticketPrice || 0;
   const sellingPrice = party.price || 0;
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
   const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
   const primaryAmount = isSelling ? sellingPrice : (reservationDepositAmount > 0 ? reservationDepositAmount : ticketAmount);
-  const submitLabel = isSubmitting
-    ? '신청 중...'
-    : (isSelling ? '직거래 신청하기' : '참여 신청하기');
-  const flowBadgeLabel = '직거래 베타';
-  const flowDescription = isSelling
-    ? '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.'
+  const submitLabel = isSellingPaymentBlocked
+    ? '앱 결제 준비 중'
+    : isSubmitting
+      ? '신청 중...'
+      : (isSelling ? '직거래 신청하기' : '참여 신청하기');
+  const flowBadgeLabel = isSellingPaymentBlocked ? '결제 준비 중' : '직거래 베타';
+  const flowDescription = isSellingPaymentBlocked
+    ? paymentCapabilityNotice
+    : isSelling
+      ? '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.'
     : '호스트에게 메시지를 보내고, 승인 후 채팅으로 직거래 및 관람 일정을 조율합니다.';
-  const policyHighlights = [
-    '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
-    '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
-    '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
-  ];
+  const policyHighlights = isSellingPaymentBlocked
+    ? [
+      '현재 서버 결제 모드가 판매 결제를 요구합니다.',
+      '결제 화면이 연결되기 전에는 판매 신청을 받을 수 없습니다.',
+      '결제 활성화 후 승인·환불·정산 흐름을 함께 검증해야 합니다.',
+    ]
+    : [
+      '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
+      '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
+      '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
+    ];
   const nextSteps = isSelling
     ? [
       '구매 신청 후 호스트 승인 여부를 기다립니다.',
@@ -196,6 +223,11 @@ export default function MateApply() {
   const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   const handleSubmit = async () => {
+    if (isSellingPaymentBlocked) {
+      toast.error(paymentCapabilityNotice);
+      return;
+    }
+
     if (!currentUserId) {
       redirectToLogin();
       return;
@@ -301,6 +333,13 @@ export default function MateApply() {
           <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-900/20">
             <AlertDescription className="text-blue-700 dark:text-blue-300 text-body">
               최신 파티 정보를 다시 확인하고 있습니다.
+            </AlertDescription>
+          </Alert>
+        )}
+        {isSellingPaymentBlocked && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              {paymentCapabilityNotice}
             </AlertDescription>
           </Alert>
         )}
@@ -476,7 +515,7 @@ export default function MateApply() {
           <div className="mt-6 hidden lg:block">
             <Button
               onClick={handleSubmit}
-              disabled={!isSubmitReady || isSubmitting}
+              disabled={!isSubmitReady || isSubmitting || isSellingPaymentBlocked}
               className="w-full bg-primary text-white"
               size="lg"
             >
@@ -509,7 +548,7 @@ export default function MateApply() {
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={!isSubmitReady || isSubmitting}
+            disabled={!isSubmitReady || isSubmitting || isSellingPaymentBlocked}
             className="w-full bg-primary text-white sm:w-auto sm:min-w-[150px]"
             size="lg"
           >

@@ -57,6 +57,8 @@ type MateChatViewRuntimeProps = {
   canAccessCheckIn: boolean;
   groupedMessages: GroupedMessages[];
   chatLoadError: string | null;
+  hasOlderMessages: boolean;
+  isLoadingOlderMessages: boolean;
   messageText: string;
   imagePreviewUrl: string | null;
   isUploadingImage: boolean;
@@ -72,6 +74,7 @@ type MateChatViewRuntimeProps = {
   onNavigateManage: () => void;
   onNavigateCheckIn: () => void;
   onRefetchMessages: () => void;
+  onLoadOlderMessages: () => void;
   formatMessageTime: (dateString: string) => string;
 };
 
@@ -118,6 +121,8 @@ export default function MateChatViewRuntime({
   canAccessCheckIn,
   groupedMessages,
   chatLoadError,
+  hasOlderMessages,
+  isLoadingOlderMessages,
   messageText,
   imagePreviewUrl,
   isUploadingImage,
@@ -133,6 +138,7 @@ export default function MateChatViewRuntime({
   onNavigateManage,
   onNavigateCheckIn,
   onRefetchMessages,
+  onLoadOlderMessages,
   formatMessageTime,
 }: MateChatViewRuntimeProps) {
   const statusMeta = getMateStatusBadgeMeta(party.status);
@@ -322,6 +328,8 @@ export default function MateChatViewRuntime({
             isConnected={isConnected}
             groupedMessages={groupedMessages}
             chatLoadError={chatLoadError}
+            hasOlderMessages={hasOlderMessages}
+            isLoadingOlderMessages={isLoadingOlderMessages}
             messageText={messageText}
             imagePreviewUrl={imagePreviewUrl}
             isUploadingImage={isUploadingImage}
@@ -333,6 +341,7 @@ export default function MateChatViewRuntime({
             onCancelImageSelection={onCancelImageSelection}
             onSubmit={onSubmit}
             onRefetchMessages={onRefetchMessages}
+            onLoadOlderMessages={onLoadOlderMessages}
             formatMessageTime={formatMessageTime}
           />
         </Suspense>
