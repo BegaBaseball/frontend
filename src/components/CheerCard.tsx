@@ -20,24 +20,76 @@ import { ProfileAvatar } from './ui/ProfileAvatar';
 import PlainMenu from './ui/plain-menu';
 import { resolveCheerLikeDisplayCount } from '../utils/cheerLikeState';
 import { useConfirmDialog } from './contexts/ConfirmDialogContext';
+import { useTheme } from '../hooks/useTheme';
+import {
+    DEFAULT_BRAND_COLOR,
+    getDarkModeAccentText,
+    getReadableAccent,
+    normalizeHexColor,
+} from '../utils/teamColors';
 
 const LazyCheerCardInteractionsRuntime = lazy(() => import('./CheerCardInteractionsRuntime'));
 
 const normalizeContent = (text: string): string =>
     text.replace(/\n{3,}/g, '\n\n').trim();
 
+const HASHTAG_PATTERN = /(#[^\s#.,!?]+)/g;
+
+const renderCheerContent = (
+    content: string,
+    accentText: string,
+    onTagClick: (tag: string) => void,
+) => content.split('\n').map((line, lineIndex) => (
+    <React.Fragment key={lineIndex}>
+        {line.split(HASHTAG_PATTERN).filter((segment) => segment !== '').map((segment, segIndex) => (
+            segment.startsWith('#') ? (
+                <span
+                    key={segIndex}
+                    className="cursor-pointer font-bold hover:underline"
+                    style={{ color: accentText }}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onTagClick(segment);
+                    }}
+                >
+                    {segment}
+                </span>
+            ) : (
+                <React.Fragment key={segIndex}>{segment}</React.Fragment>
+            )
+        ))}
+        <br />
+    </React.Fragment>
+));
+
+// 게시글 타입 배지 색상 — 「응원석 구현 명세」 THEMES 무관(모드 불변 고정값)
+const CHEER_TYPE_BADGE = { label: '응원', color: '#8fb4de', bg: 'rgba(49, 82, 136, 0.2)' };
+
 interface CheerCardProps {
     post: CheerPost;
     isHotItem?: boolean; // For Hot Topic Panel styling
+    teamColor?: string; // 뷰어의 팀 액센트(해시태그 강조용) — 미전달 시 기본 브랜드 컬러
 }
 
-function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
+function CheerCardComponent({ post, isHotItem = false, teamColor }: CheerCardProps) {
     const navigate = useNavigate();
     const { deletePostMutation } = useCheerMutations();
     const { confirm } = useConfirmDialog();
+    const { resolvedTheme } = useTheme();
     const [isOwnerMenuOpen, setIsOwnerMenuOpen] = useState(false);
     const [shouldLoadInteractions, setShouldLoadInteractions] = useState(false);
     const [pendingInteraction, setPendingInteraction] = useState<'like' | 'bookmark' | 'comment' | 'repost' | null>(null);
+
+    const accentText = useMemo(() => {
+        const normalized = normalizeHexColor(teamColor, DEFAULT_BRAND_COLOR);
+        return resolvedTheme === 'dark'
+            ? getDarkModeAccentText(normalized)
+            : getReadableAccent(normalized);
+    }, [teamColor, resolvedTheme]);
+
+    const handleTagClick = useCallback((tag: string) => {
+        navigate(`/cheer?q=${encodeURIComponent(tag)}`);
+    }, [navigate]);
 
     const contentText = post.content?.trim() || '';
     const resolveProfileImage = (imageUrl?: string) => {
@@ -105,12 +157,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                     <span>{post.timeAgo}</span>
                 </div>
                 <div className="text-body font-bold text-[#0f1419] dark:text-white leading-relaxed mb-3">
-                    {displayContent.split('\n').map((line, i) => (
-                        <React.Fragment key={i}>
-                            {line}
-                            <br />
-                        </React.Fragment>
-                    ))}
+                    {renderCheerContent(displayContent, accentText, handleTagClick)}
                 </div>
                 {shouldShowMore && (
                     <button
@@ -145,7 +192,7 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
     // Main Feed Tweet Style
     return (
         <div
-            className="group rounded-2xl border border-border/70 bg-white px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#cbd5e1] hover:shadow-lg dark:border-border dark:bg-card dark:hover:border-[#64748b]"
+            className="group rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-[#cbd5e1] hover:shadow-lg dark:hover:border-[#64748b]"
             data-testid="cheer-post-card"
         >
             {/* 리포스트 표시 */}
@@ -245,6 +292,29 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                     : (post.authorHandle || `@${(post.team || 'user').toLowerCase()}`)}
                                 · {post.timeAgo}
                             </span>
+                            {(() => {
+                                const effectivePostType = (post.repostType === 'SIMPLE' && post.originalPost)
+                                    ? post.originalPost.postType
+                                    : post.postType;
+                                if (effectivePostType === 'NOTICE') {
+                                    return (
+                                        <span
+                                            className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold text-white"
+                                            style={{ backgroundColor: normalizeHexColor(post.teamColor, DEFAULT_BRAND_COLOR) }}
+                                        >
+                                            공지
+                                        </span>
+                                    );
+                                }
+                                return (
+                                    <span
+                                        className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold"
+                                        style={{ backgroundColor: CHEER_TYPE_BADGE.bg, color: CHEER_TYPE_BADGE.color }}
+                                    >
+                                        {CHEER_TYPE_BADGE.label}
+                                    </span>
+                                );
+                            })()}
                             {((post.repostType === 'SIMPLE' && post.originalPost && post.isHot) || (!post.repostType && post.isHot)) && (
                                 <span className="text-body font-bold text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/50 px-2 py-0.5 rounded-full">
                                     HOT
@@ -306,18 +376,8 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                         className="mt-1 text-body font-bold leading-7 text-[#0f1419] dark:text-white transition-all duration-300"
                     >
                         {(post.repostType === 'SIMPLE' && post.originalPost)
-                            ? (post.originalPost.content ? post.originalPost.content.split('\n').map((line, i) => (
-                                <React.Fragment key={i}>
-                                    {line}
-                                    <br />
-                                </React.Fragment>
-                            )) : '')
-                            : displayContent.split('\n').map((line, i) => (
-                                <React.Fragment key={i}>
-                                    {line}
-                                    <br />
-                                </React.Fragment>
-                            ))
+                            ? (post.originalPost.content ? renderCheerContent(post.originalPost.content, accentText, handleTagClick) : '')
+                            : renderCheerContent(displayContent, accentText, handleTagClick)
                         }
                     </div>
 
@@ -421,19 +481,20 @@ function CheerCardComponent({ post, isHotItem = false }: CheerCardProps) {
                                 </button>
                                 <button
                                     type="button"
-                                    className="group/repost flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-emerald-500"
+                                    className="group/repost flex min-h-11 min-w-11 items-center gap-1.5 rounded-full transition-colors hover:text-[var(--cheer-repost-on)]"
                                     onClick={(event) => {
                                         event.stopPropagation();
                                         openInteractions('repost');
                                     }}
                                     aria-label={`리포스트 (현재 ${repostCount}회)`}
                                     aria-pressed={repostButtonActive}
+                                    style={repostButtonActive ? { color: 'var(--cheer-repost-on)' } : undefined}
                                 >
                                     <span
                                         className={`relative flex h-11 w-11 items-center justify-center rounded-full transition-all duration-200 ${repostButtonActive ? 'bg-emerald-50 dark:bg-emerald-500/20' : 'group-hover/repost:bg-emerald-50 dark:group-hover/repost:bg-emerald-500/20'}`}
                                     >
                                         <RepeatIcon
-                                            className={`h-5 w-5 transition-all duration-200 ${repostButtonActive ? 'text-emerald-500 scale-110' : ''}`}
+                                            className={`h-5 w-5 transition-all duration-200 ${repostButtonActive ? 'scale-110' : ''}`}
                                         />
                                     </span>
                                     <RollingNumber value={repostCount} />

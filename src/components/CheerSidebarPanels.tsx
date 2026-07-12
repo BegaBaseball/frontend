@@ -1,12 +1,12 @@
 import { lazy, Suspense, useMemo } from 'react';
 
 import { useGamesData } from '../api/home';
-import { cn } from '../lib/utils';
 import type { Game as HomeGame } from '../types/home';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import TeamLogo from './TeamLogo';
 import CheerHot from './CheerHot';
 import CheerThemeControl from './CheerThemeControl';
+import { StatusBadge } from './ui/status-badge';
 
 const LazyCheerCommunityPulse = lazy(() => import('./CheerCommunityPulse'));
 
@@ -79,9 +79,9 @@ export default function CheerSidebarPanels({
         <div className="flex w-full flex-col gap-4">
             <CheerThemeControl accentColor={teamAccent} compact />
 
-            <div className="min-h-[140px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+            <div className="min-h-[140px] rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-4">
                 <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 dark:bg-secondary">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--cheer-chip-bg)]">
                         <TeamLogo teamId={teamLogoId} team={teamLabel} size={48} />
                     </div>
                     <div>
@@ -95,9 +95,9 @@ export default function CheerSidebarPanels({
                 </p>
                 ) : isTeamMetadataLoading ? (
                     <div className="mt-3 space-y-2">
-                        <div className="h-4 w-full rounded bg-slate-100 dark:bg-secondary" />
-                        <div className="h-4 w-4/5 rounded bg-slate-100 dark:bg-secondary" />
-                        <div className="h-4 w-3/5 rounded bg-slate-100 dark:bg-secondary" />
+                        <div className="h-4 w-full rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-4 w-4/5 rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-4 w-3/5 rounded bg-[var(--cheer-chip-bg)]" />
                     </div>
                 ) : isTeamMetadataError ? (
                         <div className="mt-3 rounded-xl bg-red-50 px-3 py-3 text-body font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-white">
@@ -118,13 +118,13 @@ export default function CheerSidebarPanels({
                 )}
             </div>
 
-            <div className="min-h-[188px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
+            <div className="min-h-[188px] rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-4">
                     <p className="text-body font-bold text-[#0F172A] dark:text-white">오늘 경기</p>
                 {isGamesLoading ? (
                     <div className="mt-3 space-y-3">
-                        <div className="h-4 w-32 rounded bg-slate-100 dark:bg-secondary" />
-                        <div className="h-12 rounded bg-slate-100 dark:bg-secondary" />
-                        <div className="h-9 w-full rounded-full bg-slate-100 dark:bg-secondary" />
+                        <div className="h-4 w-32 rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-12 rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-9 w-full rounded-full bg-[var(--cheer-chip-bg)]" />
                     </div>
                 ) : isGamesError ? (
                         <div className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-body font-semibold text-[#64748B] dark:bg-secondary/70 dark:text-white">
@@ -169,16 +169,13 @@ export default function CheerSidebarPanels({
                                     </div>
                                 )}
                             <div className="mt-3 flex items-center justify-center">
-                                <span
-                                    className={cn(
-                                        'rounded-full px-3 py-1 text-body font-bold',
-                                        featuredGame.gameStatus === 'PLAYING'
-                                    ? 'bg-red-50 text-red-600 dark:bg-red-900/40 dark:text-red-300'
-                                        : 'bg-slate-100 text-slate-600 dark:bg-secondary dark:text-white'
-                                    )}
-                                >
-                                    {featuredGame.gameStatus === 'PLAYING' ? 'LIVE' : featuredGame.gameStatusKr || '예정'}
-                                </span>
+                                {featuredGame.gameStatus === 'PLAYING' ? (
+                                    <StatusBadge tone="danger" live liveMode="always" label="LIVE" size="sm" />
+                                ) : (
+                                    <span className="rounded-full bg-slate-100 px-3 py-1 text-body font-bold text-slate-600 dark:bg-secondary dark:text-white">
+                                        {featuredGame.gameStatusKr || '예정'}
+                                    </span>
+                                )}
                             </div>
                         </div>
                         <button
@@ -201,9 +198,9 @@ export default function CheerSidebarPanels({
                 fallback={(
                     <div className="space-y-4">
                         {[1, 2].map((item) => (
-                            <div key={item} className="h-32 animate-pulse rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card">
-                                <div className="h-4 w-28 rounded bg-slate-100 dark:bg-secondary" />
-                                <div className="mt-4 h-16 rounded-xl bg-slate-100 dark:bg-secondary" />
+                            <div key={item} className="h-32 animate-pulse rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-4">
+                                <div className="h-4 w-28 rounded bg-[var(--cheer-chip-bg)]" />
+                                <div className="mt-4 h-16 rounded-xl bg-[var(--cheer-chip-bg)]" />
                             </div>
                         ))}
                     </div>

@@ -4,7 +4,6 @@ import { useQuery } from '@tanstack/react-query';
 import { useGamesData } from '../api/home';
 import { fetchGameLiveSnapshot } from '../api/prediction';
 import type { Game as HomeGame } from '../types/home';
-import { cn } from '../lib/utils';
 import {
   isManualBaseballDataRequiredCode,
   MANUAL_BASEBALL_DATA_REQUIRED_CODE,
@@ -16,6 +15,7 @@ import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import TeamLogo from './TeamLogo';
 import { getAccessibleCheerTextColor } from './cheer/CheerPresentation';
 import CheerLiveEventSummary from './CheerLiveEventSummary';
+import { StatusBadge } from './ui/status-badge';
 
 interface CheerLivePanelProps {
   favoriteTeamId: string | null;
@@ -82,10 +82,10 @@ export default function CheerLivePanel({
   const teamAccentText = getAccessibleCheerTextColor(teamAccent);
   if (isLoading) {
     return (
-      <section className="mx-4 mt-4 animate-pulse rounded-2xl border border-slate-200 bg-white p-5 dark:border-border dark:bg-card">
-        <div className="h-5 w-32 rounded bg-slate-200 dark:bg-secondary" />
-        <div className="mt-5 h-24 rounded-xl bg-slate-100 dark:bg-secondary" />
-        <div className="mt-4 h-11 rounded-full bg-slate-100 dark:bg-secondary" />
+      <section className="mx-4 mt-4 animate-skeleton-pulse rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] p-5">
+        <div className="h-5 w-32 rounded bg-[var(--cheer-chip-bg)]" />
+        <div className="mt-5 h-24 rounded-xl bg-[var(--cheer-chip-bg)]" />
+        <div className="mt-4 h-11 rounded-full bg-[var(--cheer-chip-bg)]" />
       </section>
     );
   }
@@ -117,7 +117,7 @@ export default function CheerLivePanel({
 
   if (!featuredGame) {
     return (
-      <section className="mx-4 mt-4 rounded-2xl border border-slate-200 bg-white p-6 text-center dark:border-border dark:bg-card">
+      <section className="mx-4 mt-4 rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] p-6 text-center">
         <h2 className="text-lg font-black text-slate-900 dark:text-white">오늘 진행 중인 경기가 없습니다.</h2>
         <p className="mt-2 text-body font-semibold text-slate-500 dark:text-slate-300">
           예정 경기와 분석은 전력분석실에서 확인할 수 있습니다.
@@ -140,24 +140,21 @@ export default function CheerLivePanel({
   const hasScore = homeScore != null && awayScore != null;
 
   return (
-    <section className="mx-4 mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.05)] dark:border-border dark:bg-card">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-border">
+    <section className="mx-4 mt-4 overflow-hidden rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] shadow-[0_1px_3px_rgba(15,23,42,0.05)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--cheer-line-10)] px-5 py-4">
         <div>
           <h2 className="text-lg font-black text-slate-900 dark:text-white">오늘 경기</h2>
           <p className="mt-1 text-caption font-bold text-slate-500 dark:text-slate-300">
             {formatStadiumDisplayName(featuredGame.stadium)} {featuredGame.time ? `/ ${featuredGame.time}` : ''}
           </p>
         </div>
-        <span
-          className={cn(
-            'inline-flex min-h-8 items-center rounded-full px-3 text-caption font-black',
-            isLive
-              ? 'bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-200'
-              : 'bg-slate-100 text-slate-600 dark:bg-secondary dark:text-white',
-          )}
-        >
-          {isLive ? 'LIVE' : featuredGame.gameStatusKr || '경기 예정'}
-        </span>
+        {isLive ? (
+          <StatusBadge tone="danger" live liveMode="always" label="LIVE" size="md" />
+        ) : (
+          <span className="inline-flex min-h-8 items-center rounded-full bg-slate-100 px-3 text-caption font-black text-slate-600 dark:bg-secondary dark:text-white">
+            {featuredGame.gameStatusKr || '경기 예정'}
+          </span>
+        )}
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 px-5 py-7">
         <div className="flex min-w-0 flex-col items-center gap-2 text-center">

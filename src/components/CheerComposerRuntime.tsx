@@ -367,7 +367,7 @@ export default function CheerComposerRuntime({
     return (
         <>
             <section
-                className={`relative mx-4 mt-4 rounded-2xl border border-slate-200 bg-white px-4 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-all duration-200 dark:border-border dark:bg-card ${composerDragging ? 'border-2 border-dashed border-sky-300 bg-sky-50/50 dark:border-sky-500 dark:bg-sky-900/30' : ''}`}
+                className={`relative mx-4 mt-4 rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] px-4 py-4 shadow-[0_1px_3px_rgba(0,0,0,0.05)] transition-all duration-200 ${composerDragging ? 'border-2 border-dashed border-sky-300 bg-sky-50/50 dark:border-sky-500 dark:bg-sky-900/30' : ''}`}
                 onDragOver={handleComposerDragOver}
                 onDragLeave={handleComposerDragLeave}
                 onDrop={handleComposerDrop}
@@ -422,7 +422,7 @@ export default function CheerComposerRuntime({
                             value={composerContent}
                             onChange={(event: ChangeEvent<HTMLTextAreaElement>) => setComposerContent(event.target.value)}
                         />
-                        <div className="mt-2 flex items-center justify-between gap-3 border-t border-border/70 pt-2 dark:border-border">
+                        <div className="mt-2 flex items-center justify-between gap-3 border-t border-[var(--cheer-line-10)] pt-2">
                             <div className="flex min-w-0 items-center gap-2 text-[#536471] dark:text-white">
                                 <button
                                     type="button"
@@ -471,7 +471,7 @@ export default function CheerComposerRuntime({
                                 {composerPreviews.map((preview, index) => (
                                     <div
                                         key={preview.url}
-                                        className="relative h-20 overflow-hidden rounded-lg border border-black/10 dark:border-white/10"
+                                        className="relative h-20 overflow-hidden rounded-lg border border-[var(--cheer-line-10)]"
                                     >
                                         <img
                                             src={preview.url}

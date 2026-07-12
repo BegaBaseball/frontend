@@ -22,8 +22,10 @@ import {
 import {
     normalizeHexColor,
     getReadableAccent,
+    getDarkModeAccentText,
     DEFAULT_BRAND_COLOR,
 } from '../utils/teamColors';
+import { useTheme } from '../hooks/useTheme';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { scheduleAfterNextPaint } from '../utils/afterNextPaint';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
@@ -53,16 +55,14 @@ type FeedTabConfig = {
 type CheerFeedTabsProps = {
     tabs: FeedTabConfig[];
     activeTab: CheerTabKey;
-    teamAccent: string;
-    teamContrastText: string;
+    activeAccentText: string;
     onTabChange: (tab: CheerTabKey) => void;
 };
 
 const CheerFeedTabs = memo(function CheerFeedTabs({
     tabs,
     activeTab,
-    teamAccent,
-    teamContrastText,
+    activeAccentText,
     onTabChange,
 }: CheerFeedTabsProps) {
     const [selectedTab, setSelectedTab] = useState<CheerTabKey>(activeTab);
@@ -73,7 +73,7 @@ const CheerFeedTabs = memo(function CheerFeedTabs({
 
     return (
         <nav className="flex items-center border-b border-border/70 bg-white/80 px-4 py-1 dark:border-border dark:bg-card">
-            <div className="flex items-center gap-0.5 rounded-full bg-slate-100/90 p-0.5 dark:border dark:border-border dark:bg-secondary">
+            <div className="flex items-center gap-0.5 rounded-full bg-[var(--cheer-panel-bg)] p-0.5">
                 {tabs.map((tab) => {
                     const isActive = selectedTab === tab.key;
                     return (
@@ -87,10 +87,10 @@ const CheerFeedTabs = memo(function CheerFeedTabs({
                             className={cn(
                                 'relative flex min-h-11 items-center rounded-full px-3 py-0 text-caption font-bold transition-all duration-200 sm:px-3.5 sm:text-15',
                                 isActive
-                                    ? 'shadow-sm'
+                                    ? 'bg-[var(--cheer-seg-on)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
                                     : 'text-[#64748B] hover:bg-white/70 hover:text-[#0F172A] dark:text-white dark:hover:bg-secondary dark:hover:text-white active:scale-[0.98]'
                             )}
-                            style={isActive ? { backgroundColor: teamAccent, color: teamContrastText } : undefined}
+                            style={isActive ? { color: activeAccentText } : undefined}
                         >
                             <span className="relative z-10 inline-flex items-center gap-1.5">
                                 {tab.label}
@@ -182,7 +182,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     );
     const debouncedSearchQuery = useDebounce(normalizedSearchQuery, 250);
     const [shouldRenderSidebar, setShouldRenderSidebar] = useState(() => (
-        typeof window !== 'undefined' ? window.innerWidth >= 1024 : false
+        typeof window !== 'undefined' ? window.innerWidth >= 768 : false
     ));
     const hasFetchedProfile = useRef(false);
     const pendingFeedTabTransitionRef = useRef<(() => void) | null>(null);
@@ -249,7 +249,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
             return;
         }
 
-        const mediaQuery = window.matchMedia('(min-width: 1024px)');
+        const mediaQuery = window.matchMedia('(min-width: 768px)');
         const syncSidebarVisibility = () => {
             setShouldRenderSidebar(mediaQuery.matches);
         };
@@ -326,9 +326,13 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
         });
     };
 
+    const { resolvedTheme } = useTheme();
     const teamColor = normalizeHexColor(authUserFavoriteTeamColor || DEFAULT_BRAND_COLOR);
     const teamAccent = getReadableAccent(teamColor);
     const teamContrastText = getAccessibleCheerTextColor(teamAccent);
+    const tabActiveAccentText = resolvedTheme === 'dark'
+        ? getDarkModeAccentText(teamColor)
+        : teamAccent;
     const favoriteTeamId = hasFavoriteTeam ? authUserFavoriteTeam ?? null : null;
     const favoriteTeamLabel = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.name ?? favoriteTeamId : null;
     const favoriteTeamFull = favoriteTeamId ? TEAM_DATA[favoriteTeamId]?.fullName ?? favoriteTeamId : null;
@@ -385,11 +389,11 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     }, [activeSurface, shouldRenderFeedRuntime]);
 
     return (
-        <div className="min-h-screen bg-[#f7f9f9] pb-[var(--mobile-content-safe-bottom)] dark:bg-background lg:pb-0">
+        <div className="min-h-screen bg-[#f7f9f9] pb-[var(--mobile-content-safe-bottom)] dark:bg-background md:pb-0">
             <div className="px-4 pt-0 pb-6 sm:px-6 sm:pt-0 sm:pb-8">
                 <div className="mx-auto w-full max-w-[1008px] xl:max-w-[1136px] lg:-translate-x-4">
-                    <div className="grid grid-cols-1 gap-0 lg:gap-x-4 lg:grid-cols-[72px_1fr_280px] xl:grid-cols-[200px_1fr_320px]">
-                        <aside className="hidden lg:flex w-[72px] xl:w-[200px] flex-col gap-3 sticky top-24 self-start px-2 xl:px-3">
+                    <div className="grid grid-cols-1 gap-0 md:grid-cols-[1fr_264px] md:gap-x-4 lg:grid-cols-[68px_1fr_264px] xl:grid-cols-[200px_1fr_270px]">
+                        <aside className="hidden lg:flex w-[68px] xl:w-[200px] flex-col gap-3 sticky top-24 self-start px-2 xl:px-3">
                             {[
                                 { id: 'home', label: '홈', icon: HomeIcon, path: '/home' },
                                 { id: 'team', label: '응원석', icon: MegaphoneIcon, path: '/cheer' },
@@ -405,7 +409,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                         type="button"
                                         onClick={() => navigate(item.path)}
                                         className={cn(
-                                            'flex items-center justify-center xl:justify-start gap-3 h-10 px-2 rounded-full xl:rounded-xl text-18 font-bold transition-colors',
+                                            'flex items-center justify-center xl:justify-start gap-3 h-11 px-2 rounded-full xl:rounded-xl text-18 font-bold transition-colors',
                                             isActive
                                                 ? 'bg-slate-100 text-slate-900 dark:bg-secondary dark:text-white'
                                                 : 'text-[#334155] hover:bg-[#F1F5F9] dark:text-white dark:hover:bg-secondary'
@@ -418,18 +422,20 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                 );
                             })}
 
+                            {/* 태블릿 가로(1024-1279): 원형 46px 버튼. 데스크탑(≥1280): 팀 액센트 채움 버튼 */}
                             <button
                                 type="button"
                                 onClick={handleWriteClick}
-                                className="mt-4 flex w-full items-center justify-center xl:justify-start gap-3 h-12 px-4 rounded-full xl:rounded-xl text-18 font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98]"
+                                className="mt-4 flex h-[46px] w-[46px] items-center justify-center self-center rounded-full text-18 font-bold text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] xl:h-12 xl:w-full xl:justify-start xl:gap-3 xl:self-auto xl:rounded-xl xl:px-4"
                                 style={{ backgroundColor: teamAccent }}
+                                aria-label="게시하기"
                             >
                                 <PenSquareIcon className="h-6 w-6" />
                                 <span className="hidden xl:inline">게시하기</span>
                             </button>
                         </aside>
 
-                        <main className="flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-card">
+                        <main className="relative flex w-full flex-col gap-0 bg-slate-50/50 dark:bg-card md:pb-24 lg:pb-0">
                             <header className="border-b border-slate-200 bg-white px-4 py-3 dark:border-border dark:bg-card">
                                 <div
                                     className="relative"
@@ -456,7 +462,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                                         }}
                                         aria-label="응원글 검색"
                                         placeholder="응원글, 해시태그 검색"
-                                        className="min-h-11 w-full rounded-full border border-slate-200 bg-slate-50 py-2 pl-11 pr-11 text-body font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-white focus:ring-2 focus:ring-slate-200 dark:border-border dark:bg-secondary dark:text-white dark:placeholder:text-slate-400 dark:focus:border-slate-500 dark:focus:bg-card dark:focus:ring-slate-700"
+                                        className="min-h-11 w-full rounded-full border border-transparent bg-[var(--cheer-panel-bg)] py-2 pl-11 pr-11 text-body font-semibold text-slate-900 outline-none transition-colors placeholder:text-slate-400 focus:border-slate-400 focus:bg-[var(--cheer-card-bg)] focus:ring-2 focus:ring-slate-200 dark:text-white dark:placeholder:text-slate-400 dark:focus:border-slate-500 dark:focus:ring-slate-700"
                                     />
                                     {searchQuery && (
                                         <button
@@ -511,8 +517,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                             <CheerFeedTabs
                                 tabs={feedTabs}
                                 activeTab={contentFeedTab}
-                                teamAccent={teamAccent}
-                                teamContrastText={teamContrastText}
+                                activeAccentText={tabActiveAccentText}
                                 onTabChange={handleFeedTabChange}
                             />
                             {activeSurface === 'feed' && (
@@ -604,7 +609,7 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                         </main>
 
                         {shouldRenderSidebar ? (
-                            <aside className="sticky top-24 hidden w-[280px] self-start lg:flex xl:w-[320px]">
+                            <aside className="sticky top-24 hidden w-[264px] self-start md:flex xl:w-[270px]">
                                 <Suspense
                                     fallback={(
                                         <div className="flex w-full flex-col gap-4">
@@ -655,6 +660,16 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                 teamAccent={teamAccent}
             />
 
+            {/* 태블릿 세로(768-1023): 우하단 FAB 56px — 이 구간에서만 게시 진입점 노출 */}
+            <button
+                type="button"
+                onClick={handleWriteClick}
+                className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full text-white shadow-lg transition-transform hover:scale-[1.02] active:scale-[0.98] md:flex lg:hidden"
+                style={{ backgroundColor: teamAccent }}
+                aria-label="게시하기"
+            >
+                <PenSquareIcon className="h-6 w-6" />
+            </button>
         </div>
     );
 }

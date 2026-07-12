@@ -32,7 +32,7 @@ export default function NavbarNotificationControls({
       open={isNotificationOpen}
       onOpenChange={setIsNotificationOpen}
       align="end"
-      panelClassName="w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-hidden sm:w-96 sm:max-w-sm"
+      panelClassName="w-[calc(100vw-32px)] max-w-[calc(100vw-32px)] overflow-hidden sm:w-[360px] sm:max-w-[360px]"
       trigger={(
         <button
           type="button"
