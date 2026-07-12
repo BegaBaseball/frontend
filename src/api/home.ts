@@ -1,8 +1,6 @@
 // api/home.ts
 import { useQuery } from '@tanstack/react-query';
-import type { CheerPost } from './cheerApi';
-import { getTeamColorByAnyKey } from '../constants/teams';
-import { formatTimeAgo } from '../utils/time';
+import { normalizeCheerPost } from './cheerApi';
 import {
     FeaturedMateCard,
     Game,
@@ -38,77 +36,43 @@ export type {
 export const HOME_WIDGETS_QUERY_KEY = (dateKey: string, seasonYear?: number) => ['home', 'widgets', dateKey, seasonYear ?? 'auto'] as const;
 
 type ScheduleWireResponse = OpenApiResponseBody<'/api/kbo/schedule', 'get'>;
-
-interface RawHotCheerPost {
-    id: number;
-    teamId: string;
-    content: string;
-    author: string;
-    authorHandle?: string;
-    authorProfileImageUrl?: string;
-    authorTeamId?: string;
-    createdAt: string;
-    comments?: number;
-    likes?: number;
-    bookmarkCount?: number;
-    views?: number;
-    isHot?: boolean;
-    isBookmarked?: boolean;
-    isOwner?: boolean;
-    repostCount?: number;
-    repostedByMe?: boolean;
-    postType?: string;
-    imageUrls?: string[];
-}
-
-const toCheerPost = (post: RawHotCheerPost): CheerPost => ({
-    id: post.id,
-    teamId: post.teamId,
-    team: post.teamId,
-    postType: (post.postType as CheerPost['postType']) || 'NORMAL',
-    author: post.author,
-    authorHandle: post.authorHandle || '',
-    authorProfileImageUrl: post.authorProfileImageUrl,
-    authorTeamId: post.authorTeamId,
-    content: post.content || '',
-    timeAgo: formatTimeAgo(post.createdAt),
-    teamColor: getTeamColorByAnyKey(post.teamId),
-    likeCount: post.likes ?? 0,
-    commentCount: post.comments ?? 0,
-    bookmarkCount: post.bookmarkCount ?? 0,
-    repostCount: post.repostCount ?? 0,
-    views: post.views ?? 0,
-    isHot: post.isHot ?? false,
-    createdAt: post.createdAt,
-    updatedAt: post.createdAt,
-    liked: false,
-    bookmarked: post.isBookmarked ?? false,
-    isOwner: post.isOwner ?? false,
-    repostedByMe: post.repostedByMe ?? false,
-    imageUrls: post.imageUrls || [],
-});
+type HomeWidgetsWireResponse = OpenApiResponseBody<'/api/home/widgets', 'get'>;
+type HotCheerPostWire = NonNullable<HomeWidgetsWireResponse['hotCheerPosts']>[number];
+type ValidHomeWidgetsWireResponse = Omit<
+    HomeWidgetsWireResponse,
+    'hotCheerPosts' | 'featuredMates' | 'rankingSnapshot'
+> & {
+    hotCheerPosts: HotCheerPostWire[];
+    featuredMates: FeaturedMateCard[];
+    rankingSnapshot: HomeRankingSnapshot;
+};
 
 const isRankingSnapshot = (value: unknown): value is HomeRankingSnapshot => {
     if (!value || typeof value !== 'object') {
         return false;
     }
 
-    const candidate = value as Record<string, unknown>;
-    return typeof candidate.rankingSeasonYear === 'number'
-        && typeof candidate.rankingSourceMessage === 'string'
-        && typeof candidate.isOffSeason === 'boolean'
-        && Array.isArray(candidate.rankings);
+    return 'rankingSeasonYear' in value
+        && typeof value.rankingSeasonYear === 'number'
+        && 'rankingSourceMessage' in value
+        && typeof value.rankingSourceMessage === 'string'
+        && 'isOffSeason' in value
+        && typeof value.isOffSeason === 'boolean'
+        && 'rankings' in value
+        && Array.isArray(value.rankings);
 };
 
-const isWidgetsResponse = (value: unknown): value is { hotCheerPosts: RawHotCheerPost[]; featuredMates: FeaturedMateCard[]; rankingSnapshot: HomeRankingSnapshot } => {
+const isWidgetsResponse = (value: unknown): value is ValidHomeWidgetsWireResponse => {
     if (!value || typeof value !== 'object') {
         return false;
     }
 
-    const candidate = value as Record<string, unknown>;
-    return Array.isArray(candidate.hotCheerPosts)
-        && Array.isArray(candidate.featuredMates)
-        && isRankingSnapshot(candidate.rankingSnapshot);
+    return 'hotCheerPosts' in value
+        && Array.isArray(value.hotCheerPosts)
+        && 'featuredMates' in value
+        && Array.isArray(value.featuredMates)
+        && 'rankingSnapshot' in value
+        && isRankingSnapshot(value.rankingSnapshot);
 };
 
 /**
@@ -167,7 +131,7 @@ export const fetchHomeWidgets = async (date: Date, seasonYear?: number): Promise
     }
 
     return {
-        hotCheerPosts: data.hotCheerPosts.map(toCheerPost),
+        hotCheerPosts: data.hotCheerPosts.map(normalizeCheerPost),
         featuredMates: data.featuredMates,
         rankingSnapshot: data.rankingSnapshot,
     };

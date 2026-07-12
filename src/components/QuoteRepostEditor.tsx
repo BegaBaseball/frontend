@@ -45,6 +45,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
         id: post.id,
         teamId: post.teamId,
         teamColor: post.teamColor,
+        postType: post.postType,
         content: post.content,
         author: post.author,
         authorHandle: post.authorHandle,
@@ -52,6 +53,7 @@ export default function QuoteRepostEditor({ isOpen, onClose, post }: QuoteRepost
         createdAt: post.createdAt,
         imageUrls: post.imageUrls || [],
         deleted: false,
+        linkedContent: post.linkedContent,
     };
 
     const handleSubmit = () => {

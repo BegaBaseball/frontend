@@ -23,6 +23,38 @@ const buildJsonResponse = (body: unknown, status = 200) =>
     status,
   });
 
+const availableCheckin = {
+  kind: 'CHECKIN',
+  available: true,
+  unavailableReason: null,
+  checkin: {
+    gameDate: '2026-04-14',
+    homeTeam: 'LG',
+    awayTeam: 'HH',
+    cheeringTeam: 'LG',
+    stadium: '잠실',
+    verified: true,
+  },
+  recruitment: null,
+};
+
+const availableRecruitment = {
+  kind: 'RECRUITMENT',
+  available: true,
+  unavailableReason: null,
+  checkin: null,
+  recruitment: {
+    partyId: 29,
+    gameDate: '2026-04-14',
+    homeTeam: 'LG',
+    awayTeam: 'HH',
+    stadium: '잠실',
+    currentParticipants: 2,
+    maxParticipants: 4,
+    recruiting: true,
+  },
+};
+
 test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin fetch를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
@@ -256,6 +288,112 @@ test('fetchHomeWidgets는 rankingSnapshot 누락 응답을 거부한다', async 
   await assert.rejects(
     () => fetchHomeWidgets(new Date('2026-03-16T12:00:00')),
     /Invalid home widgets response/,
+  );
+});
+
+test('fetchHomeWidgets preserves CHECKIN and RECRUITMENT linked content on top-level and embedded hot posts', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    hotCheerPosts: [
+      {
+        id: 30,
+        teamId: 'LG',
+        content: 'hot checkin',
+        author: 'Checkin User',
+        authorHandle: '@checkin',
+        createdAt: '2026-04-14T00:00:00Z',
+        comments: 0,
+        likes: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: true,
+        postType: 'CHECKIN',
+        linkedContent: availableCheckin,
+        imageUrls: [],
+        originalPost: {
+          id: 31,
+          teamId: 'LG',
+          content: 'embedded recruitment',
+          author: 'Recruitment User',
+          authorHandle: '@recruitment',
+          createdAt: '2026-04-14T00:00:00Z',
+          imageUrls: [],
+          deleted: false,
+          postType: 'RECRUITMENT',
+          linkedContent: availableRecruitment,
+        },
+      },
+      {
+        id: 32,
+        teamId: 'LG',
+        content: 'hot recruitment',
+        author: 'Recruitment User',
+        authorHandle: '@recruitment',
+        createdAt: '2026-04-14T00:00:00Z',
+        comments: 0,
+        likes: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: true,
+        postType: 'RECRUITMENT',
+        linkedContent: availableRecruitment,
+        imageUrls: [],
+      },
+    ],
+    featuredMates: [],
+    rankingSnapshot: {
+      rankingSeasonYear: 2025,
+      rankingSourceMessage: '2025 시즌 순위 데이터',
+      isOffSeason: true,
+      rankings: [],
+    },
+  }));
+
+  const response = await fetchHomeWidgets(new Date('2026-04-14T12:00:00'));
+
+  assert.equal(response.hotCheerPosts[0]?.postType, 'CHECKIN');
+  assert.deepEqual(response.hotCheerPosts[0]?.linkedContent, availableCheckin);
+  assert.equal(response.hotCheerPosts[0]?.originalPost?.postType, 'RECRUITMENT');
+  assert.deepEqual(response.hotCheerPosts[0]?.originalPost?.linkedContent, availableRecruitment);
+  assert.equal(response.hotCheerPosts[1]?.postType, 'RECRUITMENT');
+  assert.deepEqual(response.hotCheerPosts[1]?.linkedContent, availableRecruitment);
+});
+
+test('fetchHomeWidgets rejects an unknown present hot-post type', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    hotCheerPosts: [{
+      id: 40,
+      teamId: 'LG',
+      content: 'future',
+      author: 'Future User',
+      authorHandle: '@future',
+      createdAt: '2026-04-14T00:00:00Z',
+      comments: 0,
+      likes: 0,
+      postType: 'FUTURE_TYPE',
+      imageUrls: [],
+    }],
+    featuredMates: [],
+    rankingSnapshot: {
+      rankingSeasonYear: 2025,
+      rankingSourceMessage: '2025 시즌 순위 데이터',
+      isOffSeason: true,
+      rankings: [],
+    },
+  }));
+
+  await assert.rejects(
+    () => fetchHomeWidgets(new Date('2026-04-14T12:00:00')),
+    /UNKNOWN_CHEER_POST_TYPE:FUTURE_TYPE/,
   );
 });
 
