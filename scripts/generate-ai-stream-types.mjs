@@ -9,7 +9,10 @@ import { dirname, resolve } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { pathToFileURL } from 'node:url';
 
+import { computeSha256 } from './sync-ai-stream-contract.mjs';
+
 const DEFAULT_SCHEMA_PATH = resolve(process.cwd(), 'contracts/ai-stream-v2.openapi.json');
+const DEFAULT_METADATA_PATH = resolve(process.cwd(), 'contracts/ai-stream-v2.metadata.json');
 const DEFAULT_OUTPUT_PATH = resolve(process.cwd(), 'src/api/generated/aiStreamV2.ts');
 const GENERATOR_PATH = resolve(process.cwd(), 'node_modules/.bin/openapi-typescript');
 
@@ -33,6 +36,7 @@ const generateTo = (schemaPath, outputPath) => {
 
 export const generateAiStreamTypes = ({
   schemaPath = DEFAULT_SCHEMA_PATH,
+  metadataPath = DEFAULT_METADATA_PATH,
   outputPath = DEFAULT_OUTPUT_PATH,
   checkOnly = false,
 } = {}) => {
@@ -44,6 +48,13 @@ export const generateAiStreamTypes = ({
   const directory = mkdtempSync(resolve(tmpdir(), 'bega-ai-stream-types-'));
   const temporaryOutput = resolve(directory, 'aiStreamV2.ts');
   try {
+    const metadata = JSON.parse(readFileSync(resolve(metadataPath), 'utf8'));
+    const actualSha256 = computeSha256(readFileSync(resolve(schemaPath)));
+    if (metadata.sha256 !== actualSha256) {
+      throw new Error(
+        'AI stream contract metadata SHA-256 does not match the vendored contract.',
+      );
+    }
     generateTo(schemaPath, temporaryOutput);
     const current = readFileSync(resolve(outputPath), 'utf8');
     const generated = readFileSync(temporaryOutput, 'utf8');

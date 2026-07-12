@@ -54,6 +54,14 @@ const requireNumber = (value: unknown, path: string, minimum?: number): number =
   return value;
 };
 
+const requireInteger = (value: unknown, path: string, minimum?: number): number => {
+  const numberValue = requireNumber(value, path, minimum);
+  if (!Number.isInteger(numberValue)) {
+    return fail(`${path} must be an integer`);
+  }
+  return numberValue;
+};
+
 const requireBoolean = (value: unknown, path: string): boolean => (
   typeof value === 'boolean' ? value : fail(`${path} must be a boolean`)
 );
@@ -76,6 +84,17 @@ const validateOptionalString = (value: unknown, path: string) => {
 
 const validateOptionalBoolean = (value: unknown, path: string) => {
   if (value !== undefined && value !== null) requireBoolean(value, path);
+};
+
+const validateOptionalEnum = (
+  value: unknown,
+  allowed: readonly string[],
+  path: string,
+) => {
+  if (value === undefined || value === null) return;
+  if (typeof value !== 'string' || !allowed.includes(value)) {
+    fail(`${path} is invalid`);
+  }
 };
 
 const validateStringArray = (value: unknown, path: string) => {
@@ -123,6 +142,7 @@ const validateChatMeta = (data: Record<string, unknown>) => {
   ['intent', 'strategy', 'style', 'planner_mode', 'tool_execution_mode', 'fallback_reason',
     'grounding_mode', 'source_tier', 'as_of_date', 'finish_reason', 'cache_key_prefix',
     'error'].forEach((field) => validateOptionalString(data[field], `data.${field}`));
+  validateOptionalEnum(data.style, ['markdown', 'json', 'compact'], 'data.style');
   if (data.cache_similarity !== undefined && data.cache_similarity !== null) {
     requireNumber(data.cache_similarity, 'data.cache_similarity');
   }
@@ -132,6 +152,84 @@ const validateChatMeta = (data: Record<string, unknown>) => {
     if (data[field] !== undefined && !Array.isArray(data[field])) fail(`data.${field} must be an array`);
   });
   if (data.perf !== undefined) requireRecord(data.perf, 'data.perf');
+};
+
+const validateCoachRiskItems = (value: unknown, path: string) => {
+  if (!Array.isArray(value)) return fail(`${path} must be an array`);
+  value.forEach((item: unknown, index: number) => {
+    const riskPath = `${path}[${index}]`;
+    const risk = requireRecord(item, riskPath);
+    rejectUnknownKeys(
+      risk,
+      ['area', 'description', 'impact', 'impact_to', 'inning_start', 'inning_end', 'inning_label', 'level'],
+      riskPath,
+    );
+    requireString(risk.area, `${riskPath}.area`);
+    requireString(risk.description, `${riskPath}.description`);
+    requireInteger(risk.level, `${riskPath}.level`, 0);
+    if (risk.level !== 0 && risk.level !== 1 && risk.level !== 2) fail(`${riskPath}.level is invalid`);
+    validateOptionalString(risk.impact, `${riskPath}.impact`);
+    validateOptionalString(risk.inning_label, `${riskPath}.inning_label`);
+    validateOptionalEnum(risk.impact_to, ['home', 'away', 'both'], `${riskPath}.impact_to`);
+    ['inning_start', 'inning_end'].forEach((field) => {
+      if (risk[field] !== undefined && risk[field] !== null) {
+        requireInteger(risk[field], `${riskPath}.${field}`, 0);
+      }
+    });
+  });
+};
+
+const validateCoachStructuredResponse = (value: unknown) => {
+  const path = 'data.structured_response';
+  const structured = requireRecord(value, path);
+  rejectUnknownKeys(
+    structured,
+    ['headline', 'sentiment', 'analysis_type', 'key_metrics', 'analysis', 'detailed_markdown', 'coach_note'],
+    path,
+  );
+  if ('analysisType' in structured) fail(`${path} must use analysis_type`);
+  requireString(structured.headline, `${path}.headline`);
+  validateOptionalEnum(structured.analysis_type, ['game_review', 'game_preview'], `${path}.analysis_type`);
+  if (!['positive', 'negative', 'neutral'].includes(String(structured.sentiment))) {
+    fail(`${path}.sentiment is invalid`);
+  }
+  requireString(structured.detailed_markdown, `${path}.detailed_markdown`, true);
+  requireString(structured.coach_note, `${path}.coach_note`, true);
+
+  const analysis = requireRecord(structured.analysis, `${path}.analysis`);
+  rejectUnknownKeys(
+    analysis,
+    ['summary', 'verdict', 'strengths', 'weaknesses', 'risks', 'why_it_matters', 'swing_factors', 'watch_points', 'uncertainty'],
+    `${path}.analysis`,
+  );
+  validateOptionalString(analysis.summary, `${path}.analysis.summary`);
+  validateOptionalString(analysis.verdict, `${path}.analysis.verdict`);
+  ['strengths', 'weaknesses', 'why_it_matters', 'swing_factors', 'watch_points', 'uncertainty']
+    .forEach((field) => {
+      if (analysis[field] !== undefined) {
+        validateStringArray(analysis[field], `${path}.analysis.${field}`);
+      }
+    });
+  if (analysis.risks !== undefined) {
+    validateCoachRiskItems(analysis.risks, `${path}.analysis.risks`);
+  }
+
+  const keyMetrics = structured.key_metrics;
+  if (keyMetrics !== undefined) {
+    if (!Array.isArray(keyMetrics)) return fail(`${path}.key_metrics must be an array`);
+    keyMetrics.forEach((item: unknown, index: number) => {
+      const metricPath = `${path}.key_metrics[${index}]`;
+      const metric = requireRecord(item, metricPath);
+      rejectUnknownKeys(metric, ['label', 'value', 'trend', 'status', 'is_critical'], metricPath);
+      requireString(metric.label, `${metricPath}.label`);
+      requireString(metric.value, `${metricPath}.value`, true);
+      validateOptionalEnum(metric.trend, ['up', 'down', 'neutral'], `${metricPath}.trend`);
+      validateOptionalEnum(metric.status, ['good', 'warning', 'danger'], `${metricPath}.status`);
+      if (metric.trend === undefined) fail(`${metricPath}.trend is required`);
+      if (metric.status === undefined) fail(`${metricPath}.status is required`);
+      requireBoolean(metric.is_critical, `${metricPath}.is_critical`);
+    });
+  }
 };
 
 const validateManualDataRequest = (value: unknown) => {
@@ -176,6 +274,14 @@ const validateCoachMeta = (data: Record<string, unknown>) => {
   ['request_mode', 'analysis_type', 'focus_signature', 'question_signature', 'cache_key_version',
     'cache_state', 'validation_status', 'llm_skip_reason', 'generation_mode', 'data_quality',
     'game_status_bucket'].forEach((field) => validateOptionalString(data[field], `data.${field}`));
+  validateOptionalEnum(data.request_mode, ['auto_brief', 'manual_detail'], 'data.request_mode');
+  validateOptionalEnum(data.analysis_type, ['game_review', 'game_preview'], 'data.analysis_type');
+  validateOptionalEnum(
+    data.generation_mode,
+    ['deterministic_auto', 'deterministic_review', 'deterministic_preview', 'llm_manual', 'evidence_fallback'],
+    'data.generation_mode',
+  );
+  validateOptionalEnum(data.data_quality, ['grounded', 'partial', 'insufficient'], 'data.data_quality');
   ['verified', 'in_progress', 'cached', 'focus_section_missing'].forEach((field) => (
     validateOptionalBoolean(data[field], `data.${field}`)
   ));
@@ -189,15 +295,14 @@ const validateCoachMeta = (data: Record<string, unknown>) => {
     validateManualDataRequest(data.manual_data_request);
   }
   if (data.supported_fact_count !== undefined && data.supported_fact_count !== null) {
-    requireNumber(data.supported_fact_count, 'data.supported_fact_count', 0);
+    requireInteger(data.supported_fact_count, 'data.supported_fact_count', 0);
   }
   if (data.win_probability_home !== undefined && data.win_probability_home !== null) {
     const probability = requireNumber(data.win_probability_home, 'data.win_probability_home', 0);
     if (probability > 1) fail('data.win_probability_home must be at most 1');
   }
   if (data.structured_response !== undefined && data.structured_response !== null) {
-    const structured = requireRecord(data.structured_response, 'data.structured_response');
-    if ('analysisType' in structured) fail('data.structured_response must use analysis_type');
+    validateCoachStructuredResponse(data.structured_response);
   }
 };
 
@@ -230,11 +335,11 @@ const validateEventData = (type: AiStreamV2Event['type'], value: unknown) => {
     case 'coach.preview.chunk':
       rejectUnknownKeys(data, ['text', 'attempt'], 'data');
       requireString(data.text, 'data.text', true);
-      requireNumber(data.attempt, 'data.attempt', 1);
+      requireInteger(data.attempt, 'data.attempt', 1);
       break;
     case 'coach.preview.reset':
       rejectUnknownKeys(data, ['attempt'], 'data');
-      requireNumber(data.attempt, 'data.attempt', 1);
+      requireInteger(data.attempt, 'data.attempt', 1);
       break;
     case 'coach.meta':
       validateCoachMeta(data);

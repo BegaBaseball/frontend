@@ -63,6 +63,7 @@ test('syncAiStreamContract rejects network sources', () => {
 test('generateAiStreamTypes writes types and detects stale output', () => {
   const directory = mkdtempSync(join(tmpdir(), 'bega-ai-types-'));
   const schemaPath = join(directory, 'schema.json');
+  const metadataPath = join(directory, 'metadata.json');
   const outputPath = join(directory, 'generated.ts');
   writeFileSync(schemaPath, JSON.stringify({
     openapi: '3.1.0',
@@ -83,17 +84,31 @@ test('generateAiStreamTypes writes types and detects stale output', () => {
       },
     },
   }));
+  writeFileSync(metadataPath, JSON.stringify({
+    source_repository: 'BegaBaseball/AI',
+    schema_version: '2.0.0',
+    sha256: computeSha256(readFileSync(schemaPath)),
+  }));
 
   try {
-    generateAiStreamTypes({ schemaPath, outputPath, checkOnly: false });
+    generateAiStreamTypes({ schemaPath, metadataPath, outputPath, checkOnly: false });
     const generated = readFileSync(outputPath, 'utf8');
     assert.match(generated, /Ping/);
     assert.match(generated, /message\?: string \| null/);
-    generateAiStreamTypes({ schemaPath, outputPath, checkOnly: true });
+    generateAiStreamTypes({ schemaPath, metadataPath, outputPath, checkOnly: true });
+
+    writeFileSync(metadataPath, JSON.stringify({ sha256: 'stale' }));
+    assert.throws(
+      () => generateAiStreamTypes({ schemaPath, metadataPath, outputPath, checkOnly: true }),
+      /metadata SHA-256/,
+    );
+    writeFileSync(metadataPath, JSON.stringify({
+      sha256: computeSha256(readFileSync(schemaPath)),
+    }));
 
     writeFileSync(outputPath, 'stale\n');
     assert.throws(
-      () => generateAiStreamTypes({ schemaPath, outputPath, checkOnly: true }),
+      () => generateAiStreamTypes({ schemaPath, metadataPath, outputPath, checkOnly: true }),
       /out of date/,
     );
   } finally {

@@ -1,4 +1,4 @@
-import { ChatMeta, ChatQueueStatus, ChatRequest, VoiceResponse } from '../types/chatbot';
+import { ChatMeta, ChatQueueStatus, VoiceResponse } from '../types/chatbot';
 import { AiStreamMetaPayload } from '../types/ai';
 import type { components as AiStreamComponents } from './generated/aiStreamV2';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
@@ -56,6 +56,10 @@ const DEFAULT_RETRY_AFTER_SECONDS = 10;
 const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
 
 type ChatMetaV2 = AiStreamComponents['schemas']['ChatMetaData'];
+type ChatStreamRequestWire = AiStreamComponents['schemas']['ChatStreamRequest'];
+export type ChatStreamRequest = Omit<ChatStreamRequestWire, 'history'> & {
+  history: AiStreamComponents['schemas']['ChatHistoryMessage'][] | null;
+};
 
 const toLegacyChatMetaPayload = (data: ChatMetaV2): AiStreamMetaPayload => ({
   verified: data.verified ?? undefined,
@@ -102,7 +106,7 @@ const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null 
 };
 
 export async function sendChatMessageStream(
-  data: ChatRequest,
+  data: ChatStreamRequest,
   onDelta: (delta: string) => void,
   onMeta?: (meta: ChatMeta) => void,
   options?: {
