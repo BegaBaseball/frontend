@@ -29,7 +29,7 @@ export default function CheerDetailStatsAsideRuntime({
     return (
         <aside>
             <div
-                className="rounded-2xl border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80"
+                className="rounded-2xl border bg-[var(--cheer-sub-card)] p-2.5 shadow-sm backdrop-blur-sm"
                 style={primaryBorderStyle}
             >
                 <button
@@ -64,7 +64,7 @@ export default function CheerDetailStatsAsideRuntime({
                                 {[1, 2, 3].map((item) => (
                                     <div
                                         key={item}
-                                        className="h-[44px] animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800/80"
+                                        className="h-[44px] animate-skeleton-pulse rounded-xl bg-[var(--cheer-chip-bg)]"
                                     />
                                 ))}
                             </>

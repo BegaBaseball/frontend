@@ -147,7 +147,7 @@ export default function UserProfile() {
                     <Skeleton className="h-5 w-16" />
                 </div>
                 {/* 프로필 카드 스켈레톤 */}
-                <div className="bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border overflow-hidden">
+                <div className="bg-[var(--cheer-card-bg)] shadow-sm border border-[var(--cheer-line-10)] overflow-hidden">
                     {/* 배너 */}
                     <Skeleton className="h-[150px] w-full" />
                     {/* 아바타 */}
@@ -166,7 +166,7 @@ export default function UserProfile() {
                         </div>
                     </div>
                     {/* 통계 행 */}
-                    <div className="flex items-center justify-around py-4 border-y border-gray-100 dark:border-border">
+                    <div className="flex items-center justify-around py-4 border-y border-[var(--cheer-line-10)]">
                         {[1, 2, 3].map((i) => (
                             <div key={i} className="text-center space-y-1">
                                 <Skeleton className="h-6 w-12 mx-auto" />
@@ -183,7 +183,7 @@ export default function UserProfile() {
                 <div className="mt-6 px-4 space-y-4">
                     <Skeleton className="h-7 w-36" />
                     {[1, 2, 3].map((i) => (
-                        <div key={i} className="bg-white dark:bg-card border border-gray-100 dark:border-border rounded-xl p-4 space-y-3">
+                        <div key={i} className="bg-[var(--cheer-card-bg)] border border-[var(--cheer-line-10)] rounded-xl p-4 space-y-3">
                             <div className="flex items-center gap-3">
                                 <Skeleton className="h-10 w-10 rounded-full" />
                                 <div className="space-y-1 flex-1">
@@ -258,7 +258,7 @@ export default function UserProfile() {
             </button>
 
             {/* Profile Card */}
-            <div className="bg-white dark:bg-card shadow-sm border border-gray-100 dark:border-border overflow-hidden">
+            <div className="bg-[var(--cheer-card-bg)] shadow-sm border border-[var(--cheer-line-10)] overflow-hidden">
                 {/* Banner */}
                 <div className="h-[150px] relative" style={{ background: theme.gradient }}>
                     {/* Optional: subtle pattern or team logo watermark */}
@@ -320,7 +320,7 @@ export default function UserProfile() {
                 </div>
 
                 {/* Statistics Row */}
-                <div className="flex items-center justify-around py-4 border-y border-gray-100 dark:border-border">
+                <div className="flex items-center justify-around py-4 border-y border-[var(--cheer-line-10)]">
                     <div className="text-center">
                         <span className="font-bold text-lg text-gray-900 dark:text-white block">
                             {formatCount(totalPosts)}
@@ -420,7 +420,7 @@ export default function UserProfile() {
 
                 {/* Bio Section */}
                 <div className="px-6 mb-6">
-                    <div className="p-4 bg-gray-50 dark:bg-secondary/30 rounded-xl relative">
+                    <div className="p-4 bg-[var(--cheer-sub-card)] rounded-xl relative">
                         <span className="absolute top-2.5 left-3 text-lg leading-none text-gray-300 dark:text-white">
                             "
                         </span>

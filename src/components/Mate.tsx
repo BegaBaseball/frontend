@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useRef } from 'react';
 
 import { useMateListController } from '../hooks/useMateListController';
 import { useUIStore } from '../store/uiStore';
@@ -63,6 +63,7 @@ function MateControlsFallback() {
 
 export default function Mate() {
   const controller = useMateListController();
+  const recordedSearchTermsRef = useRef<Set<string>>(new Set());
   const mateListViewMode = useUIStore((state) => state.mateListViewMode);
   const effectiveViewMode = controller.isDesktopListLayout ? mateListViewMode : 'grid';
 
@@ -70,7 +71,10 @@ export default function Mate() {
     <div className="relative min-h-screen bg-gray-50 transition-colors duration-200 dark:bg-background">
       <div className="relative z-10 mx-auto max-w-7xl px-4 py-5 pb-8 sm:px-6 lg:px-8 2xl:max-w-[1440px]">
         <Suspense fallback={<MateControlsFallback />}>
-          <MateListControlsRuntime controller={controller}>
+          <MateListControlsRuntime
+            controller={controller}
+            recordedSearchTermsRef={recordedSearchTermsRef}
+          >
             <Suspense fallback={<MateResultsFallback />}>
               <MateResultsRuntime
                 parties={controller.parties}

@@ -394,7 +394,7 @@ export default function CheerFeedRuntimeContent({
                                                     </article>
                                                 )}
                                             >
-                                                <CheerCard post={item.post} />
+                                                <CheerCard post={item.post} teamColor={teamColor} />
                                             </ErrorBoundary>
                                         )}
                                     </div>

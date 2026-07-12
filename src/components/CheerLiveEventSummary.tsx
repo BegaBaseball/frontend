@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import type { GameLiveEvent, GameLiveSnapshot } from '../types/prediction';
 import {
   isManualBaseballDataRequiredCode,
@@ -42,12 +43,20 @@ export default function CheerLiveEventSummary({
   const currentInning = formatInning(snapshot?.currentInning, snapshot?.currentInningHalf);
   const isManualDataRequired = isManualBaseballDataRequiredCode(errorCode);
 
+  // 새로 도착한 이벤트만 roll-in-up 애니메이션 — 이미 본 이벤트는 재생하지 않음
+  const seenEventKeysRef = useRef<Set<string>>(new Set());
+  const isNewEvent = (key: string) => {
+    if (seenEventKeysRef.current.has(key)) return false;
+    seenEventKeysRef.current.add(key);
+    return true;
+  };
+
   return (
-    <section className="border-t border-slate-100 px-5 py-5 dark:border-border" data-testid="cheer-live-event-summary">
+    <section className="border-t border-[var(--cheer-line-10)] px-5 py-5" data-testid="cheer-live-event-summary">
       <div className="flex items-center justify-between gap-3">
         <h3 className="text-body font-black text-slate-900 dark:text-white">실시간 경기 흐름</h3>
         {currentInning ? (
-          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-caption font-black text-slate-600 dark:bg-secondary dark:text-white">
+          <span className="rounded-full bg-[var(--cheer-chip-bg)] px-2.5 py-1 text-caption font-black text-slate-600 dark:text-white">
             {currentInning}
           </span>
         ) : null}
@@ -74,22 +83,29 @@ export default function CheerLiveEventSummary({
 
       {events.length > 0 ? (
         <ol className="mt-3 space-y-2">
-          {events.map((event, index) => (
-            <li key={eventKey(event, index)} className="rounded-xl bg-slate-50 px-3 py-2.5 dark:bg-secondary/60">
-              <div className="flex flex-wrap items-center gap-2 text-caption font-black text-slate-500 dark:text-slate-300">
-                <span>{formatInning(event.inning, event.inningHalf) || '이닝 정보 없음'}</span>
-                {event.resultCode || event.eventType ? <span>{event.resultCode || event.eventType}</span> : null}
-              </div>
-              <p className="mt-1 text-body font-semibold leading-relaxed text-slate-900 dark:text-white">
-                {event.description || '내부 이벤트 설명이 아직 입력되지 않았습니다.'}
-              </p>
-            </li>
-          ))}
+          {events.map((event, index) => {
+            const key = eventKey(event, index);
+            const shouldAnimate = isNewEvent(key);
+            return (
+              <li
+                key={key}
+                className={`rounded-xl bg-[var(--cheer-chip-bg)] px-3 py-2.5 ${shouldAnimate ? 'animate-roll-in-up' : ''}`}
+              >
+                <div className="flex flex-wrap items-center gap-2 text-caption font-black text-slate-500 dark:text-slate-300">
+                  <span>{formatInning(event.inning, event.inningHalf) || '이닝 정보 없음'}</span>
+                  {event.resultCode || event.eventType ? <span>{event.resultCode || event.eventType}</span> : null}
+                </div>
+                <p className="mt-1 text-body font-semibold leading-relaxed text-slate-900 dark:text-white">
+                  {event.description || '내부 이벤트 설명이 아직 입력되지 않았습니다.'}
+                </p>
+              </li>
+            );
+          })}
         </ol>
       ) : isLoading ? (
-        <div className="mt-3 h-16 animate-pulse rounded-xl bg-slate-100 dark:bg-secondary" />
+        <div className="mt-3 h-16 animate-skeleton-pulse rounded-xl bg-[var(--cheer-chip-bg)]" />
       ) : !errorMessage ? (
-        <p className="mt-3 rounded-xl bg-slate-50 px-3 py-3 text-caption font-semibold text-slate-500 dark:bg-secondary/60 dark:text-slate-300">
+        <p className="mt-3 rounded-xl bg-[var(--cheer-chip-bg)] px-3 py-3 text-caption font-semibold text-slate-500 dark:text-slate-300">
           내부 경기 이벤트가 등록되면 여기에 실시간으로 표시됩니다.
         </p>
       ) : null}
