@@ -281,7 +281,10 @@ export const resolveAiEventVersion = (value: unknown): AiEventVersion => {
 };
 
 export const getAiEventVersion = (): AiEventVersion => (
-  resolveAiEventVersion(import.meta.env?.VITE_AI_EVENT_VERSION)
+  resolveAiEventVersion(
+    import.meta.env?.VITE_AI_EVENT_VERSION
+      ?? (typeof process !== 'undefined' ? process.env?.VITE_AI_EVENT_VERSION : undefined),
+  )
 );
 
 export const isTypedDone = (event: AiStreamV2Event): boolean => event.type === 'stream.done';
