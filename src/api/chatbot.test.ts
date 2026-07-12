@@ -51,7 +51,10 @@ test('sendChatMessageStream consumes negotiated v2 chat events', async (t) => {
   });
 
   let requestHeaders: Headers | null = null;
-  t.mock.method(globalThis, 'fetch', async (_input, init) => {
+  t.mock.method(globalThis, 'fetch', async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
     requestHeaders = new Headers(init?.headers);
     return buildStreamResponse([
       'event: chat.queue\n',
@@ -77,7 +80,8 @@ test('sendChatMessageStream consumes negotiated v2 chat events', async (t) => {
     { onQueueStatus: (status) => queues.push(status) },
   );
 
-  assert.equal(requestHeaders?.get('X-AI-Event-Version'), '2');
+  const capturedHeaders = requestHeaders as unknown as Headers;
+  assert.equal(capturedHeaders.get('X-AI-Event-Version'), '2');
   assert.deepEqual(deltas, ['안녕']);
   assert.deepEqual(queues, [{
     state: 'queued',
@@ -110,7 +114,10 @@ test('sendChatMessageStream rejects v2 when response negotiation header is missi
 
 test('sendChatMessageStream sends explicit v1 header in rollback mode', async (t) => {
   let requestHeaders: Headers | null = null;
-  t.mock.method(globalThis, 'fetch', async (_input, init) => {
+  t.mock.method(globalThis, 'fetch', async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
     requestHeaders = new Headers(init?.headers);
     return buildStreamResponse([
       'event: done\n',
@@ -123,7 +130,8 @@ test('sendChatMessageStream sends explicit v1 header in rollback mode', async (t
     () => undefined,
   );
 
-  assert.equal(requestHeaders?.get('X-AI-Event-Version'), '1');
+  const capturedHeaders = requestHeaders as unknown as Headers;
+  assert.equal(capturedHeaders.get('X-AI-Event-Version'), '1');
 });
 
 test('sendChatMessageStream rejects when SSE error event is received', async (t) => {

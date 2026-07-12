@@ -56,7 +56,9 @@ test('consumeSseStream accepts a typed v2 terminal predicate without waiting for
   const events: string[] = [];
   const result = await consumeSseStream(body, {
     timeoutMs: 50,
-    onEvent: ({ data }) => events.push(data),
+    onEvent: ({ data }) => {
+      events.push(data);
+    },
     isTerminalEvent: ({ event }) => event === 'stream.done',
   });
 
