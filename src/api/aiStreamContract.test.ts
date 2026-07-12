@@ -122,6 +122,51 @@ test('decodeAiStreamV2Event rejects missing or invalid required data', () => {
   );
 });
 
+test('decodeAiStreamV2Event rejects invalid nested coach contract values', () => {
+  const decodeCoach = (data: Record<string, unknown>) => decodeAiStreamV2Event({
+    event: 'coach.meta',
+    data: JSON.stringify({ version: 2, type: 'coach.meta', data }),
+  });
+
+  assert.throws(() => decodeCoach({ request_mode: 'bogus' }), /request_mode/);
+  assert.throws(() => decodeCoach({ generation_mode: 'bogus' }), /generation_mode/);
+  assert.throws(() => decodeCoach({ data_quality: 'bogus' }), /data_quality/);
+  assert.throws(() => decodeCoach({ supported_fact_count: 1.5 }), /supported_fact_count/);
+  assert.throws(
+    () => decodeCoach({
+      structured_response: {
+        headline: 7,
+        sentiment: 'pwned',
+        analysis: {},
+        detailed_markdown: {},
+        coach_note: null,
+      },
+    }),
+    /structured_response/,
+  );
+});
+
+test('decodeAiStreamV2Event enforces style enums and integer attempts', () => {
+  assert.throws(
+    () => decodeAiStreamV2Event({
+      event: 'chat.meta',
+      data: JSON.stringify({ version: 2, type: 'chat.meta', data: { style: 'html' } }),
+    }),
+    /style/,
+  );
+  assert.throws(
+    () => decodeAiStreamV2Event({
+      event: 'coach.preview.chunk',
+      data: JSON.stringify({
+        version: 2,
+        type: 'coach.preview.chunk',
+        data: { text: 'preview', attempt: 1.5 },
+      }),
+    }),
+    /attempt/,
+  );
+});
+
 test('resolveAiEventVersion defaults to v2 and rejects unsupported config', () => {
   assert.equal(resolveAiEventVersion(undefined), '2');
   assert.equal(resolveAiEventVersion('1'), '1');

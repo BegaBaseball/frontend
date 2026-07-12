@@ -7,9 +7,24 @@ import {
   convertVoiceToText,
   RateLimitError,
   sendChatMessageStream,
+  type ChatStreamRequest,
 } from './chatbot';
 
 process.env.VITE_AI_EVENT_VERSION = '1';
+
+const validTypedRequest = {
+  question: '질문',
+  history: [{ role: 'user', content: '이전 질문' }],
+} satisfies ChatStreamRequest;
+const invalidTypedRequest = {
+  question: '질문',
+  history: [
+    // @ts-expect-error Chat v2 history roles are restricted by the generated contract.
+    { role: 'system', content: '금지된 역할' },
+  ],
+} satisfies ChatStreamRequest;
+void validTypedRequest;
+void invalidTypedRequest;
 
 type MetaPayload = {
   verified: boolean;
