@@ -1,7 +1,13 @@
 import { AiDataSource, AiStreamMetaPayload, AiToolCall } from '../types/ai';
 import type { ManualBaseballDataRequest } from '../types/manualBaseballData';
+import type { components as AiStreamComponents } from './generated/aiStreamV2';
 import { requestAuthReissue } from './authReissue';
 import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
+import {
+    AiStreamContractError,
+    decodeAiStreamV2Event,
+    getAiEventVersion,
+} from './aiStreamContract';
 import { consumeSseStream } from './sse';
 import {
     COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
@@ -16,6 +22,12 @@ import {
 } from './stream';
 
 const COACH_ANALYZE_ENDPOINT = '/ai/coach/analyze';
+const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
+
+type CoachAnalyzeRequestWire = AiStreamComponents['schemas']['CoachAnalyzeRequest'];
+type CoachMetaV2 = AiStreamComponents['schemas']['CoachMetaData'];
+type CoachStructuredResponseV2 = AiStreamComponents['schemas']['CoachStructuredResponse'];
+type ManualBaseballDataRequestV2 = AiStreamComponents['schemas']['ManualBaseballDataRequest'];
 
 export interface AnalyzeLeagueContext {
     season?: number | string;
@@ -42,18 +54,20 @@ export interface AnalyzeLeagueContext {
     } | null;
 }
 
-export interface AnalyzeRequest {
-    team_id?: string; // deprecated: use home_team_id
-    home_team_id?: string;
-    away_team_id?: string;
+export type AnalyzeRequest = Omit<
+    Partial<CoachAnalyzeRequestWire>,
+    'request_mode' | 'analysis_type' | 'league_context'
+> & {
+    team_id?: string | null; // deprecated: use home_team_id
+    home_team_id?: string | null;
+    away_team_id?: string | null;
     league_context?: AnalyzeLeagueContext;
     focus?: string[];
-    game_id?: string;
     request_mode: CoachRequestMode;
     analysis_type?: CoachAnalysisType;
     analysisType?: CoachAnalysisType;
-    question_override?: string;
-}
+    question_override?: string | null;
+};
 
 export type CoachRequestMode = 'auto_brief' | 'manual_detail';
 export type CoachAnalysisType = 'game_review' | 'game_preview';
@@ -202,6 +216,44 @@ export interface CoachAnalyzeResponse {
     manual_data_request?: ManualBaseballDataRequest;
     win_probability_home?: number | null;
 }
+
+const toCoachStructuredResponse = (
+    value: CoachStructuredResponseV2,
+): CoachStructuredResponse => ({
+    headline: value.headline,
+    sentiment: value.sentiment,
+    analysisType: value.analysis_type ?? undefined,
+    analysis_type: value.analysis_type ?? undefined,
+    key_metrics: value.key_metrics ?? [],
+    analysis: {
+        summary: value.analysis.summary ?? undefined,
+        verdict: value.analysis.verdict ?? undefined,
+        strengths: value.analysis.strengths ?? [],
+        weaknesses: value.analysis.weaknesses ?? [],
+        risks: value.analysis.risks ?? [],
+        why_it_matters: value.analysis.why_it_matters ?? [],
+        swing_factors: value.analysis.swing_factors ?? [],
+        watch_points: value.analysis.watch_points ?? [],
+        uncertainty: value.analysis.uncertainty ?? [],
+    },
+    detailed_markdown: value.detailed_markdown,
+    coach_note: value.coach_note,
+});
+
+const toManualBaseballDataRequest = (
+    value: ManualBaseballDataRequestV2,
+): ManualBaseballDataRequest => ({
+    scope: value.scope,
+    missingItems: value.missing_items.map((item) => ({
+        key: item.key,
+        label: item.label,
+        reason: item.reason,
+        expected_format: item.expected_format,
+    })),
+    operatorMessage: value.operator_message,
+    blocking: value.blocking,
+    code: value.code ?? undefined,
+});
 
 export const getCoachDataQualityLabel = (value?: CoachDataQuality): string => {
     switch (value) {
@@ -409,6 +461,7 @@ export async function analyzeTeam(
     onStream?: (chunk: string) => void,
     options?: AnalyzeOptions
 ): Promise<CoachAnalyzeResponse> {
+    const eventVersion = getAiEventVersion();
     const requestMode = normalizeCoachRequestMode(data.request_mode);
     const normalizedQuestionOverride = normalizeQuestionOverride(data.question_override);
     const requestPayload = buildCoachAnalyzePayload(
@@ -424,6 +477,7 @@ export async function analyzeTeam(
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            [AI_EVENT_VERSION_HEADER]: eventVersion,
         },
         body: JSON.stringify(requestPayload),
         signal: options?.signal,
@@ -529,6 +583,15 @@ export async function analyzeTeam(
         throw new Error(errorPayload.detail || errorPayload.message || errorPayload.rawText || 'coach_internal_error');
     }
 
+    if (
+        eventVersion === '2'
+        && response.headers.get(AI_EVENT_VERSION_HEADER) !== '2'
+    ) {
+        throw new AiStreamContractError(
+            'AI stream negotiated version header is missing or mismatched.',
+        );
+    }
+
     // Handle Streaming (SSE)
     const responseBody = response.body;
     let fullAnswer = "";
@@ -561,7 +624,7 @@ export async function analyzeTeam(
 
     if (responseBody) {
         try {
-            const handleMetaPayload = (parsed: AiStreamMetaPayload & Record<string, unknown>) => {
+            const handleLegacyMetaPayload = (parsed: AiStreamMetaPayload & Record<string, unknown>) => {
                 const parsedAnalysisType = normalizeCoachAnalysisType(
                     (parsed.analysis_type ?? parsed.analysisType) as AnalyzeRequest['analysis_type'],
                 );
@@ -663,10 +726,115 @@ export async function analyzeTeam(
                 }
             };
 
+            const handleV2MetaPayload = (parsed: CoachMetaV2) => {
+                if (parsed.analysis_type) {
+                    analysisType = parsed.analysis_type;
+                }
+                if (parsed.structured_response) {
+                    structuredData = toCoachStructuredResponse(parsed.structured_response);
+                    if (parsed.structured_response.analysis_type) {
+                        analysisType = parsed.structured_response.analysis_type;
+                    }
+                }
+                if (parsed.tool_calls) {
+                    toolCalls = normalizeAiToolCalls(parsed.tool_calls.map((toolCall) => ({
+                        tool_name: toolCall.tool_name,
+                        parameters: toolCall.parameters,
+                    })));
+                }
+                if (parsed.verified !== undefined && parsed.verified !== null) {
+                    verified = parsed.verified;
+                }
+                if (parsed.data_sources) {
+                    dataSources = normalizeAiDataSources(parsed.data_sources.map((source) => ({
+                        title: source.title ?? undefined,
+                        url: source.url ?? undefined,
+                        content: source.content ?? undefined,
+                    })));
+                }
+                if (parsed.resolved_focus) resolvedFocus = parsed.resolved_focus;
+                if (parsed.request_mode) requestModeFromMeta = parsed.request_mode;
+                if (parsed.focus_signature) focusSignature = parsed.focus_signature;
+                if (parsed.question_signature) questionSignature = parsed.question_signature;
+                if (parsed.cache_key_version) cacheKeyVersion = parsed.cache_key_version;
+                if (parsed.cache_state) cacheState = parsed.cache_state;
+                if (parsed.validation_status) validationStatus = parsed.validation_status;
+                if (parsed.in_progress !== undefined && parsed.in_progress !== null) {
+                    inProgress = parsed.in_progress;
+                }
+                if (parsed.cached !== undefined && parsed.cached !== null) {
+                    cached = parsed.cached;
+                }
+                if (parsed.llm_skip_reason) llmSkipReason = parsed.llm_skip_reason;
+                if (
+                    parsed.focus_section_missing !== undefined
+                    && parsed.focus_section_missing !== null
+                ) {
+                    focusSectionMissing = parsed.focus_section_missing;
+                }
+                if (parsed.missing_focus_sections) {
+                    missingFocusSections = parsed.missing_focus_sections;
+                }
+                if (parsed.generation_mode) generationMode = parsed.generation_mode;
+                if (parsed.data_quality) dataQuality = parsed.data_quality;
+                if (parsed.used_evidence) usedEvidence = parsed.used_evidence;
+                if (parsed.grounding_warnings) groundingWarnings = parsed.grounding_warnings;
+                if (parsed.grounding_reasons) groundingReasons = parsed.grounding_reasons;
+                if (parsed.supported_fact_count !== undefined && parsed.supported_fact_count !== null) {
+                    supportedFactCount = parsed.supported_fact_count;
+                }
+                if (parsed.game_status_bucket) gameStatusBucket = parsed.game_status_bucket;
+                if (parsed.manual_data_request) {
+                    manualDataRequest = toManualBaseballDataRequest(parsed.manual_data_request);
+                }
+                if (parsed.win_probability_home !== undefined) {
+                    winProbabilityHome = parsed.win_probability_home;
+                }
+            };
+
             const { sawDone } = await consumeSseStream(responseBody, {
                 timeoutMs: getCoachStreamReadTimeoutMs(requestMode),
                 signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
+                    if (eventVersion === '2') {
+                        const decoded = decodeAiStreamV2Event({ event, data: dataStr });
+                        switch (decoded.type) {
+                            case 'coach.status':
+                                options?.onStatus?.(decoded.data.status);
+                                return;
+                            case 'coach.preview.chunk':
+                                options?.onPreviewChunk?.(
+                                    decoded.data.text,
+                                    decoded.data.attempt,
+                                );
+                                return;
+                            case 'coach.preview.reset':
+                                options?.onPreviewReset?.(decoded.data.attempt);
+                                return;
+                            case 'coach.message.delta':
+                                fullAnswer += decoded.data.delta;
+                                if (onStream) onStream(fullAnswer);
+                                return;
+                            case 'coach.meta':
+                                handleV2MetaPayload(decoded.data);
+                                return;
+                            case 'stream.error':
+                                if (isAiProxyPayloadTooLargePayload({ code: decoded.data.code })) {
+                                    throw createCoachPayloadTooLargeError();
+                                }
+                                throw createCoachRequestFailedError(decoded.data.message);
+                            case 'stream.done':
+                                return;
+                            case 'chat.status':
+                            case 'chat.queue':
+                            case 'chat.message.delta':
+                            case 'chat.meta':
+                                throw new AiStreamContractError(
+                                    `Unexpected chat event on coach stream: ${decoded.type}`,
+                                );
+                        }
+                    }
+
                     if (
                         event !== 'message'
                         && event !== 'meta'
@@ -715,7 +883,7 @@ export async function analyzeTeam(
                     }
 
                     if (event === 'meta') {
-                        handleMetaPayload(parsed);
+                        handleLegacyMetaPayload(parsed);
                         return;
                     }
 
@@ -729,6 +897,9 @@ export async function analyzeTeam(
                         throw createCoachRequestFailedError(publicMessage);
                     }
                 },
+                isTerminalEvent: eventVersion === '2'
+                    ? ({ event }) => event === 'stream.done'
+                    : undefined,
             });
 
             const hasRecoverableTerminalState = Boolean(structuredData) && inProgress !== true;

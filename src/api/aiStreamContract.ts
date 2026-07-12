@@ -85,8 +85,9 @@ const validateStringArray = (value: unknown, path: string) => {
 };
 
 const validateToolCalls = (value: unknown, path: string) => {
-  if (!Array.isArray(value)) fail(`${path} must be an array`);
-  value.forEach((item, index) => {
+  if (!Array.isArray(value)) return fail(`${path} must be an array`);
+  const toolCalls: unknown[] = value;
+  toolCalls.forEach((item: unknown, index: number) => {
     const toolCall = requireRecord(item, `${path}[${index}]`);
     rejectUnknownKeys(toolCall, ['tool_name', 'parameters'], `${path}[${index}]`);
     requireString(toolCall.tool_name, `${path}[${index}].tool_name`);
@@ -95,8 +96,9 @@ const validateToolCalls = (value: unknown, path: string) => {
 };
 
 const validateDataSources = (value: unknown, path: string) => {
-  if (!Array.isArray(value)) fail(`${path} must be an array`);
-  value.forEach((item, index) => {
+  if (!Array.isArray(value)) return fail(`${path} must be an array`);
+  const dataSources: unknown[] = value;
+  dataSources.forEach((item: unknown, index: number) => {
     const source = requireRecord(item, `${path}[${index}]`);
     rejectUnknownKeys(source, ['title', 'url', 'content'], `${path}[${index}]`);
     validateOptionalString(source.title, `${path}[${index}].title`);
@@ -143,8 +145,9 @@ const validateManualDataRequest = (value: unknown) => {
   requireString(request.operator_message, 'data.manual_data_request.operator_message');
   requireBoolean(request.blocking, 'data.manual_data_request.blocking');
   validateOptionalString(request.code, 'data.manual_data_request.code');
-  if (!Array.isArray(request.missing_items)) fail('data.manual_data_request.missing_items must be an array');
-  request.missing_items.forEach((item, index) => {
+  const missingItems = request.missing_items;
+  if (!Array.isArray(missingItems)) return fail('data.manual_data_request.missing_items must be an array');
+  missingItems.forEach((item: unknown, index: number) => {
     const missing = requireRecord(item, `data.manual_data_request.missing_items[${index}]`);
     rejectUnknownKeys(
       missing,
