@@ -38,6 +38,7 @@ const loadMateValidationModule = () => {
 };
 
 const CHAT_UNREAD_UPDATED_EVENT = 'chat-unread-updated';
+const CHAT_HISTORY_PAGE_SIZE = 50;
 
 type MateChatApprovedRuntimeProps = {
   party: Party;
@@ -63,9 +64,12 @@ export default function MateChatApprovedRuntime({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [hasOlderMessages, setHasOlderMessages] = useState(false);
+  const [isLoadingOlderMessages, setIsLoadingOlderMessages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesRef = useRef<ChatMessage[]>([]);
+  const historyPartyIdRef = useRef<number | null>(null);
   const currentUserIdRef = useRef<number | null>(currentUser.id);
   const pendingWsSendsRef = useRef<Array<{
     payload: {
@@ -147,12 +151,6 @@ export default function MateChatApprovedRuntime({
     };
   }, [imagePreviewUrl]);
 
-  const { sendMessage: sendWebSocketMessage, isConnected } = useWebSocket({
-    partyId: party.id,
-    onMessageReceived: handleMessageReceived,
-    enabled: true,
-  });
-
   const messagesQuery = useQuery(getMatePartyMessagesQueryOptions(party.id));
   const messages = messagesQuery.data ?? [];
   const chatLoadError = messagesQuery.error
@@ -160,6 +158,15 @@ export default function MateChatApprovedRuntime({
       ? '승인된 참여자와 호스트만 채팅 기록을 조회할 수 있습니다.'
       : '이전 메시지를 불러오지 못했습니다. 다시 시도해주세요.')
     : null;
+
+  useEffect(() => {
+    if (historyPartyIdRef.current === party.id || messagesQuery.isPending || messagesQuery.error) {
+      return;
+    }
+
+    historyPartyIdRef.current = party.id;
+    setHasOlderMessages(messages.length === CHAT_HISTORY_PAGE_SIZE);
+  }, [messages.length, messagesQuery.error, messagesQuery.isPending, party.id]);
 
   useEffect(() => {
     messagesRef.current = messages;
@@ -196,6 +203,89 @@ export default function MateChatApprovedRuntime({
     const timer = setTimeout(markAsRead, 500);
     return () => clearTimeout(timer);
   }, [messages, notifyChatUnreadCount, party.id]);
+
+  const mergeMessages = useCallback((current: ChatMessage[], older: ChatMessage[]) => {
+    const merged = older.reduce<ChatMessage[]>(
+      (result, message) => appendUniqueMessage(result, message),
+      [...current],
+    );
+
+    return merged.sort((left, right) => {
+      const createdAtDifference = new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime();
+      if (createdAtDifference !== 0) {
+        return createdAtDifference;
+      }
+      return Number(left.id) - Number(right.id);
+    });
+  }, [appendUniqueMessage]);
+
+  const handleLoadOlderMessages = useCallback(async () => {
+    if (isLoadingOlderMessages || !hasOlderMessages) {
+      return;
+    }
+
+    const oldestMessage = messagesRef.current[0];
+    const beforeId = Number(oldestMessage?.id);
+    if (!Number.isFinite(beforeId)) {
+      setHasOlderMessages(false);
+      return;
+    }
+
+    const scrollArea = scrollAreaRef.current;
+    const previousScrollHeight = scrollArea?.scrollHeight ?? 0;
+    const previousScrollTop = scrollArea?.scrollTop ?? 0;
+    setIsLoadingOlderMessages(true);
+
+    try {
+      const { fetchPartyMessages } = await loadMateChatApiModule();
+      const olderMessages = await fetchPartyMessages(party.id, {
+        limit: CHAT_HISTORY_PAGE_SIZE,
+        beforeId,
+      });
+
+      if (olderMessages.length < CHAT_HISTORY_PAGE_SIZE) {
+        setHasOlderMessages(false);
+      }
+
+      queryClient.setQueryData<ChatMessage[]>(MATE_KEYS.partyMessages(party.id), (current) => (
+        mergeMessages(Array.isArray(current) ? current : [], olderMessages)
+      ));
+
+      requestAnimationFrame(() => {
+        if (!scrollArea) {
+          return;
+        }
+        scrollArea.scrollTop = previousScrollTop + (scrollArea.scrollHeight - previousScrollHeight);
+      });
+    } catch {
+      toast.error('이전 메시지를 불러오지 못했습니다. 다시 시도해주세요.');
+    } finally {
+      setIsLoadingOlderMessages(false);
+    }
+  }, [hasOlderMessages, isLoadingOlderMessages, mergeMessages, party.id, queryClient]);
+
+  const handleConnectionRestored = useCallback(() => {
+    void (async () => {
+      try {
+        const { fetchPartyMessages } = await loadMateChatApiModule();
+        const latestMessages = await fetchPartyMessages(party.id, {
+          limit: CHAT_HISTORY_PAGE_SIZE,
+        });
+        queryClient.setQueryData<ChatMessage[]>(MATE_KEYS.partyMessages(party.id), (current) => (
+          mergeMessages(Array.isArray(current) ? current : [], latestMessages)
+        ));
+      } catch (error) {
+        console.warn('채팅 재연결 후 최신 메시지 동기화에 실패했습니다.', error);
+      }
+    })();
+  }, [mergeMessages, party.id, queryClient]);
+
+  const { sendMessage: sendWebSocketMessage, isConnected } = useWebSocket({
+    partyId: party.id,
+    onMessageReceived: handleMessageReceived,
+    onConnectionRestored: handleConnectionRestored,
+    enabled: true,
+  });
 
   const handleImageSelect = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -437,6 +527,8 @@ export default function MateChatApprovedRuntime({
         canAccessCheckIn={canAccessCheckIn}
         groupedMessages={groupedMessages}
         chatLoadError={chatLoadError}
+        hasOlderMessages={hasOlderMessages}
+        isLoadingOlderMessages={isLoadingOlderMessages}
         messageText={messageText}
         imagePreviewUrl={imagePreviewUrl}
         isUploadingImage={isUploadingImage}
@@ -452,6 +544,7 @@ export default function MateChatApprovedRuntime({
         onNavigateManage={() => navigate(`/mate/${partyId}/manage`)}
         onNavigateCheckIn={() => navigate(`/mate/${partyId}/checkin`)}
         onRefetchMessages={() => void messagesQuery.refetch()}
+        onLoadOlderMessages={() => void handleLoadOlderMessages()}
         formatMessageTime={formatMessageTime}
       />
     </Suspense>

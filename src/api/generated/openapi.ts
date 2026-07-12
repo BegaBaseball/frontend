@@ -326,6 +326,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payments/capability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mate payment capability */
+        get: operations["getPaymentCapability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/payments/toss/{intentId}/cancel": {
         parameters: {
             query?: never;
@@ -4418,6 +4435,16 @@ export interface components {
             path?: string;
             url?: string;
         };
+        MatePaymentCapabilityResponse: {
+            paymentMode?: string;
+            businessMode?: string;
+            provider?: string;
+            environment?: string;
+            tossPaymentEnabled?: boolean;
+            sellingPaymentRequired?: boolean;
+            payoutEnabled?: boolean;
+            payoutProvider?: string;
+        };
         MateReviewCreateRequest: {
             /** Format: int64 */
             partyId?: number;
@@ -7667,6 +7694,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["PostImageDto"][];
+                };
+            };
+        };
+    };
+    getPaymentCapability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePaymentCapabilityResponse"];
                 };
             };
         };
@@ -12244,7 +12291,10 @@ export interface operations {
     };
     getMessagesByPartyId: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                beforeId?: number;
+            };
             header?: never;
             path: {
                 partyId: number;
