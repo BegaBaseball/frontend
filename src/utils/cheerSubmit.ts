@@ -1,15 +1,17 @@
 import {
   createPost as createCheerPost,
+  normalizeCheerPostType,
+  type CheerPostType,
   type ShareMode,
 } from '../api/cheerApi';
 import { uploadMediaFiles } from '../api/media';
 import { parseError } from './errorUtils';
 
-interface SubmitCheerPostPayload {
+export interface SubmitCheerPostPayload {
   teamId: string;
   content: string;
   files: File[];
-  postType?: 'NORMAL' | 'NOTICE';
+  postType?: CheerPostType;
   shareMode?: ShareMode;
   sourceUrl?: string;
   sourceTitle?: string;
@@ -18,9 +20,12 @@ interface SubmitCheerPostPayload {
   sourceLicenseUrl?: string;
   sourceChangedNote?: string;
   sourceSnapshotType?: string;
+  diaryId?: number;
+  partyId?: number;
 }
 
 export async function submitCheerPost(payload: SubmitCheerPostPayload) {
+  const postType = normalizeCheerPostType(payload.postType);
   let uploadedUrls: string[] = [];
 
   if (payload.files.length > 0) {
@@ -50,7 +55,7 @@ export async function submitCheerPost(payload: SubmitCheerPostPayload) {
     teamId: payload.teamId,
     content: payload.content,
     images: uploadedUrls,
-    postType: payload.postType ?? 'NORMAL',
+    postType,
     shareMode: payload.shareMode,
     sourceUrl: payload.sourceUrl,
     sourceTitle: payload.sourceTitle,
@@ -59,6 +64,8 @@ export async function submitCheerPost(payload: SubmitCheerPostPayload) {
     sourceLicenseUrl: payload.sourceLicenseUrl,
     sourceChangedNote: payload.sourceChangedNote,
     sourceSnapshotType: payload.sourceSnapshotType,
+    diaryId: payload.diaryId,
+    partyId: payload.partyId,
   }, { skipAuthSessionHandling: true });
 
   return { created, uploadedUrls, uploadFailed: false };
