@@ -129,6 +129,17 @@ test('resolveAiEventVersion defaults to v2 and rejects unsupported config', () =
   assert.throws(() => resolveAiEventVersion('3'), /VITE_AI_EVENT_VERSION/);
 });
 
+test('getAiEventVersion reads the Node test environment fallback', async () => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '1';
+  try {
+    const { getAiEventVersion } = await import('./aiStreamContract');
+    assert.equal(getAiEventVersion(), '1');
+  } finally {
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  }
+});
+
 test('isTypedDone recognizes only decoded stream.done events', () => {
   const done = decodeAiStreamV2Event({
     event: 'stream.done',
