@@ -9,6 +9,7 @@ export interface ConsumeSseStreamOptions {
   timeoutMs: number;
   signal?: AbortSignal;
   onEvent: (event: SseEvent) => void | Promise<void>;
+  isTerminalEvent?: (event: SseEvent) => boolean;
 }
 
 export interface ConsumeSseStreamResult {
@@ -52,10 +53,14 @@ export async function consumeSseStream(
       return;
     }
 
-    await options.onEvent({
+    const sseEvent = {
       event: currentEvent,
       data,
-    });
+    };
+    await options.onEvent(sseEvent);
+    if (options.isTerminalEvent?.(sseEvent)) {
+      sawDone = true;
+    }
   };
 
   try {

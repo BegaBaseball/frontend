@@ -7,6 +7,7 @@ import worker, {
   isApiPath,
   isHtmlNavigation,
   shouldBlockPreviewHost,
+  shouldRedirectToCanonicalOrigin,
 } from './index';
 
 const readWranglerConfig = () => JSON.parse(
@@ -18,6 +19,13 @@ test('redirects bare domain to canonical www host with path and query intact', a
 
   assert.equal(response.status, 301);
   assert.equal(response.headers.get('location'), 'https://www.begabaseball.xyz/auth/callback?code=123');
+});
+
+test('redirects every non-canonical production origin to www HTTPS', () => {
+  assert.equal(shouldRedirectToCanonicalOrigin(new URL('http://begabaseball.xyz')), true);
+  assert.equal(shouldRedirectToCanonicalOrigin(new URL('https://begabaseball.xyz')), true);
+  assert.equal(shouldRedirectToCanonicalOrigin(new URL('http://www.begabaseball.xyz')), true);
+  assert.equal(shouldRedirectToCanonicalOrigin(new URL('https://www.begabaseball.xyz')), false);
 });
 
 test('identifies api paths that should not fall through to the SPA', () => {
@@ -72,6 +80,26 @@ test('worker redirects bare-domain requests before touching assets', async () =>
 
   assert.equal(response.status, 301);
   assert.equal(response.headers.get('location'), 'https://www.begabaseball.xyz/mypage?view=accountSettings');
+  assert.equal(assetFetchCount, 0);
+});
+
+test('worker upgrades canonical host HTTP requests before touching assets', async () => {
+  let assetFetchCount = 0;
+
+  const response = await worker.fetch(
+    new Request('http://www.begabaseball.xyz/home?source=legacy'),
+    {
+      ASSETS: {
+        fetch: async () => {
+          assetFetchCount += 1;
+          return new Response('unexpected');
+        },
+      },
+    },
+  );
+
+  assert.equal(response.status, 301);
+  assert.equal(response.headers.get('location'), 'https://www.begabaseball.xyz/home?source=legacy');
   assert.equal(assetFetchCount, 0);
 });
 

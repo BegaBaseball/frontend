@@ -113,6 +113,7 @@ export interface EmbeddedPost {
   id: number;
   teamId: string;
   teamColor: string;
+  postType?: 'NORMAL' | 'NOTICE';
   content: string;
   author: string;
   authorHandle: string;
@@ -259,6 +260,7 @@ function transformEmbeddedPost(post: PostDTO): EmbeddedPost {
     id: post.id,
     teamId: post.teamId,
     teamColor: post.teamColor || getTeamColorByAnyKey(post.teamId),
+    postType: normalizePostType(post.postType),
     content: post.content || '',
     author: post.author,
     authorHandle: post.authorHandle,

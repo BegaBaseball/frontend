@@ -32,7 +32,7 @@ export interface Message {
 
 export interface ChatRequest {
   question: string;
-  history: Array<{ role: string; content: string }> | null;
+  history: Array<{ role: 'user' | 'assistant'; content: string }> | null;
 }
 
 export interface ChatQueueStatus {

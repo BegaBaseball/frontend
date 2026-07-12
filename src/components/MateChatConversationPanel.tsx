@@ -30,6 +30,8 @@ type MateChatConversationPanelProps = {
   isConnected: boolean;
   groupedMessages: GroupedMessages[];
   chatLoadError: string | null;
+  hasOlderMessages: boolean;
+  isLoadingOlderMessages: boolean;
   messageText: string;
   imagePreviewUrl: string | null;
   isUploadingImage: boolean;
@@ -41,6 +43,7 @@ type MateChatConversationPanelProps = {
   onCancelImageSelection: () => void;
   onSubmit: (event: FormEvent) => void;
   onRefetchMessages: () => void;
+  onLoadOlderMessages: () => void;
   formatMessageTime: (dateString: string) => string;
 };
 
@@ -72,6 +75,8 @@ export default function MateChatConversationPanel({
   isConnected,
   groupedMessages,
   chatLoadError,
+  hasOlderMessages,
+  isLoadingOlderMessages,
   messageText,
   imagePreviewUrl,
   isUploadingImage,
@@ -83,6 +88,7 @@ export default function MateChatConversationPanel({
   onCancelImageSelection,
   onSubmit,
   onRefetchMessages,
+  onLoadOlderMessages,
   formatMessageTime,
 }: MateChatConversationPanelProps) {
   return (
@@ -138,6 +144,19 @@ export default function MateChatConversationPanel({
         </div>
 
         <div ref={scrollAreaRef} className="min-h-[360px] flex-1 overflow-y-auto pr-2 sm:min-h-[420px] sm:pr-4">
+          {hasOlderMessages && (
+            <div className="mb-4 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isLoadingOlderMessages}
+                onClick={onLoadOlderMessages}
+                className="border-gray-300 text-gray-700 hover:bg-gray-50 dark:border-border dark:text-white dark:hover:bg-secondary"
+              >
+                {isLoadingOlderMessages ? '이전 메시지 불러오는 중…' : '이전 메시지 불러오기'}
+              </Button>
+            </div>
+          )}
           {groupedMessages.length === 0 ? (
             <ChatEmptyState
               title="아직 대화가 시작되지 않았습니다"

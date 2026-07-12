@@ -8,7 +8,6 @@ interface ImportMetaEnv {
   readonly VITE_API_BASE_URL?: string;
   readonly VITE_SITE_URL?: string;
   readonly VITE_TOSS_CLIENT_KEY?: string;
-  readonly VITE_MATE_PAYMENT_MODE?: 'DIRECT_TRADE' | 'TOSS_TEST';
   readonly VITE_MATE_REQUIRE_SOCIAL_VERIFICATION?: 'true' | 'false';
   readonly VITE_GA4_MEASUREMENT_ID?: string;
   readonly VITE_GOOGLE_SITE_VERIFICATION?: string;

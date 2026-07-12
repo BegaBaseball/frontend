@@ -15,10 +15,16 @@ type OutboundChatMessage = {
 interface UseWebSocketProps {
   partyId: string | number;
   onMessageReceived: (message: ChatMessage) => void;
+  onConnectionRestored?: () => void;
   enabled?: boolean;
 }
 
-export function useWebSocket({ partyId, onMessageReceived, enabled = true }: UseWebSocketProps) {
+export function useWebSocket({
+  partyId,
+  onMessageReceived,
+  onConnectionRestored,
+  enabled = true,
+}: UseWebSocketProps) {
   const clientRef = useRef<StompClient | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   // 최신 콜백을 ref로 유지하여 deps에서 제거 → 불필요한 재연결 방지
@@ -26,10 +32,15 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
   useEffect(() => {
     onMessageReceivedRef.current = onMessageReceived;
   });
+  const onConnectionRestoredRef = useRef(onConnectionRestored);
+  useEffect(() => {
+    onConnectionRestoredRef.current = onConnectionRestored;
+  }, [onConnectionRestored]);
 
   // WebSocket 연결
   useEffect(() => {
     let disposed = false;
+    const hasConnectedRef = { current: false };
 
     if (!enabled || !partyId) {
       if (clientRef.current?.active) {
@@ -59,6 +70,8 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       });
 
       client.onConnect = () => {
+        const wasConnected = hasConnectedRef.current;
+        hasConnectedRef.current = true;
         setIsConnected(true);
 
         // 해당 파티 채팅방 구독
@@ -66,6 +79,10 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
           const receivedMessage = JSON.parse(message.body) as ChatMessage;
           onMessageReceivedRef.current(receivedMessage);
         });
+
+        if (wasConnected) {
+          onConnectionRestoredRef.current?.();
+        }
       };
 
       client.onStompError = (frame) => {
@@ -94,6 +111,7 @@ export function useWebSocket({ partyId, onMessageReceived, enabled = true }: Use
       }
       clientRef.current = null;
       setIsConnected(false);
+      hasConnectedRef.current = false;
     };
   }, [partyId, enabled]);
 
