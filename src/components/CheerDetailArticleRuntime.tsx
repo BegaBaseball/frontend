@@ -1,7 +1,7 @@
 import { Suspense, lazy, Fragment } from 'react';
 import type { CSSProperties } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { CheerPost } from '../api/cheerApi';
+import type { CheerPost, CheerPostType } from '../api/cheerApi';
 import { TEAM_DATA } from '../constants/teams';
 import { formatTimeAgo } from '../utils/time';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
@@ -11,6 +11,7 @@ import { useTheme } from '../hooks/useTheme';
 import { getDarkModeAccentText } from '../utils/teamColors';
 import ImageGrid from './ImageGrid';
 import TeamLogo from './TeamLogo';
+import CheerLinkedContentCard from './cheer/CheerLinkedContentCard';
 
 const HASHTAG_PATTERN = /(#[^\s#.,!?]+)/g;
 
@@ -43,6 +44,39 @@ const renderCheerContent = (
 
 // 게시글 타입 배지 색상 — 「응원석 구현 명세」 THEMES 무관(모드 불변 고정값)
 const CHEER_TYPE_BADGE = { label: '응원', color: '#8fb4de', bg: 'rgba(49, 82, 136, 0.2)' };
+const LINKED_TYPE_BADGES = {
+    CHECKIN: {
+        label: '직관 인증',
+        className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200',
+    },
+    RECRUITMENT: {
+        label: '동행 모집',
+        className: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200',
+    },
+} as const;
+
+const renderPostTypeBadge = (postType: CheerPostType, detailAccent: string) => {
+    if (postType === 'NOTICE') {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold text-white sm:text-15" style={{ backgroundColor: detailAccent }}>
+                공지
+            </span>
+        );
+    }
+    if (postType === 'CHECKIN' || postType === 'RECRUITMENT') {
+        const badge = LINKED_TYPE_BADGES[postType];
+        return (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold sm:text-15 ${badge.className}`}>
+                {badge.label}
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold sm:text-15" style={{ backgroundColor: CHEER_TYPE_BADGE.bg, color: CHEER_TYPE_BADGE.color }}>
+            {CHEER_TYPE_BADGE.label}
+        </span>
+    );
+};
 import {
     CheerDetailArrowLeftIcon as ArrowLeftIcon,
     CheerDetailClockIcon as ClockIcon,
@@ -194,6 +228,12 @@ export default function CheerDetailArticleRuntime({
     const displayTimeAgo = isSimpleRepost && selectedPost.originalPost
         ? formatTimeAgo(selectedPost.originalPost.createdAt)
         : selectedPost.timeAgo;
+    const effectivePostType = isSimpleRepost && selectedPost.originalPost
+        ? selectedPost.originalPost.postType
+        : selectedPost.postType;
+    const effectiveLinkedContent = isSimpleRepost && selectedPost.originalPost
+        ? selectedPost.originalPost.linkedContent
+        : selectedPost.linkedContent;
     const createdAtLabel = detailDateFormatter.format(new Date(displayCreatedAt));
     const repostedAtLabel = isRepost ? detailDateFormatter.format(new Date(selectedPost.createdAt)) : null;
     const embeddedPostFallback = (
@@ -288,21 +328,7 @@ export default function CheerDetailArticleRuntime({
                                     <MegaphoneIcon className="h-3 w-3" />
                                     {teamName}
                                 </span>
-                                {selectedPost.postType === 'NOTICE' ? (
-                                    <span
-                                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold text-white sm:px-2 sm:py-0.5 sm:text-15"
-                                        style={{ backgroundColor: detailAccent }}
-                                    >
-                                        공지
-                                    </span>
-                                ) : (
-                                    <span
-                                        className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold sm:px-2 sm:py-0.5 sm:text-15"
-                                        style={{ backgroundColor: CHEER_TYPE_BADGE.bg, color: CHEER_TYPE_BADGE.color }}
-                                    >
-                                        {CHEER_TYPE_BADGE.label}
-                                    </span>
-                                )}
+                                {renderPostTypeBadge(effectivePostType, detailAccent)}
                                 {selectedPost.isHot && (
                                     <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-15 font-bold text-orange-600 sm:px-2 sm:py-0.5 sm:text-15 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
                                         <FlameIcon className="h-3 w-3" />
@@ -482,6 +508,10 @@ export default function CheerDetailArticleRuntime({
                                         <div className="whitespace-pre-wrap break-words text-body leading-6 font-bold text-slate-900 dark:text-white sm:text-body sm:leading-7">
                                             {renderCheerContent(displayContent, hashtagAccentText, handleTagClick)}
                                         </div>
+
+                                        {effectiveLinkedContent && (
+                                            <CheerLinkedContentCard linkedContent={effectiveLinkedContent} variant="detail" />
+                                        )}
 
                                         {selectedPost.shareMode?.startsWith('EXTERNAL_') && safeSourceUrl && (
                                             <a

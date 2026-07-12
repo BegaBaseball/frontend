@@ -4,11 +4,13 @@ import { formatTimeAgo } from '../utils/time';
 import { OptimizedImage } from './common/OptimizedImage';
 import { CheerCardTrashIcon as TrashIcon } from './icons/CheerCardIcons';
 import { ProfileAvatar } from './ui/ProfileAvatar';
+import CheerLinkedContentCard from './cheer/CheerLinkedContentCard';
 
 interface EmbeddedPostProps {
     post: EmbeddedPostType;
     onClick?: () => void;
     className?: string;
+    linkedContentVariant?: 'compact' | 'detail';
 }
 
 function resolveProfileImage(imageUrl?: string) {
@@ -17,11 +19,24 @@ function resolveProfileImage(imageUrl?: string) {
     return imageUrl;
 }
 
-export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostProps) {
+const LINKED_TYPE_BADGES = {
+    CHECKIN: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200',
+    RECRUITMENT: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200',
+} as const;
+
+export const shouldSkipEmbeddedPostNavigation = (target: EventTarget | null): boolean => (
+    Boolean((target as { closest?: (selector: string) => Element | null } | null)
+        ?.closest?.('[data-skip-cheer-card-nav]'))
+);
+
+export default function EmbeddedPost({ post, onClick, className, linkedContentVariant = 'compact' }: EmbeddedPostProps) {
     const navigate = useNavigate();
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (shouldSkipEmbeddedPostNavigation(e.target)) {
+            return;
+        }
         if (onClick) {
             onClick();
         } else if (!post.deleted && post.id) {
@@ -82,6 +97,19 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                     <span className="text-gray-500 dark:text-white truncate">
                         {post.authorHandle} · {formatTimeAgo(post.createdAt)}
                     </span>
+                    {post.postType === 'NOTICE' ? (
+                        <span className="shrink-0 rounded-full px-2 py-0.5 text-body font-bold text-white" style={{ backgroundColor: post.teamColor }}>
+                            공지
+                        </span>
+                    ) : post.postType === 'CHECKIN' || post.postType === 'RECRUITMENT' ? (
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-body font-bold ${LINKED_TYPE_BADGES[post.postType]}`}>
+                            {post.postType === 'CHECKIN' ? '직관 인증' : '동행 모집'}
+                        </span>
+                    ) : (
+                        <span className="shrink-0 rounded-full bg-[var(--cheer-chip-bg)] px-2 py-0.5 text-body font-bold text-slate-600 dark:text-slate-200">
+                            응원
+                        </span>
+                    )}
                 </div>
             </div>
 
@@ -90,6 +118,10 @@ export default function EmbeddedPost({ post, onClick, className }: EmbeddedPostP
                 <p className="text-body font-semibold text-gray-600 dark:text-white line-clamp-2">
                     {previewContent}
                 </p>
+            )}
+
+            {post.linkedContent && (
+                <CheerLinkedContentCard linkedContent={post.linkedContent} variant={linkedContentVariant} />
             )}
 
             {/* 이미지 미리보기 (첫 번째 이미지만) */}

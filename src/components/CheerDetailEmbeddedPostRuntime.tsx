@@ -38,6 +38,7 @@ export default function CheerDetailEmbeddedPostRuntime({
             <EmbeddedPost
                 post={originalEmbeddedPost}
                 className="mt-0 bg-[var(--cheer-sub-card)] hover:bg-[var(--cheer-card-bg)]"
+                linkedContentVariant="compact"
             />
         );
     }
@@ -62,6 +63,7 @@ export default function CheerDetailEmbeddedPostRuntime({
                 <EmbeddedPost
                     post={originalEmbeddedPost}
                     className="mt-4 bg-[var(--cheer-sub-card)] hover:bg-[var(--cheer-card-bg)]"
+                    linkedContentVariant="compact"
                 />
             ) : null}
         </div>
