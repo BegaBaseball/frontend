@@ -28,28 +28,40 @@ export type LinkedContent =
     kind: 'CHECKIN';
     available: true;
     checkin: CheckinLinkedContentWire;
-    recruitment?: never;
-    unavailableReason?: never;
+    recruitment: null;
+    unavailableReason: null;
   }
   | {
     kind: 'RECRUITMENT';
     available: true;
     recruitment: RecruitmentLinkedContentWire;
-    checkin?: never;
-    unavailableReason?: never;
+    checkin: null;
+    unavailableReason: null;
   }
   | {
     kind: 'CHECKIN' | 'RECRUITMENT';
     available: false;
     unavailableReason: LinkedContentUnavailableReason;
-    checkin?: never;
-    recruitment?: never;
+    checkin: null;
+    recruitment: null;
   };
 
-export type CreatePostPayload = Omit<CreatePostWireRequest, 'postType' | 'teamId'> & {
+type CreatePostBase = Omit<
+  CreatePostWireRequest,
+  'postType' | 'teamId' | 'diaryId' | 'partyId'
+> & {
   teamId: string;
-  postType?: CheerPostType;
 };
+
+export type CreatePostPayload =
+  | (CreatePostBase & { postType?: 'NORMAL'; diaryId?: never; partyId?: never })
+  | (CreatePostBase & { postType: 'NOTICE'; diaryId?: never; partyId?: never })
+  | (CreatePostBase & { postType: 'CHECKIN'; diaryId: number; partyId?: never })
+  | (CreatePostBase & { postType: 'RECRUITMENT'; diaryId?: never; partyId: number });
+
+export type LinkedPostLookupParams =
+  | { diaryId: number; partyId?: never }
+  | { diaryId?: never; partyId: number };
 
 export type LinkedPostLookup = Omit<LinkedLookupWire, 'preview'> & {
   preview?: LinkedContent;
@@ -256,6 +268,34 @@ export const normalizeCheerPostType = (value?: string | null): CheerPostType => 
   throw new Error(`UNKNOWN_CHEER_POST_TYPE:${value}`);
 };
 
+type CheerPostTarget =
+  | { postType: 'NORMAL' | 'NOTICE' }
+  | { postType: 'CHECKIN'; diaryId: number }
+  | { postType: 'RECRUITMENT'; partyId: number };
+
+const isValidLinkedId = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+
+export const normalizeCheerPostTarget = (
+  value: string | null | undefined,
+  diaryId: unknown,
+  partyId: unknown,
+): CheerPostTarget => {
+  const postType = normalizeCheerPostType(value);
+
+  if (postType === 'CHECKIN' && isValidLinkedId(diaryId) && partyId === undefined) {
+    return { postType, diaryId };
+  }
+  if (postType === 'RECRUITMENT' && diaryId === undefined && isValidLinkedId(partyId)) {
+    return { postType, partyId };
+  }
+  if ((postType === 'NORMAL' || postType === 'NOTICE') && diaryId === undefined && partyId === undefined) {
+    return { postType };
+  }
+
+  throw new Error('INVALID_LINKED_POST_TARGET');
+};
+
 const normalizeShareMode = (value?: string | null): ShareMode | undefined => {
   switch (value) {
     case 'INTERNAL_REPOST':
@@ -275,26 +315,68 @@ const normalizeRepostType = (value?: string | null): RepostType | undefined => {
   return undefined;
 };
 
+const isLinkedContentUnavailableReason = (
+  value: unknown,
+): value is LinkedContentUnavailableReason =>
+  value === 'SOURCE_MISSING' ||
+  value === 'SOURCE_INELIGIBLE' ||
+  value === 'MANUAL_BASEBALL_DATA_REQUIRED';
+
 const normalizeLinkedContent = (value?: LinkedContentWire | null): LinkedContent | undefined => {
   if (value == null) return undefined;
 
-  if (value.available === true && value.kind === 'CHECKIN' && value.checkin && !value.recruitment) {
-    return { kind: 'CHECKIN', available: true, checkin: value.checkin };
+  const requiredKeys = ['kind', 'available', 'unavailableReason', 'checkin', 'recruitment'] as const;
+  if (!requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) {
+    throw new Error('INVALID_LINKED_CONTENT');
   }
-  if (value.available === true && value.kind === 'RECRUITMENT' && value.recruitment && !value.checkin) {
-    return { kind: 'RECRUITMENT', available: true, recruitment: value.recruitment };
+
+  const checkin = value.checkin as CheckinLinkedContentWire | null | undefined;
+  const recruitment = value.recruitment as RecruitmentLinkedContentWire | null | undefined;
+  const unavailableReason = value.unavailableReason as unknown;
+
+  if (
+    value.available === true &&
+    value.kind === 'CHECKIN' &&
+    checkin != null &&
+    recruitment === null &&
+    unavailableReason === null
+  ) {
+    return {
+      kind: 'CHECKIN',
+      available: true,
+      unavailableReason: null,
+      checkin,
+      recruitment: null,
+    };
+  }
+  if (
+    value.available === true &&
+    value.kind === 'RECRUITMENT' &&
+    recruitment != null &&
+    checkin === null &&
+    unavailableReason === null
+  ) {
+    return {
+      kind: 'RECRUITMENT',
+      available: true,
+      unavailableReason: null,
+      checkin: null,
+      recruitment,
+    };
   }
   if (
     value.available === false &&
     (value.kind === 'CHECKIN' || value.kind === 'RECRUITMENT') &&
-    value.unavailableReason &&
-    !value.checkin &&
-    !value.recruitment
+    isLinkedContentUnavailableReason(unavailableReason) &&
+    checkin === null &&
+    recruitment === null
   ) {
     return {
       kind: value.kind,
       available: false,
-      unavailableReason: value.unavailableReason,
+      unavailableReason,
+      checkin: null,
+      recruitment: null,
     };
   }
 
@@ -498,9 +580,11 @@ export async function createPost(
   data: CreatePostPayload,
   requestOptions: CheerPrivateRequestOptions = {},
 ) {
+  const { diaryId, partyId, postType, ...postData } = data;
+  const target = normalizeCheerPostTarget(postType, diaryId, partyId);
   const payload: CreatePostWireRequest = {
-    ...data,
-    postType: normalizeCheerPostType(data.postType),
+    ...postData,
+    ...target,
   };
   const response = await privatePost<PostDetailWire, CreatePostWireRequest>(
     '/cheer/posts',
@@ -590,8 +674,17 @@ export async function createQuoteRepost(postId: number, content: string) {
 }
 
 export async function fetchLinkedPostTarget(
-  params: { diaryId?: number; partyId?: number },
+  params: LinkedPostLookupParams,
 ): Promise<LinkedPostLookup> {
+  const { diaryId, partyId } = params;
+  if (
+    !(
+      (isValidLinkedId(diaryId) && partyId === undefined) ||
+      (diaryId === undefined && isValidLinkedId(partyId))
+    )
+  ) {
+    throw new Error('INVALID_LINKED_POST_LOOKUP');
+  }
   const response = await privateGet<LinkedLookupWire>('/cheer/posts/linked', { params });
   return {
     ...response,

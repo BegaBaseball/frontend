@@ -27,12 +27,13 @@ const installImageTestDoubles = (t: test.TestContext) => {
       }
     },
   });
-  t.mock.method(URL, 'createObjectURL', () => 'blob:mock-cheer');
+  const createObjectUrlMock = t.mock.method(URL, 'createObjectURL', () => 'blob:mock-cheer');
   t.mock.method(URL, 'revokeObjectURL', () => {});
   t.after(() => {
     delete (globalThis as { document?: unknown }).document;
     delete (globalThis as { Image?: unknown }).Image;
   });
+  return { createObjectUrlMock };
 };
 
 test('submitCheerPost는 direct upload key를 create post payload images에 포함한다', async (t) => {
@@ -211,5 +212,33 @@ test('submitCheerPost rejects present empty and unknown post types before fetch'
   for (const payload of invalidPayloads) {
     await assert.rejects(() => submitCheerPost(payload), /UNKNOWN_CHEER_POST_TYPE:/);
   }
+  assert.equal(fetchCalls, 0);
+});
+
+test('submitCheerPost rejects invalid linked-ID shapes before upload or create', async (t) => {
+  const { createObjectUrlMock } = installImageTestDoubles(t);
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return buildJsonResponse({}, 201);
+  });
+
+  const file = new File(['stub'], 'invalid-linked.png', { type: 'image/png' });
+  const invalidPayloads = [
+    { teamId: 'LG', content: 'missing checkin ID', files: [file], postType: 'CHECKIN' },
+    { teamId: 'LG', content: 'wrong checkin ID', files: [file], postType: 'CHECKIN', partyId: 29 },
+    { teamId: 'LG', content: 'both checkin IDs', files: [file], postType: 'CHECKIN', diaryId: 17, partyId: 29 },
+    { teamId: 'LG', content: 'missing recruitment ID', files: [file], postType: 'RECRUITMENT' },
+    { teamId: 'LG', content: 'wrong recruitment ID', files: [file], postType: 'RECRUITMENT', diaryId: 17 },
+    { teamId: 'LG', content: 'both recruitment IDs', files: [file], postType: 'RECRUITMENT', diaryId: 17, partyId: 29 },
+    { teamId: 'LG', content: 'legacy normal with ID', files: [file], diaryId: 17 },
+    { teamId: 'LG', content: 'normal with ID', files: [file], postType: 'NORMAL', diaryId: 17 },
+    { teamId: 'LG', content: 'notice with ID', files: [file], postType: 'NOTICE', partyId: 29 },
+  ] as unknown as Array<Parameters<typeof submitCheerPost>[0]>;
+
+  for (const payload of invalidPayloads) {
+    await assert.rejects(() => submitCheerPost(payload), /INVALID_LINKED_POST_TARGET/);
+  }
+  assert.equal(createObjectUrlMock.mock.callCount(), 0);
   assert.equal(fetchCalls, 0);
 });

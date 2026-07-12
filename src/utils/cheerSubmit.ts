@@ -1,17 +1,15 @@
 import {
   createPost as createCheerPost,
-  normalizeCheerPostType,
-  type CheerPostType,
+  normalizeCheerPostTarget,
   type ShareMode,
 } from '../api/cheerApi';
 import { uploadMediaFiles } from '../api/media';
 import { parseError } from './errorUtils';
 
-export interface SubmitCheerPostPayload {
+interface SubmitCheerPostBase {
   teamId: string;
   content: string;
   files: File[];
-  postType?: CheerPostType;
   shareMode?: ShareMode;
   sourceUrl?: string;
   sourceTitle?: string;
@@ -20,12 +18,16 @@ export interface SubmitCheerPostPayload {
   sourceLicenseUrl?: string;
   sourceChangedNote?: string;
   sourceSnapshotType?: string;
-  diaryId?: number;
-  partyId?: number;
 }
 
+export type SubmitCheerPostPayload =
+  | (SubmitCheerPostBase & { postType?: 'NORMAL'; diaryId?: never; partyId?: never })
+  | (SubmitCheerPostBase & { postType: 'NOTICE'; diaryId?: never; partyId?: never })
+  | (SubmitCheerPostBase & { postType: 'CHECKIN'; diaryId: number; partyId?: never })
+  | (SubmitCheerPostBase & { postType: 'RECRUITMENT'; diaryId?: never; partyId: number });
+
 export async function submitCheerPost(payload: SubmitCheerPostPayload) {
-  const postType = normalizeCheerPostType(payload.postType);
+  const target = normalizeCheerPostTarget(payload.postType, payload.diaryId, payload.partyId);
   let uploadedUrls: string[] = [];
 
   if (payload.files.length > 0) {
@@ -55,7 +57,7 @@ export async function submitCheerPost(payload: SubmitCheerPostPayload) {
     teamId: payload.teamId,
     content: payload.content,
     images: uploadedUrls,
-    postType,
+    ...target,
     shareMode: payload.shareMode,
     sourceUrl: payload.sourceUrl,
     sourceTitle: payload.sourceTitle,
@@ -64,8 +66,6 @@ export async function submitCheerPost(payload: SubmitCheerPostPayload) {
     sourceLicenseUrl: payload.sourceLicenseUrl,
     sourceChangedNote: payload.sourceChangedNote,
     sourceSnapshotType: payload.sourceSnapshotType,
-    diaryId: payload.diaryId,
-    partyId: payload.partyId,
   }, { skipAuthSessionHandling: true });
 
   return { created, uploadedUrls, uploadFailed: false };
