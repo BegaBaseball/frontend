@@ -40,7 +40,7 @@ By default, both the lab gate and field baseline gate check `/`, `/home`,
 - Keep these contracts covered by `scripts/vite-manual-chunks.test.ts` before
   changing route-level lazy loading.
 
-Run the field baseline gate when a PageSpeed key is available:
+Run the field baseline gate when the Google API key is available:
 
 ```bash
 PAGESPEED_API_KEY=... npm run gate:cwv:baseline
@@ -57,6 +57,14 @@ npm run gate:cwv:baseline -- --env-file ../.env.prod
 The report records whether the key came from process env or an env file, but it
 does not write the key value to JSON, Markdown, or CI summaries. Do not commit
 API keys to the repository or to env example files.
+
+`PAGESPEED_API_KEY` must be enabled for both the PageSpeed Insights API and the
+Chrome UX Report API. When `CRUX_API_KEY` is omitted, the baseline reuses the
+PageSpeed key for direct CrUX requests. Set `CRUX_API_KEY` only when CrUX uses a
+separate key; the explicit CrUX key takes precedence. The baseline selects
+metrics in this order: CrUX URL, CrUX origin, legacy PSI URL/origin field data,
+then Lighthouse lab. The direct CrUX source is preferred because Google plans
+to discontinue CrUX field data in the PageSpeed Insights API.
 
 For focused field rechecks, override the route list with a comma-separated
 set:
@@ -77,7 +85,8 @@ Required repository settings:
 
 | Name | Type | Required | Purpose |
 | --- | --- | --- | --- |
-| `PAGESPEED_API_KEY` | Secret | Yes | PageSpeed Insights and CrUX field data |
+| `PAGESPEED_API_KEY` | Secret | Yes | PageSpeed Insights Lighthouse diagnostics and transitional field fallback |
+| `CRUX_API_KEY` | Secret | No | Optional dedicated CrUX key; otherwise `PAGESPEED_API_KEY` is reused |
 | `VITE_SITE_URL` | Variable | Yes | Production URL, expected `https://www.begabaseball.xyz` |
 | `VITE_GA4_MEASUREMENT_ID` | Variable | For RUM | Enables GA4 event transport in production |
 
@@ -116,11 +125,11 @@ iterations per route and viewport:
 
 | Route | Desktop LCP p75 | Mobile LCP p75 | Desktop synthetic interaction p75 | Mobile synthetic interaction p75 | Max CLS p75 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| `/` | 238ms | 178ms | 28ms | 20ms | 0 |
-| `/home` | 274ms | 226ms | 24ms | 24ms | 0 |
-| `/prediction` | 242ms | 234ms | 28ms | 24ms | 0.001 |
-| `/cheer` | 1384ms | 1268ms | 56ms | 64ms | 0.001 |
-| `/mate` | 272ms | 260ms | 50ms | 33ms | 0.001 |
+| `/` | 172ms | 168ms | 20ms | 20ms | 0 |
+| `/home` | 664ms | 630ms | 24ms | 24ms | 0 |
+| `/prediction` | 254ms | 254ms | 28ms | 28ms | 0.001 |
+| `/cheer` | 1350ms | 1338ms | 72ms | 80ms | 0.003 |
+| `/mate` | 346ms | 328ms | 33ms | 34ms | 0.001 |
 
 Verification command:
 
@@ -128,7 +137,7 @@ Verification command:
 npm run gate:cwv:lab
 ```
 
-The generated report timestamp is `2026-07-11T07:54:45.866Z`. This is local
+The generated report timestamp is `2026-07-11T14:09:51.506Z`. This is local
 synthetic evidence only; production readiness still requires the PageSpeed/CrUX
 field gate when its API key and field data are available.
 
@@ -176,6 +185,18 @@ status:
 
 - Missing `PAGESPEED_API_KEY` or `PSI_API_KEY`: configure the CI secret or
   local environment and rerun `npm run gate:cwv:baseline`.
+- Missing `CRUX_API_KEY`: no action is required when `PAGESPEED_API_KEY` already
+  allows the Chrome UX Report API. Configure this secret only for a separate
+  CrUX key.
+- CrUX `401` / `403`: verify that the Chrome UX Report API is enabled in the
+  key's Google Cloud project and included in the key's API restrictions. The
+  report keeps the first Google error status/message and suppresses duplicate
+  CrUX requests for the rest of that run.
+- CrUX `404 NOT_FOUND`: the API key and service are working, but neither the
+  requested URL nor its origin currently has an eligible CrUX record. Enabling
+  the API does not create field data. The site must be publicly indexable and
+  have enough eligible Chrome user samples; inclusion cannot be requested
+  manually. The baseline records this as `not-found-url-origin`.
 - Missing field data: keep the lab report, but do not treat the release as
   field-proven. Check PageSpeed Insights, CrUX, or Google Search Console after
   enough production traffic is available.

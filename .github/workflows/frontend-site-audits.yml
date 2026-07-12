@@ -79,6 +79,10 @@ on:
   schedule:
     - cron: "0 3 * * 1"
 
+concurrency:
+  group: frontend-site-audits-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   seo-gate:
     if: ${{ github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'seo' || github.event.inputs.suite == 'all')) }}
@@ -301,6 +305,7 @@ jobs:
       contents: read
     secrets:
       PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+      CRUX_API_KEY: ${{ secrets.CRUX_API_KEY }}
     with:
       timeout_minutes: 20
       env_exports: |

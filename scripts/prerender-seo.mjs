@@ -16,6 +16,22 @@ import { createSeoRuntimeEnvReader } from './seo-runtime-env.mjs';
 const templatePath = path.join(distDir, 'index.html');
 const SEO_HEAD_SLOT = '<!-- SEO_HEAD_SLOT -->';
 const SEO_ROOT_SLOT = '<!-- SEO_ROOT_SLOT -->';
+const performanceOnlyRoutes = [
+  {
+    path: '/prediction',
+    title: '승부예측 | BEGA',
+    description: 'KBO 경기 승부를 예측하고 결과를 확인하세요.',
+    heading: 'KBO 승부예측',
+    performanceShell: true,
+  },
+  {
+    path: '/mate',
+    title: '직관 메이트 | BEGA',
+    description: '경기 일정과 좌석을 기준으로 함께 직관할 메이트를 찾아보세요.',
+    heading: '직관 메이트 찾기',
+    performanceShell: true,
+  },
+];
 
 export const readSiteVerificationEnv = (options = {}) => {
   const readEnvValue = createSeoRuntimeEnvReader(options);
@@ -114,6 +130,29 @@ export const buildSeoHeadMarkup = (route, siteVerification = readSiteVerificatio
   return seoBlock;
 };
 
+export const buildPerformanceRouteHeadMarkup = (route) => (
+  [
+    '<!-- SEO:START -->',
+    `<meta name="description" content="${escapeHtml(route.description)}">`,
+    '<meta name="robots" content="noindex,nofollow">',
+    '<!-- SEO:END -->',
+  ].join('\n')
+);
+
+const injectPerformanceRouteHead = (html, route) => {
+  let next = stripManagedSeoBlock(html);
+  next = next.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(route.title)}</title>`);
+  const headBlock = buildPerformanceRouteHeadMarkup(route);
+
+  if (next.includes(SEO_HEAD_SLOT)) {
+    return next.replace(SEO_HEAD_SLOT, headBlock);
+  }
+  if (/<\/head>/i.test(next)) {
+    return next.replace(/<\/head>/i, `${headBlock}\n</head>`);
+  }
+  throw new Error(`[seo:prerender] Performance route head injection failed for route "${route.path}". Missing </head>.`);
+};
+
 const injectSeoHead = (html, route) => {
   let next = stripManagedSeoBlock(html);
   next = next.replace(/<title>[\s\S]*?<\/title>/i, `<title>${escapeHtml(route.title)}</title>`);
@@ -138,15 +177,48 @@ const injectSeoHead = (html, route) => {
   );
 };
 
-const buildRootMarkup = (route) => (
-  [
+export const buildRootMarkup = (route) => {
+  const performanceShellAttributes = route.performanceShell
+    ? ' data-performance-prerender="true" style="position:fixed;inset:0;z-index:1;display:flex;min-height:100vh;box-sizing:border-box;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:inherit;color:inherit;text-align:center;font-family:system-ui,-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"'
+    : '';
+  const headingStyle = route.performanceShell
+    ? ' style="margin:0;font-size:24px;line-height:1.3;font-weight:800"'
+    : '';
+  const descriptionStyle = route.performanceShell
+    ? ' style="margin:12px 0 0;max-width:22rem;font-size:21px;line-height:1.6;font-weight:600;opacity:.72"'
+    : '';
+
+  return [
     '<!-- SEO-PRERENDER:START -->',
-    '<main data-seo-prerender="true">',
-    `<h1>${escapeHtml(route.heading)}</h1>`,
-    `<p>${escapeHtml(route.description)}</p>`,
+    `<main data-seo-prerender="true"${performanceShellAttributes}>`,
+    `<h1${headingStyle}>${escapeHtml(route.heading)}</h1>`,
+    `<p${descriptionStyle}>${escapeHtml(route.description)}</p>`,
     '</main>',
     '<!-- SEO-PRERENDER:END -->',
-  ].join('')
+  ].join('');
+};
+
+export const deferPerformanceShellStyles = (html) => html.replace(
+  /<link rel="stylesheet"([^>]*href="[^"]+\.css[^"]*"[^>]*)>/g,
+  (stylesheetLink, attributes) => [
+    `<link rel="preload" as="style" data-performance-app-style="true"${attributes} onload="this.onload=null;this.rel='stylesheet';this.dataset.performanceStyleReady='true'">`,
+    `<noscript>${stylesheetLink}</noscript>`,
+  ].join(''),
+);
+
+export const deferPerformanceShellModule = (html) => html.replace(
+  /<script\s+type="module"[^>]*\ssrc="([^"]+)"[^>]*><\/script>/,
+  (_moduleScript, moduleSrc) => [
+    '<script data-performance-app-module="true">',
+    'globalThis.requestAnimationFrame(()=>{globalThis.setTimeout(()=>{',
+    `void import(${JSON.stringify(moduleSrc)});`,
+    '},0);});',
+    '</script>',
+  ].join(''),
+);
+
+const preparePerformanceShellHtml = (html) => deferPerformanceShellModule(
+  deferPerformanceShellStyles(html),
 );
 
 const injectSeoRoot = (html, route) => {
@@ -203,7 +275,10 @@ export const prerenderSeo = () => {
 
     const outputFile = routeToOutputFile(route.path);
     ensureDir(path.dirname(outputFile));
-    fs.writeFileSync(outputFile, rootResult.html, 'utf-8');
+    const outputHtml = route.performanceShell
+      ? preparePerformanceShellHtml(rootResult.html)
+      : rootResult.html;
+    fs.writeFileSync(outputFile, outputHtml, 'utf-8');
     report.push({
       path: route.path,
       file: path.relative(distDir, outputFile),
@@ -215,12 +290,29 @@ export const prerenderSeo = () => {
   const reportPath = path.join(distDir, 'seo-prerender-report.json');
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8');
 
+  const performanceReport = [];
+  for (const route of performanceOnlyRoutes) {
+    const htmlWithHead = injectPerformanceRouteHead(baseHtml, route);
+    const rootResult = injectSeoRoot(htmlWithHead, route);
+    const outputFile = routeToOutputFile(route.path);
+    ensureDir(path.dirname(outputFile));
+    fs.writeFileSync(outputFile, preparePerformanceShellHtml(rootResult.html), 'utf-8');
+    performanceReport.push({
+      path: route.path,
+      file: path.relative(distDir, outputFile),
+      robots: 'noindex,nofollow',
+      modulePreloads: [],
+    });
+  }
+  const performanceReportPath = path.join(distDir, 'performance-prerender-report.json');
+  fs.writeFileSync(performanceReportPath, JSON.stringify(performanceReport, null, 2), 'utf-8');
+
   if (fallbackModes.length > 0) {
     console.warn('[seo:prerender] fallback injection mode used:');
     fallbackModes.forEach((entry) => console.warn(`- ${entry}`));
   }
 
-  console.log(`[seo:prerender] prerendered ${report.length} route(s).`);
+  console.log(`[seo:prerender] prerendered ${report.length} indexable and ${performanceReport.length} performance route(s).`);
   return 0;
 };
 

@@ -6,13 +6,17 @@ import RootEntryRoute from './RootEntryRoute';
 
 const initialPathname = typeof window === 'undefined' ? '' : window.location.pathname;
 const shouldPreloadInitialHomeRoute = /^\/home\/?$/.test(initialPathname);
+const shouldPreloadInitialPredictionRoute = /^\/prediction(?:\/matches\/[^/]+)?\/?$/.test(initialPathname);
 const shouldPreloadInitialCheerRoute = /^\/cheer(?:\/write)?\/?$/.test(initialPathname);
-const shouldPreloadInitialCheerComposer = /^\/cheer\/write\/?$/.test(initialPathname);
-const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialCheerRoute;
+const shouldPreloadInitialMateRoute = /^\/mate\/?$/.test(initialPathname);
+const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;
+const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;
 const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;
-const initialAppQueryProviderModulePromise = shouldPreloadInitialCheerRoute ? import('./AppQueryProvider') : null;
+const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;
 const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;
+const initialPredictionModulePromise = shouldPreloadInitialPredictionRoute ? loadPredictionPage() : null;
 const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;
+const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;
 
 if (shouldPreloadInitialHomeRoute) {
   void import('./home/HomeMatchPanel');
@@ -20,10 +24,6 @@ if (shouldPreloadInitialHomeRoute) {
 
 if (shouldPreloadInitialCheerRoute) {
   void import('./CheerRuntime');
-  void import('./CheerFeedRuntimeContent');
-}
-
-if (shouldPreloadInitialCheerComposer) {
   void import('./CheerComposerRuntime');
 }
 
@@ -41,12 +41,12 @@ const PasswordReset = lazy(() => import('./PasswordReset'));
 const PasswordResetConfirm = lazy(() => import('./PasswordResetConfirm'));
 const AccountDeletionRecovery = lazy(() => import('./AccountDeletionRecovery'));
 const StadiumGuide = lazy(() => import('./StadiumGuide'));
-const Prediction = lazy(loadPredictionPage);
+const Prediction = lazy(() => initialPredictionModulePromise ?? loadPredictionPage());
 const Cheer = lazy(() => initialCheerModulePromise ?? import('./Cheer'));
 const CheerBookmarksPage = lazy(() => import('./CheerBookmarksPage'));
 const CheerDetailPage = lazy(() => import('./CheerDetailPage'));
 const CheerEditPage = lazy(() => import('./CheerEditPage'));
-const MatePage = lazy(() => import('./MatePage'));
+const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));
 const MateCreatePage = lazy(() => import('./MateCreatePage'));
 const MateDetail = lazy(() => import('./MateDetail'));
 const MateApplyPage = lazy(() => import('./MateApplyPage'));
@@ -99,12 +99,13 @@ export default function AppRoutes() {
 
       <Route element={<Layout authenticated={false} />}>
         <Route path="/home" element={<Home />} />
+        <Route path="/prediction" element={<Prediction />} />
+        <Route path="/prediction/matches/:gameId" element={<Prediction />} />
+        <Route path="/mate" element={<MatePage />} />
       </Route>
 
       <Route element={<AppQueryProvider />}>
         <Route element={<Layout authenticated={false} />}>
-          <Route path="/prediction" element={<Prediction />} />
-          <Route path="/prediction/matches/:gameId" element={<Prediction />} />
           <Route path="/offseason" element={<OffSeasonHomePage />} />
           <Route path="/offseason/list" element={<OffSeasonListPage />} />
           <Route path="/cheer" element={<Cheer />} />
@@ -118,7 +119,6 @@ export default function AppRoutes() {
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
-          <Route path="/mate" element={<MatePage />} />
         </Route>
 
         <Route element={<Layout authenticated={true} />}>
