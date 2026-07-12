@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useCheerPost, useCheerMutations } from '../hooks/useCheerQueries';
 import { useAuthProfileSnapshot, useAuthSession } from '../store/authStore';
@@ -14,6 +14,8 @@ const LazyCheerDetailContent = lazy(() => import('./CheerDetailContent'));
 export default function CheerDetail() {
     const { postId } = useParams();
     const navigate = useNavigate();
+    const location = useLocation();
+    const [isHighlighted] = useState(() => Boolean((location.state as { highlightCheerPost?: boolean } | null)?.highlightCheerPost));
     const {
         userId: authUserId,
         userEmail: authUserEmail,
@@ -192,27 +194,27 @@ export default function CheerDetail() {
 
     if (loading && !selectedPost) {
         return (
-            <div className="min-h-screen bg-white font-sans pb-20 dark:bg-background">
-                <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-white/80 px-4 backdrop-blur-md dark:bg-background/80">
-                    <div className="h-8 w-8 rounded-full bg-gray-100 dark:bg-card" />
-                    <div className="h-4 w-40 rounded bg-gray-100 dark:bg-card" />
+            <div className="min-h-screen bg-[var(--cheer-page-bg)] font-sans pb-20">
+                <div className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)]/80 px-4 backdrop-blur-md">
+                    <div className="h-8 w-8 animate-skeleton-pulse rounded-full bg-[var(--cheer-chip-bg)]" />
+                    <div className="h-4 w-40 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
                     <div className="w-9" />
                 </div>
                 <div className="mx-auto max-w-3xl space-y-6 p-5">
                     <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-gray-100 dark:bg-card" />
+                        <div className="h-10 w-10 animate-skeleton-pulse rounded-full bg-[var(--cheer-chip-bg)]" />
                         <div className="space-y-2">
-                            <div className="h-3 w-24 rounded bg-gray-100 dark:bg-card" />
-                            <div className="h-3 w-32 rounded bg-gray-100 dark:bg-card" />
+                            <div className="h-3 w-24 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-3 w-32 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
                         </div>
                     </div>
                     <div className="space-y-3">
-                        <div className="h-5 w-2/3 rounded bg-gray-100 dark:bg-card" />
-                        <div className="h-4 w-full rounded bg-gray-100 dark:bg-card" />
-                        <div className="h-4 w-5/6 rounded bg-gray-100 dark:bg-card" />
-                        <div className="h-4 w-4/6 rounded bg-gray-100 dark:bg-card" />
+                        <div className="h-5 w-2/3 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-4 w-full animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-4 w-5/6 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
+                        <div className="h-4 w-4/6 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
                     </div>
-                    <div className="h-40 rounded-2xl bg-gray-100 dark:bg-card" />
+                    <div className="h-40 animate-skeleton-pulse rounded-2xl bg-[var(--cheer-chip-bg)]" />
                 </div>
             </div>
         );
@@ -224,9 +226,9 @@ export default function CheerDetail() {
             : '게시글을 불러오지 못했습니다.';
 
         return (
-            <div className="min-h-screen bg-slate-50 font-sans px-4 py-12 dark:bg-background">
+            <div className="min-h-screen bg-[var(--cheer-page-bg)] font-sans px-4 py-12">
                 <div className="mx-auto flex max-w-xl justify-center">
-                    <div className="w-full rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-white/10 dark:bg-slate-950">
+                    <div className="w-full rounded-3xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] p-6 text-center shadow-sm">
                         <p className="text-base font-bold text-slate-900 dark:text-white">
                             게시글을 불러오지 못했습니다.
                         </p>
@@ -248,24 +250,26 @@ export default function CheerDetail() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans pb-24 dark:bg-background sm:pb-20">
-            <div className="mx-auto w-full max-w-[980px] px-4 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-[var(--cheer-page-bg)] font-sans pb-24 sm:pb-20">
+            <div
+                className={`mx-auto w-full max-w-[980px] px-4 sm:px-6 lg:px-8 ${isHighlighted ? 'rounded-3xl animate-cheer-highlight-flash' : ''}`}
+            >
                 <Suspense
                     fallback={(
-                        <div className="mt-4 overflow-hidden rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-950">
-                            <div className="mb-4 h-1.5 rounded-full bg-slate-200 dark:bg-slate-800" />
+                        <div className="mt-4 overflow-hidden rounded-3xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] p-5 shadow-sm">
+                            <div className="mb-4 h-1.5 animate-skeleton-pulse rounded-full bg-[var(--cheer-chip-bg)]" />
                             <div className="space-y-4">
                                 <div className="flex items-start gap-3">
-                                    <div className="h-10 w-10 rounded-full bg-slate-100 dark:bg-slate-800" />
+                                    <div className="h-10 w-10 animate-skeleton-pulse rounded-full bg-[var(--cheer-chip-bg)]" />
                                     <div className="flex-1 space-y-2">
-                                        <div className="h-4 w-40 rounded bg-slate-100 dark:bg-slate-800" />
-                                        <div className="h-3 w-56 rounded bg-slate-100 dark:bg-slate-800" />
+                                        <div className="h-4 w-40 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
+                                        <div className="h-3 w-56 animate-skeleton-pulse rounded bg-[var(--cheer-chip-bg)]" />
                                     </div>
                                 </div>
-                                <div className="h-32 rounded-22 bg-slate-100 dark:bg-slate-800" />
+                                <div className="h-32 animate-skeleton-pulse rounded-22 bg-[var(--cheer-chip-bg)]" />
                                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
-                                    <div className="h-64 rounded-22 bg-slate-100 dark:bg-slate-800" />
-                                    <div className="h-40 rounded-18 bg-slate-100 dark:bg-slate-800" />
+                                    <div className="h-64 animate-skeleton-pulse rounded-22 bg-[var(--cheer-chip-bg)]" />
+                                    <div className="h-40 animate-skeleton-pulse rounded-18 bg-[var(--cheer-chip-bg)]" />
                                 </div>
                             </div>
                         </div>

@@ -1,5 +1,5 @@
 import SimpleMarkdownContent from './SimpleMarkdownContent';
-import termsContent from '../../docs/terms_of_service.md?raw';
+import termsContent from '../../docs/privacy_policy.md?raw';
 
 export default function TermsOfService() {
   return (

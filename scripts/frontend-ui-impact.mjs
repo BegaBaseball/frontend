@@ -12,6 +12,15 @@ const SHARED_PATTERNS = [
 ];
 
 export const UI_SUITE_PATTERNS = {
+  pages: [
+    'bega_frontend/src/**',
+    'bega_frontend/cypress/e2e/**',
+    'bega_frontend/cypress.config.ts',
+    'bega_frontend/cypress/support/**',
+    'bega_frontend/scripts/qa-presets.mjs',
+    'bega_frontend/scripts/test-e2e.mjs',
+    ...SHARED_PATTERNS,
+  ],
   auth: [
     'bega_frontend/src/api/authPublic.ts',
     'bega_frontend/src/api/authPublic.test.ts',

@@ -201,15 +201,23 @@ describe('Mate mobile smoke', () => {
     setupAuth('light');
     cy.wait('@getMateParties');
     cy.scrollTo('top');
-    cy.get('input[placeholder*="팀명"]').clear({ force: true }).type('  삼성   테이블석  ', { force: true });
+    cy.get('input[placeholder*="팀명"]')
+      .clear({ force: true })
+      .type('  LG   블루존  ', { force: true })
+      .type('{enter}', { force: true });
     cy.wait(1500);
     cy.wait('@recordMateSearchTerm')
       .its('request.body')
-      .should('deep.equal', { term: '삼성 테이블석' });
+      .should('deep.equal', { term: 'LG 블루존' });
+    cy.get('@recordMateSearchTerm.all').should('have.length', 1);
+
+    cy.get('input[placeholder*="팀명"]').clear({ force: true }).type('lg 블루존', { force: true });
+    cy.wait(1500);
+    cy.get('@recordMateSearchTerm.all').should('have.length', 1);
 
     cy.get('input[placeholder*="팀명"]').clear({ force: true }).type('삼성 테이블석', { force: true });
     cy.wait(1500);
-    cy.get('@recordMateSearchTerm.all').should('have.length', 1);
+    cy.get('@recordMateSearchTerm.all').should('have.length', 2);
 
     cy.get('input[placeholder*="팀명"]').clear({ force: true });
     cy.contains('button', '필터').click();

@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { useTheme } from '../hooks/useTheme';
 import type { Theme } from '../hooks/useTheme';
 import { cn } from '../lib/utils';
-import { getAccessibleCheerTextColor } from './cheer/CheerPresentation';
+import { getDarkModeAccentText } from '../utils/teamColors';
 
 interface CheerThemeControlProps {
   accentColor: string;
@@ -16,12 +17,15 @@ const themeOptions: { value: Theme; label: string }[] = [
 
 export default function CheerThemeControl({ accentColor, compact = false }: CheerThemeControlProps) {
   const { theme, resolvedTheme, systemTheme, setTheme } = useTheme();
-  const accentTextColor = getAccessibleCheerTextColor(accentColor);
+  const activeAccentText = useMemo(
+    () => (resolvedTheme === 'dark' ? getDarkModeAccentText(accentColor) : accentColor),
+    [accentColor, resolvedTheme],
+  );
 
   return (
     <section
       className={cn(
-        'rounded-2xl border border-slate-200 bg-white dark:border-border dark:bg-card',
+        'rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)]',
         compact ? 'p-3' : 'p-4',
       )}
       aria-labelledby="cheer-theme-heading"
@@ -34,7 +38,7 @@ export default function CheerThemeControl({ accentColor, compact = false }: Chee
           {theme === 'system' ? `OS ${systemTheme === 'dark' ? '다크' : '라이트'}` : resolvedTheme === 'dark' ? '다크' : '라이트'}
         </span>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-1 rounded-full bg-slate-100 p-1 dark:bg-secondary">
+      <div className="mt-3 grid grid-cols-3 gap-1 rounded-full bg-[var(--cheer-panel-bg)] p-1">
         {themeOptions.map((option) => {
           const isActive = theme === option.value;
           return (
@@ -45,9 +49,11 @@ export default function CheerThemeControl({ accentColor, compact = false }: Chee
               onClick={() => setTheme(option.value)}
               className={cn(
                 'min-h-9 whitespace-nowrap rounded-full px-2 text-caption font-black transition-colors active:scale-[0.98]',
-                isActive ? '' : 'text-slate-600 hover:bg-white dark:text-white dark:hover:bg-card',
+                isActive
+                  ? 'bg-[var(--cheer-seg-on)] shadow-[0_1px_2px_rgba(0,0,0,0.08)]'
+                  : 'text-slate-600 hover:bg-white dark:text-white dark:hover:bg-card',
               )}
-              style={isActive ? { backgroundColor: accentColor, color: accentTextColor } : undefined}
+              style={isActive ? { color: activeAccentText } : undefined}
             >
               {option.label}
             </button>

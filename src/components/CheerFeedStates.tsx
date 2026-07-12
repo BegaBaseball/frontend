@@ -25,7 +25,7 @@ export function CheerFeedLoadingSkeleton() {
       aria-busy="true"
       aria-live="polite"
       data-testid="cheer-feed-skeleton"
-      className="overflow-hidden rounded-2xl border border-border/70 bg-card/80 shadow-sm dark:border-border"
+      className="overflow-hidden rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] shadow-sm"
     >
       <div className="border-b border-border/70 px-4 py-3 text-13 font-bold text-muted-foreground dark:border-border">
         응원글을 불러오는 중
@@ -37,7 +37,7 @@ export function CheerFeedLoadingSkeleton() {
             data-testid="cheer-feed-skeleton-row"
             className="px-4 py-4"
           >
-            <div className="flex animate-pulse gap-3">
+            <div className="flex animate-skeleton-pulse gap-3">
               <div className="h-10 w-10 flex-shrink-0 rounded-full bg-muted" />
               <div className="flex-1 space-y-3">
                 <div className="flex items-center gap-2">

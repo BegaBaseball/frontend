@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, type MutableRefObject, type ReactNode } from 'react';
 
 import { recordMateSearchTerm } from '../api/mate';
 import { useDebounce } from '../hooks/useDebounce';
@@ -32,6 +32,7 @@ type MateListController = ReturnType<typeof useMateListController>;
 
 interface MateListControlsRuntimeProps {
   controller: MateListController;
+  recordedSearchTermsRef: MutableRefObject<Set<string>>;
   children: ReactNode;
 }
 
@@ -39,7 +40,11 @@ const GUIDE_BUTTON_CLASS = 'rounded-full px-4 font-bold text-gray-700 hover:bg-p
 const CREATE_BUTTON_CLASS = 'rounded-full bg-primary px-5 font-bold text-primary-foreground shadow-lg hover:bg-primary-hover';
 const SIDEBAR_CARD_CLASS = 'rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-[#000000]';
 
-export default function MateListControlsRuntime({ controller, children }: MateListControlsRuntimeProps) {
+export default function MateListControlsRuntime({
+  controller,
+  recordedSearchTermsRef,
+  children,
+}: MateListControlsRuntimeProps) {
   const {
     activeMobileFilterCount,
     activeSortKey,
@@ -70,7 +75,6 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
   } = controller;
   const addRecentSearch = useMateRecentSearchStore((state) => state.addRecentSearch);
   const { isAuthLoading, isLoggedIn } = useAuthSession();
-  const serverHandledSearchTermsRef = useRef<Set<string>>(new Set());
   const stableRecordableSearchTerm = useDebounce(
     normalizeRecordableMateSearchTerm(inputValue),
     1200,
@@ -85,11 +89,11 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
 
     addRecentSearch(term);
 
-    if (isAuthLoading || serverHandledSearchTermsRef.current.has(normalizedTermKey)) {
+    if (isAuthLoading || recordedSearchTermsRef.current.has(normalizedTermKey)) {
       return;
     }
 
-    serverHandledSearchTermsRef.current.add(normalizedTermKey);
+    recordedSearchTermsRef.current.add(normalizedTermKey);
     if (!isLoggedIn) {
       return;
     }

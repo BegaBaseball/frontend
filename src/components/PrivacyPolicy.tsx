@@ -1,5 +1,5 @@
 import SimpleMarkdownContent from './SimpleMarkdownContent';
-import privacyContent from '../../docs/privacy_policy.md?raw';
+import privacyContent from '../../docs/terms_of_service.md?raw';
 
 export default function PrivacyPolicy() {
   return (

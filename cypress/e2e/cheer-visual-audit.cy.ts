@@ -127,8 +127,8 @@ const seedSession = (win: Window, scenario: CheerVisualScenario) => {
     value: ((query: string) => ({
       matches: query === '(prefers-color-scheme: dark)'
         ? scenario.theme === 'dark'
-        : query === '(min-width: 1024px)'
-          ? scenario.viewport[0] >= 1024
+        : query === '(min-width: 768px)'
+          ? scenario.viewport[0] >= 768
           : false,
       media: query,
       onchange: null,
@@ -279,7 +279,7 @@ describe('Cheer visual audit matrix', () => {
       });
 
       cy.wait('@getVisualPosts');
-      if (scenario.viewport[0] >= 1024 && scenario.state !== 'live') {
+      if (scenario.viewport[0] >= 768 && scenario.state !== 'live') {
         cy.wait('@getVisualSchedule');
       }
       cy.document().then((document) => {
@@ -295,7 +295,7 @@ describe('Cheer visual audit matrix', () => {
       });
       cy.get('input[aria-label="응원글 검색"]').should('be.visible');
       cy.contains('button', '전체').should('be.visible');
-      if (scenario.viewport[0] >= 1024) {
+      if (scenario.viewport[0] >= 768) {
         cy.wait('@getVisualWeeklyLeaderboard');
         cy.contains('팀 정보 요약').should('be.visible');
         cy.contains('테마').should('be.visible');

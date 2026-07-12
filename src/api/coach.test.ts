@@ -9,36 +9,9 @@ import {
   getCoachStreamRequestTimeoutMs,
   getCoachStreamReadTimeoutMs,
 } from './coach';
+import { baseRequest, buildStreamResponse } from './coachTestSupport';
 
 process.env.VITE_AI_EVENT_VERSION = '1';
-
-const baseRequest = {
-  home_team_id: 'HH',
-  away_team_id: 'SS',
-  request_mode: 'manual_detail' as const,
-};
-
-const buildStreamResponse = (
-  chunks: string[],
-  headers: Record<string, string> = {},
-) => {
-  let chunkIndex = 0;
-
-  return new Response(new ReadableStream<Uint8Array>({
-    pull(controller) {
-      if (chunkIndex >= chunks.length) {
-        controller.close();
-        return;
-      }
-
-      controller.enqueue(new TextEncoder().encode(chunks[chunkIndex]));
-      chunkIndex += 1;
-    },
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'text/event-stream', ...headers },
-  });
-};
 
 test('analyzeTeam은 협상된 v2 coach 이벤트를 타입으로 소비한다', async (t) => {
   const previousVersion = process.env.VITE_AI_EVENT_VERSION;
