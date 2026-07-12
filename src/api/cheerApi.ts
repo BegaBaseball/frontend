@@ -322,7 +322,7 @@ const isLinkedContentUnavailableReason = (
   value === 'SOURCE_INELIGIBLE' ||
   value === 'MANUAL_BASEBALL_DATA_REQUIRED';
 
-const normalizeLinkedContent = (value?: LinkedContentWire | null): LinkedContent | undefined => {
+export const normalizeLinkedContent = (value?: LinkedContentWire | null): LinkedContent | undefined => {
   if (value == null) return undefined;
 
   const requiredKeys = ['kind', 'available', 'unavailableReason', 'checkin', 'recruitment'] as const;
@@ -383,7 +383,7 @@ const normalizeLinkedContent = (value?: LinkedContentWire | null): LinkedContent
   throw new Error('INVALID_LINKED_CONTENT');
 };
 
-function transformEmbeddedPost(post: EmbeddedPostWire): EmbeddedPost {
+export function normalizeEmbeddedPost(post: EmbeddedPostWire): EmbeddedPost {
   const teamId = post.teamId ?? '';
   return {
     id: post.id ?? 0,
@@ -404,7 +404,7 @@ function transformEmbeddedPost(post: EmbeddedPostWire): EmbeddedPost {
   };
 }
 
-function transformPost(post: PostSummaryWire | PostDetailWire): CheerPost {
+export function normalizeCheerPost(post: PostSummaryWire | PostDetailWire): CheerPost {
   const teamId = post.teamId ?? '';
   const createdAt = post.createdAt ?? '';
   return {
@@ -423,7 +423,11 @@ function transformPost(post: PostSummaryWire | PostDetailWire): CheerPost {
     bookmarkCount: post.bookmarkCount ?? 0,
     repostCount: post.repostCount ?? 0,
     views: post.views ?? 0,
-    liked: 'liked' in post ? post.liked ?? false : post.likedByMe ?? false,
+    liked: 'liked' in post
+      ? post.liked ?? false
+      : 'likedByMe' in post
+        ? post.likedByMe ?? false
+        : false,
     bookmarked: post.isBookmarked ?? false,
     imageUrls: post.imageUrls || [],
     isOwner: post.isOwner ?? false,
@@ -434,7 +438,7 @@ function transformPost(post: PostSummaryWire | PostDetailWire): CheerPost {
     updatedAt: createdAt,
     repostOfId: post.repostOfId,
     repostType: normalizeRepostType(post.repostType),
-    originalPost: post.originalPost ? transformEmbeddedPost(post.originalPost) : undefined,
+    originalPost: post.originalPost ? normalizeEmbeddedPost(post.originalPost) : undefined,
     originalDeleted: post.originalDeleted ?? false,
     shareMode: normalizeShareMode(post.shareMode),
     sourceInfo: post.sourceInfo,
@@ -447,7 +451,7 @@ function transformPostPage(data: PageResponseLike & { content?: PostSummaryWire[
   const pageMeta = normalizePageResponseMeta(data, content.length);
 
   return {
-    content: content.map(transformPost),
+    content: content.map(normalizeCheerPost),
     last: pageMeta.last,
     totalPages: pageMeta.totalPages,
     totalElements: pageMeta.totalElements,
@@ -570,7 +574,7 @@ export const searchPosts = async (params: SearchPostsParams): Promise<PageRespon
 export async function fetchPostDetail(id: number): Promise<CheerPost> {
   try {
     const response = await publicGet<PostDetailWire>(`/cheer/posts/${id}`);
-    return transformPost(response);
+    return normalizeCheerPost(response);
   } catch (error) {
     throw new Error(getApiErrorMessage(error, '게시글을 불러오지 못했습니다.'));
   }
@@ -591,7 +595,7 @@ export async function createPost(
     payload,
     requestOptions,
   );
-  return transformPost(response);
+  return normalizeCheerPost(response);
 }
 
 export async function updatePost(
@@ -599,7 +603,7 @@ export async function updatePost(
   data: UpdatePostWireRequest,
 ) {
   const response = await privatePut<PostDetailWire, UpdatePostWireRequest>(`/cheer/posts/${id}`, data);
-  return transformPost(response);
+  return normalizeCheerPost(response);
 }
 
 export async function deletePost(id: number) {
@@ -651,7 +655,7 @@ export async function fetchBookmarks(page = 0, size = 20): Promise<{ content: Ch
     params: { page, size },
   });
   return {
-    content: (data.content ?? []).map(transformPost),
+    content: (data.content ?? []).map(normalizeCheerPost),
     hasNext: !data.last,
   };
 }
@@ -670,7 +674,7 @@ export async function cancelRepost(repostId: number): Promise<RepostToggleRespon
 
 export async function createQuoteRepost(postId: number, content: string) {
   const response = await privatePost<PostDetailWire, { content: string }>(`/cheer/posts/${postId}/quote`, { content });
-  return transformPost(response);
+  return normalizeCheerPost(response);
 }
 
 export async function fetchLinkedPostTarget(
