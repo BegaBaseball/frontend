@@ -36,7 +36,7 @@ export default function UserProfilePostsSection({
 
     if (isPostsError) {
         return (
-            <div className="rounded-2xl border border-gray-200 bg-gray-50 py-8 text-center dark:border-border dark:bg-card/50 sm:py-10">
+            <div className="rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] py-8 text-center sm:py-10">
                 <UserProfileXCircleIcon className="mx-auto mb-3 h-10 w-10 text-red-500" />
                 <p className="mb-4 text-gray-600 dark:text-white">
                     게시글을 불러오지 못했습니다.
@@ -50,7 +50,7 @@ export default function UserProfilePostsSection({
 
     if (uniquePosts.length === 0) {
         return (
-            <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 py-12 text-center dark:border-border dark:bg-card/50 sm:py-14">
+            <div className="rounded-2xl border-2 border-dashed border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] py-12 text-center sm:py-14">
                 <UserProfilePenSquareIcon className="mx-auto mb-3 h-12 w-12 text-gray-300 dark:text-white" />
                 <p className="text-gray-400 dark:text-white">
                     아직 작성한 게시글이 없습니다.
@@ -67,7 +67,7 @@ export default function UserProfilePostsSection({
                         {[0, 1].map((index) => (
                             <div
                                 key={index}
-                                className="rounded-xl border border-gray-200 bg-white p-4 dark:border-border dark:bg-card"
+                                className="rounded-xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] p-4"
                             >
                                 <div className="mb-4 flex items-center gap-3">
                                     <Skeleton className="h-10 w-10 rounded-full" />
@@ -85,7 +85,7 @@ export default function UserProfilePostsSection({
             >
                 <>
                     {uniquePosts.map((post) => (
-                        <CheerCard key={post.id} post={post} />
+                        <CheerCard key={post.id} post={post} teamColor={primaryColor} />
                     ))}
                 </>
             </Suspense>

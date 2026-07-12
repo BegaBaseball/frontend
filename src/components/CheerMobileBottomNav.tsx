@@ -37,7 +37,7 @@ export default function CheerMobileBottomNav({
 
   return (
     <nav
-      className="fixed inset-x-0 z-40 px-3 pt-2 lg:hidden"
+      className="fixed inset-x-0 z-40 px-3 pt-2 md:hidden"
       style={{
         bottom: 'calc(var(--mobile-chrome-bottom-offset) + env(safe-area-inset-bottom))',
       }}
@@ -76,10 +76,10 @@ export default function CheerMobileBottomNav({
               {isWrite ? (
                 <>
                   <span
-                    className="flex h-9 w-9 items-center justify-center rounded-full text-white shadow-mobile-action"
+                    className="flex h-[42px] w-[42px] items-center justify-center rounded-full text-white shadow-mobile-action"
                     style={{ backgroundColor: teamAccent }}
                   >
-                    <Icon className="h-4.5 w-4.5" />
+                    <Icon className="h-5 w-5" />
                   </span>
                   <span className="leading-none text-gray-500 dark:text-white">{item.label}</span>
                 </>

@@ -191,12 +191,14 @@ export default function CheerWriteModal({
         }
     };
 
+    const isExternalShareMode = shareMode.startsWith('EXTERNAL_');
+
     return (
         <PlainDialog
             open={isOpen}
             onClose={onClose}
             title="새 응원글 작성"
-            className="max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] overflow-hidden border-none rounded-2xl bg-white dark:bg-card"
+            className="max-w-[95%] sm:max-w-[600px] lg:max-w-[800px] max-h-[90vh] overflow-hidden border-none rounded-2xl bg-[var(--cheer-card-bg)]"
             bodyClassName="p-4 sm:p-6 lg:p-8"
         >
                     <div className="flex gap-3 sm:gap-4">
@@ -227,11 +229,15 @@ export default function CheerWriteModal({
                             />
                         )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            <div>
+                                <label htmlFor="cheer-write-share-mode" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                    공유 방식
+                                </label>
                                 <select
+                                    id="cheer-write-share-mode"
                                     value={shareMode}
                                     onChange={(e) => setShareMode(e.target.value as ShareMode)}
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
+                                    className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
                                 >
                                     <option value="INTERNAL_REPOST">내부 공유</option>
                                     <option value="INTERNAL_QUOTE">내부 인용</option>
@@ -240,49 +246,88 @@ export default function CheerWriteModal({
                                     <option value="EXTERNAL_SUMMARY">외부 요약</option>
                                     <option value="EXTERNAL_COPY">외부 재게시</option>
                                 </select>
-                                <input
-                                    value={sourceUrl}
-                                    onChange={(e) => setSourceUrl(e.target.value)}
-                                    placeholder="출처 URL (외부 모드 필수)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
-                                <input
-                                    value={sourceTitle}
-                                    onChange={(e) => setSourceTitle(e.target.value)}
-                                    placeholder="원문 제목 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
-                                <input
-                                    value={sourceAuthor}
-                                    onChange={(e) => setSourceAuthor(e.target.value)}
-                                    placeholder="작성자/권리자 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
-                                <input
-                                    value={sourceLicense}
-                                    onChange={(e) => setSourceLicense(e.target.value)}
-                                    placeholder="라이선스 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
-                                <input
-                                    value={sourceLicenseUrl}
-                                    onChange={(e) => setSourceLicenseUrl(e.target.value)}
-                                    placeholder="라이선스 URL (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
-                                <input
-                                    value={sourceChangedNote}
-                                    onChange={(e) => setSourceChangedNote(e.target.value)}
-                                    placeholder="변경사항 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
-                                <input
-                                    value={sourceSnapshotType}
-                                    onChange={(e) => setSourceSnapshotType(e.target.value)}
-                                    placeholder="스냅샷 유형 (선택)"
-                                    className="rounded-md border border-slate-200 dark:border-border bg-white dark:bg-card px-3 py-2 text-body"
-                                />
                             </div>
+                            {isExternalShareMode && (
+                                <div className="grid grid-cols-1 gap-2 rounded-xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-3 sm:grid-cols-2">
+                                    <div className="sm:col-span-2">
+                                        <label htmlFor="cheer-write-source-url" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            출처 URL (필수)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-url"
+                                            value={sourceUrl}
+                                            onChange={(e) => setSourceUrl(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cheer-write-source-title" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            원문 제목 (선택)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-title"
+                                            value={sourceTitle}
+                                            onChange={(e) => setSourceTitle(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cheer-write-source-author" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            작성자/권리자 (선택)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-author"
+                                            value={sourceAuthor}
+                                            onChange={(e) => setSourceAuthor(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cheer-write-source-license" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            라이선스 (선택)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-license"
+                                            value={sourceLicense}
+                                            onChange={(e) => setSourceLicense(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cheer-write-source-license-url" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            라이선스 URL (선택)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-license-url"
+                                            value={sourceLicenseUrl}
+                                            onChange={(e) => setSourceLicenseUrl(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cheer-write-source-changed-note" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            변경사항 (선택)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-changed-note"
+                                            value={sourceChangedNote}
+                                            onChange={(e) => setSourceChangedNote(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label htmlFor="cheer-write-source-snapshot-type" className="mb-1 block text-caption font-bold text-slate-500 dark:text-white/70">
+                                            스냅샷 유형 (선택)
+                                        </label>
+                                        <input
+                                            id="cheer-write-source-snapshot-type"
+                                            value={sourceSnapshotType}
+                                            onChange={(e) => setSourceSnapshotType(e.target.value)}
+                                            className="w-full rounded-md border border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body text-slate-900 dark:text-white"
+                                        />
+                                    </div>
+                                </div>
+                            )}
                             <AutosizeTextarea
                                 autoFocus
                                 placeholder="지금 우리 팀에게 응원을 남겨주세요!"
@@ -296,7 +341,7 @@ export default function CheerWriteModal({
                             {previews.length > 0 && (
                                 <div className="mt-4 grid grid-cols-3 gap-2">
                                     {previews.map((preview, index) => (
-                                        <div key={preview.url} className="relative aspect-square overflow-hidden rounded-xl border border-black/10 dark:border-white/10">
+                                        <div key={preview.url} className="relative aspect-square overflow-hidden rounded-xl border border-[var(--cheer-line-10)]">
                                             <img src={preview.url} alt="preview" className="h-full w-full object-cover" />
                                             <button
                                                 type="button"
@@ -310,7 +355,7 @@ export default function CheerWriteModal({
                                 </div>
                             )}
 
-                            <div className="mt-4 flex items-center justify-between border-t border-[#EFF3F4] dark:border-border pt-3">
+                            <div className="mt-4 flex items-center justify-between border-t border-[var(--cheer-line-10)] pt-3">
                                 <div className="flex items-center gap-1">
                                     <button
                                         type="button"

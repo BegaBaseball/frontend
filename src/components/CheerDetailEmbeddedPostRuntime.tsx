@@ -37,7 +37,7 @@ export default function CheerDetailEmbeddedPostRuntime({
         return (
             <EmbeddedPost
                 post={originalEmbeddedPost}
-                className="mt-0 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
+                className="mt-0 bg-[var(--cheer-sub-card)] hover:bg-[var(--cheer-card-bg)]"
             />
         );
     }
@@ -61,7 +61,7 @@ export default function CheerDetailEmbeddedPostRuntime({
             {isQuoteRepost ? (
                 <EmbeddedPost
                     post={originalEmbeddedPost}
-                    className="mt-4 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
+                    className="mt-4 bg-[var(--cheer-sub-card)] hover:bg-[var(--cheer-card-bg)]"
                 />
             ) : null}
         </div>

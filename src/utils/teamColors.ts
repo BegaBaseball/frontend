@@ -102,6 +102,28 @@ export const getContrastText = (hex: string): string => {
 };
 
 /**
+ * 다크모드에서 카드 배경 위에 놓일 팀 액센트 텍스트(해시태그 등)의 밝기를 보정합니다.
+ * 원색 그대로면 두산(#1a1a4e)·KT(#3c3c3c) 같은 어두운 팀 컬러가 다크 카드 배경과
+ * 대비가 나오지 않으므로, WCAG 대비 4.5:1을 만족할 때까지 흰색 쪽으로 조금씩 섞는다.
+ */
+export const getDarkModeAccentText = (hex: string, darkBg = '#16181c'): string => {
+    let t = 0.45;
+    let candidate = lightenColor(hex, t);
+    const bgLuminance = getLuminance(darkBg);
+    const contrastRatio = (fg: string) => {
+        const fgLuminance = getLuminance(fg);
+        const lighter = Math.max(fgLuminance, bgLuminance);
+        const darker = Math.min(fgLuminance, bgLuminance);
+        return (lighter + 0.05) / (darker + 0.05);
+    };
+    while (contrastRatio(candidate) < 4.5 && t < 0.85) {
+        t += 0.05;
+        candidate = lightenColor(hex, t);
+    }
+    return candidate;
+};
+
+/**
  * 팀 ID로 팀 색상을 조회합니다.
  * 팀이 없거나 '없음'인 경우 기본 브랜드 색상(녹색)을 반환합니다.
  */
