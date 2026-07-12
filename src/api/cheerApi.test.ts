@@ -40,6 +40,46 @@ const buildPostResponse = (postType?: string) => ({
   imageUrls: [],
 });
 
+const availableCheckin = {
+  kind: 'CHECKIN',
+  available: true,
+  unavailableReason: null,
+  checkin: {
+    gameDate: '2026-04-14',
+    homeTeam: 'LG',
+    awayTeam: 'HH',
+    cheeringTeam: 'LG',
+    stadium: '잠실',
+    verified: true,
+  },
+  recruitment: null,
+};
+
+const availableRecruitment = {
+  kind: 'RECRUITMENT',
+  available: true,
+  unavailableReason: null,
+  checkin: null,
+  recruitment: {
+    partyId: 29,
+    gameDate: '2026-04-14',
+    homeTeam: 'LG',
+    awayTeam: 'HH',
+    stadium: '잠실',
+    currentParticipants: 2,
+    maxParticipants: 4,
+    recruiting: true,
+  },
+};
+
+const unavailableCheckin = {
+  kind: 'CHECKIN',
+  available: false,
+  unavailableReason: 'SOURCE_MISSING',
+  checkin: null,
+  recruitment: null,
+};
+
 test('fetchPostDetail preserves all four supported post types', async (t) => {
   const postTypes = ['NORMAL', 'NOTICE', 'CHECKIN', 'RECRUITMENT'] as const;
   let callIndex = 0;
@@ -74,6 +114,54 @@ test('fetchPostDetail rejects present empty and unknown post types', async (t) =
 
   await assert.rejects(() => fetchPostDetail(1), /UNKNOWN_CHEER_POST_TYPE:/);
   await assert.rejects(() => fetchPostDetail(1), /UNKNOWN_CHEER_POST_TYPE:FUTURE_TYPE/);
+});
+
+test('fetchPostDetail preserves exact canonical linked-content null shapes', async (t) => {
+  const linkedContents = [availableCheckin, availableRecruitment];
+  let callIndex = 0;
+
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    ...buildPostResponse(linkedContents[callIndex]?.kind),
+    linkedContent: linkedContents[callIndex++],
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  assert.deepEqual((await fetchPostDetail(1)).linkedContent, availableCheckin);
+  assert.deepEqual((await fetchPostDetail(2)).linkedContent, availableRecruitment);
+});
+
+test('fetchPostDetail rejects missing and mixed linked-content variants', async (t) => {
+  const invalidLinkedContents = [
+    {
+      kind: 'CHECKIN',
+      available: true,
+      checkin: availableCheckin.checkin,
+      recruitment: null,
+    },
+    {
+      ...availableCheckin,
+      recruitment: availableRecruitment.recruitment,
+    },
+    {
+      ...unavailableCheckin,
+      unavailableReason: 'FUTURE_REASON',
+    },
+  ];
+  let callIndex = 0;
+
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    ...buildPostResponse('CHECKIN'),
+    linkedContent: invalidLinkedContents[callIndex++],
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  for (const postId of [1, 2, 3]) {
+    await assert.rejects(() => fetchPostDetail(postId), /INVALID_LINKED_CONTENT/);
+  }
 });
 
 test('createPost preserves linked post types and source IDs in request payloads', async (t) => {
@@ -119,17 +207,38 @@ test('createPost rejects present empty and unknown post types before fetch', asy
   assert.equal(fetchCalls, 0);
 });
 
+test('createPost rejects invalid post-type and linked-ID combinations before fetch', async (t) => {
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return new Response(null, { status: 201 });
+  });
+
+  const invalidPayloads = [
+    { teamId: 'LG', content: 'missing checkin ID', postType: 'CHECKIN' },
+    { teamId: 'LG', content: 'wrong checkin ID', postType: 'CHECKIN', partyId: 29 },
+    { teamId: 'LG', content: 'both checkin IDs', postType: 'CHECKIN', diaryId: 17, partyId: 29 },
+    { teamId: 'LG', content: 'missing recruitment ID', postType: 'RECRUITMENT' },
+    { teamId: 'LG', content: 'wrong recruitment ID', postType: 'RECRUITMENT', diaryId: 17 },
+    { teamId: 'LG', content: 'both recruitment IDs', postType: 'RECRUITMENT', diaryId: 17, partyId: 29 },
+    { teamId: 'LG', content: 'legacy normal with ID', diaryId: 17 },
+    { teamId: 'LG', content: 'normal with ID', postType: 'NORMAL', diaryId: 17 },
+    { teamId: 'LG', content: 'notice with ID', postType: 'NOTICE', partyId: 29 },
+  ] as unknown as Array<Parameters<typeof createPost>[0]>;
+
+  for (const payload of invalidPayloads) {
+    await assert.rejects(() => createPost(payload), /INVALID_LINKED_POST_TARGET/);
+  }
+  assert.equal(fetchCalls, 0);
+});
+
 test('fetchLinkedPostTarget sends authenticated diary and party lookup params', async (t) => {
   const requestUrls: string[] = [];
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
     requestUrls.push(resolveRequestUrl(input));
     return new Response(JSON.stringify({
       postId: null,
-      preview: {
-        kind: 'CHECKIN',
-        available: false,
-        unavailableReason: 'SOURCE_MISSING',
-      },
+      preview: unavailableCheckin,
     }), {
       headers: { 'content-type': 'application/json' },
       status: 200,
@@ -139,15 +248,68 @@ test('fetchLinkedPostTarget sends authenticated diary and party lookup params', 
   const diaryLookup = await fetchLinkedPostTarget({ diaryId: 17 });
   await fetchLinkedPostTarget({ partyId: 29 });
 
-  assert.deepEqual(diaryLookup.preview, {
-    kind: 'CHECKIN',
-    available: false,
-    unavailableReason: 'SOURCE_MISSING',
+  assert.deepEqual(diaryLookup, {
+    postId: null,
+    preview: unavailableCheckin,
   });
   assert.deepEqual(requestUrls, [
     '/api/cheer/posts/linked?diaryId=17',
     '/api/cheer/posts/linked?partyId=29',
   ]);
+});
+
+test('fetchLinkedPostTarget rejects neither or both linked IDs before fetch', async (t) => {
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return new Response(null, { status: 200 });
+  });
+
+  const invalidLookups = [
+    {},
+    { diaryId: 17, partyId: 29 },
+  ] as unknown as Array<Parameters<typeof fetchLinkedPostTarget>[0]>;
+
+  for (const params of invalidLookups) {
+    await assert.rejects(() => fetchLinkedPostTarget(params), /INVALID_LINKED_POST_LOOKUP/);
+  }
+  assert.equal(fetchCalls, 0);
+});
+
+test('fetchPosts preserves exact linked-content null shapes on top-level and embedded posts', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    content: [
+      {
+        ...buildPostResponse('CHECKIN'),
+        linkedContent: availableCheckin,
+        originalPost: {
+          id: 2,
+          teamId: 'LG',
+          content: 'embedded recruitment',
+          author: 'Embedded User',
+          authorHandle: '@embedded',
+          createdAt: '2026-03-10T00:00:00Z',
+          imageUrls: [],
+          deleted: false,
+          postType: 'RECRUITMENT',
+          linkedContent: availableRecruitment,
+        },
+      },
+    ],
+    last: true,
+    totalPages: 1,
+    totalElements: 1,
+    size: 20,
+    number: 0,
+  }), {
+    headers: { 'content-type': 'application/json' },
+    status: 200,
+  }) as never);
+
+  const response = await fetchPosts();
+
+  assert.deepEqual(response.content[0]?.linkedContent, availableCheckin);
+  assert.deepEqual(response.content[0]?.originalPost?.linkedContent, availableRecruitment);
 });
 
 test('fetchPosts는 공개 응답에서 authorId 없이 cheer post를 정규화한다', async (t) => {

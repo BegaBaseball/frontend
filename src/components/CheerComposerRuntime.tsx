@@ -18,7 +18,7 @@ import type { CheerWritePayload } from './CheerWriteModal';
 const LazyCheerWriteModal = lazy(() => import('./CheerWriteModal'));
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
-type CheerPostType = CheerPost['postType'];
+type CheerPostType = Extract<CheerPost['postType'], 'NORMAL' | 'NOTICE'>;
 type CheerPostsFeedQueryKey = ReturnType<typeof getCheerPostsFeedQueryKey>;
 
 interface CheerComposerRuntimeProps {

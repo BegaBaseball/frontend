@@ -544,7 +544,12 @@ export const useCheerMutations = () => {
     });
 
     const createPostMutation = useMutation({
-        mutationFn: async (data: { teamId: string; content: string; postType?: string; files?: File[] }) => {
+        mutationFn: async (data: {
+            teamId: string;
+            content: string;
+            postType?: 'NORMAL' | 'NOTICE';
+            files?: File[];
+        }) => {
             const uploadedImages = data.files && data.files.length > 0
                 ? (await uploadMediaFiles('CHEER', data.files)).map((asset) => asset.storagePath)
                 : [];
