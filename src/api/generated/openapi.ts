@@ -4205,16 +4205,6 @@ export interface components {
             checkin?: components["schemas"]["CheckinLinkedContentRes"];
             recruitment?: components["schemas"]["RecruitmentLinkedContentRes"];
         };
-        LocalTime: {
-            /** Format: int32 */
-            hour?: number;
-            /** Format: int32 */
-            minute?: number;
-            /** Format: int32 */
-            second?: number;
-            /** Format: int32 */
-            nano?: number;
-        };
         PostDetailRes: {
             /** Format: int64 */
             id?: number;
@@ -4258,7 +4248,11 @@ export interface components {
             partyId?: number;
             /** Format: date */
             gameDate?: string;
-            gameTime?: components["schemas"]["LocalTime"];
+            /**
+             * Format: time
+             * @example 18:30:00
+             */
+            gameTime?: string;
             homeTeam?: string;
             awayTeam?: string;
             stadium?: string;
@@ -4649,6 +4643,16 @@ export interface components {
             isPaid?: boolean;
             isApproved?: boolean;
             isRejected?: boolean;
+        };
+        LocalTime: {
+            /** Format: int32 */
+            hour?: number;
+            /** Format: int32 */
+            minute?: number;
+            /** Format: int32 */
+            second?: number;
+            /** Format: int32 */
+            nano?: number;
         };
         MatePartyCreateRequest: {
             teamId?: string;

@@ -50,7 +50,7 @@ test('renders an available recruiting party with approved details and CTA', () =
     recruitment: {
       partyId: 42,
       gameDate: '2026-07-20',
-      gameTime: { hour: 18, minute: 30, second: 0, nano: 0 },
+      gameTime: '18:30:00',
       homeTeam: 'LG',
       awayTeam: '두산',
       stadium: '잠실',
@@ -75,6 +75,26 @@ test('renders an available recruiting party with approved details and CTA', () =
   assert.match(html, /5,000원/);
   assert.match(html, /href="\/mate\/42"/);
   assert.match(html, /파티 보기/);
+});
+
+test('renders the Jackson LocalTime string used by production recruitment responses', () => {
+  const linkedContent = {
+    kind: 'RECRUITMENT',
+    available: true,
+    checkin: null,
+    unavailableReason: null,
+    recruitment: {
+      partyId: 42,
+      gameTime: '18:30:00',
+      status: 'PENDING',
+      recruiting: true,
+    },
+  } as unknown as LinkedContent;
+
+  const html = renderCard(linkedContent);
+
+  assert.match(html, />18:30</);
+  assert.doesNotMatch(html, />18:30:00</);
 });
 
 test('keeps the party link but labels non-pending recruitment as closed', () => {

@@ -13,7 +13,11 @@ const formatPrice = (value?: number) => (
   typeof value === 'number' ? `${value.toLocaleString('ko-KR')}원` : null
 );
 
-const formatGameTime = (gameTime?: { hour?: number; minute?: number }) => {
+const formatGameTime = (gameTime?: string | { hour?: number; minute?: number }) => {
+  if (typeof gameTime === 'string') {
+    const match = /^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d(?:\.\d{1,9})?)?$/.exec(gameTime);
+    return match ? gameTime.slice(0, 5) : null;
+  }
   if (gameTime?.hour == null || gameTime.minute == null) return null;
   return `${String(gameTime.hour).padStart(2, '0')}:${String(gameTime.minute).padStart(2, '0')}`;
 };
