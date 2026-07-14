@@ -1,10 +1,12 @@
-import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, DragEvent } from 'react';
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import type { PageResponse, CheerPost, ShareMode } from '../api/cheerApi';
+import type { PageResponse, CheerPost, LinkedContent } from '../api/cheerApi';
 import { getCheerPostsFeedQueryKey } from '../hooks/cheerQueryKeys';
 import { parseError } from '../utils/errorUtils';
+import type { SubmitCheerPostPayload } from '../utils/cheerSubmit';
 import { useAuthProfileActions } from '../store/authStore';
 import AutosizeTextarea from './ui/autosize-textarea';
 import {
@@ -14,15 +16,21 @@ import {
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import TeamLogo from './TeamLogo';
 import type { CheerWritePayload } from './CheerWriteModal';
+import type { LinkedPostTarget } from './cheer/CheerPresentation';
+import type { LinkedComposerRouteLoader } from './cheer/CheerLinkedComposerRoute';
 
 const LazyCheerWriteModal = lazy(() => import('./CheerWriteModal'));
 
 type CheerInfiniteData = InfiniteData<PageResponse<CheerPost>>;
-type CheerPostType = Extract<CheerPost['postType'], 'NORMAL' | 'NOTICE'>;
+type OrdinaryCheerPostType = Extract<CheerPost['postType'], 'NORMAL' | 'NOTICE'>;
 type CheerPostsFeedQueryKey = ReturnType<typeof getCheerPostsFeedQueryKey>;
+type WithoutTeamId<T> = T extends unknown ? Omit<T, 'teamId'> : never;
+type ComposerMutationPayload = WithoutTeamId<SubmitCheerPostPayload>;
 
 interface CheerComposerRuntimeProps {
     openComposerOnMount: boolean;
+    linkedRouteRequested: boolean;
+    linkedTarget: LinkedPostTarget | null;
     isAuthLoading: boolean;
     isLoggedIn: boolean;
     hasFavoriteTeam: boolean;
@@ -32,7 +40,7 @@ interface CheerComposerRuntimeProps {
     authUserFavoriteTeam?: string | null;
     authUserProfileImageUrl?: string | null;
     activeFeedTab: 'all' | 'popular' | 'following';
-    activePostType?: CheerPostType;
+    activePostType?: OrdinaryCheerPostType;
     activeSort?: string;
     teamColor: string;
     teamAccent: string;
@@ -51,6 +59,8 @@ const resolveProfileImage = (imageUrl?: string | null) => {
 
 export default function CheerComposerRuntime({
     openComposerOnMount,
+    linkedRouteRequested,
+    linkedTarget,
     isAuthLoading,
     isLoggedIn,
     hasFavoriteTeam,
@@ -70,10 +80,13 @@ export default function CheerComposerRuntime({
     userDisplayName,
     onRequireLogin,
 }: CheerComposerRuntimeProps) {
+    const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { reset: resetAuthState } = useAuthProfileActions();
     const [isWriteModalOpen, setIsWriteModalOpen] = useState(false);
     const [hasMountedWriteModal, setHasMountedWriteModal] = useState(false);
+    const [linkedContent, setLinkedContent] = useState<LinkedContent>();
+    const [isLinkedRouteLoading, setIsLinkedRouteLoading] = useState(false);
     const [composerContent, setComposerContent] = useState('');
     const [composerFiles, setComposerFiles] = useState<File[]>([]);
     const [composerPreviews, setComposerPreviews] = useState<{ file: File; url: string }[]>([]);
@@ -83,6 +96,23 @@ export default function CheerComposerRuntime({
     const previewsRef = useRef<{ file: File; url: string }[]>([]);
     const didOpenComposerFromRoute = useRef(false);
     const didNotifyLoginRequiredFromWriteRoute = useRef(false);
+    const linkedRouteLoaderRef = useRef<Promise<LinkedComposerRouteLoader> | null>(null);
+
+    const handleCreateSubmitFailure = useCallback((error: unknown) => {
+        const parsedError = parseError(error);
+        if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
+            resetAuthState();
+            onRequireLogin(true);
+            return true;
+        }
+
+        if (error instanceof Error && error.message === 'IMAGE_UPLOAD_FAILED') {
+            return false;
+        }
+
+        toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
+        return false;
+    }, [onRequireLogin, resetAuthState]);
 
     useEffect(() => {
         previewsRef.current = composerPreviews;
@@ -96,7 +126,7 @@ export default function CheerComposerRuntime({
 
     useEffect(() => {
         if (!openComposerOnMount) return;
-        if (didOpenComposerFromRoute.current) return;
+        if (didOpenComposerFromRoute.current && !linkedRouteRequested) return;
         if (isAuthLoading) return;
 
         if (!isLoggedIn) {
@@ -108,9 +138,65 @@ export default function CheerComposerRuntime({
             return;
         }
 
+        if (linkedRouteRequested) {
+            const loadLinkedRoute = async () => {
+                const linkedRouteLoaderPromise = linkedRouteLoaderRef.current
+                    ?? import('./cheer/CheerLinkedComposerRoute').then(({ createLinkedComposerRouteLoader }) => (
+                        createLinkedComposerRouteLoader()
+                    ));
+                linkedRouteLoaderRef.current = linkedRouteLoaderPromise;
+                const linkedRouteLoader = await linkedRouteLoaderPromise;
+                await linkedRouteLoader.load({
+                    requested: true,
+                    target: linkedTarget,
+                    lookup: async (params) => {
+                        const { fetchLinkedPostTarget } = await import('../api/cheerApi');
+                        return fetchLinkedPostTarget(params);
+                    },
+                    onLoadingChange: (isLoading) => {
+                        setIsLinkedRouteLoading(isLoading);
+                        if (isLoading) {
+                            setLinkedContent(undefined);
+                            setIsWriteModalOpen(false);
+                        }
+                    },
+                    onExistingPost: (postId) => {
+                        didOpenComposerFromRoute.current = true;
+                        navigate(`/cheer/${postId}`, { replace: true });
+                    },
+                    onNewPreview: (preview) => {
+                        didOpenComposerFromRoute.current = true;
+                        setLinkedContent(preview);
+                        setIsWriteModalOpen(true);
+                    },
+                    onInvalidTarget: () => {
+                        toast.error('연결 대상이 올바르지 않습니다.');
+                        navigate('/cheer', { replace: true });
+                    },
+                    onError: (error) => {
+                        const redirectedToLogin = handleCreateSubmitFailure(error);
+                        if (!redirectedToLogin) {
+                            navigate('/cheer', { replace: true });
+                        }
+                    },
+                });
+            };
+            void loadLinkedRoute();
+            return;
+        }
+
         didOpenComposerFromRoute.current = true;
         setIsWriteModalOpen(true);
-    }, [isAuthLoading, isLoggedIn, onRequireLogin, openComposerOnMount]);
+    }, [
+        handleCreateSubmitFailure,
+        isAuthLoading,
+        isLoggedIn,
+        linkedRouteRequested,
+        linkedTarget,
+        navigate,
+        onRequireLogin,
+        openComposerOnMount,
+    ]);
 
     useEffect(() => {
         return () => {
@@ -181,23 +267,31 @@ export default function CheerComposerRuntime({
     };
 
     const createMutation = useMutation({
-        mutationFn: async (payload: {
-            content: string;
-            files: File[];
-            postType?: CheerPostType;
-            shareMode?: ShareMode;
-            sourceUrl?: string;
-            sourceTitle?: string;
-            sourceAuthor?: string;
-            sourceLicense?: string;
-            sourceLicenseUrl?: string;
-            sourceChangedNote?: string;
-            sourceSnapshotType?: string;
-        }) => {
+        mutationFn: async (payload: ComposerMutationPayload) => {
             if (!hasFavoriteTeam || !authUserFavoriteTeam) {
                 throw new Error('favoriteTeam-required');
             }
             const { submitCheerPost } = await import('../utils/cheerSubmit');
+            if (payload.postType === 'CHECKIN') {
+                return submitCheerPost({
+                    teamId: authUserFavoriteTeam,
+                    content: payload.content,
+                    files: payload.files,
+                    postType: 'CHECKIN',
+                    diaryId: payload.diaryId,
+                    shareMode: 'INTERNAL_REPOST',
+                });
+            }
+            if (payload.postType === 'RECRUITMENT') {
+                return submitCheerPost({
+                    teamId: authUserFavoriteTeam,
+                    content: payload.content,
+                    files: payload.files,
+                    postType: 'RECRUITMENT',
+                    partyId: payload.partyId,
+                    shareMode: 'INTERNAL_REPOST',
+                });
+            }
             return submitCheerPost({
                 teamId: authUserFavoriteTeam,
                 content: payload.content,
@@ -243,6 +337,9 @@ export default function CheerComposerRuntime({
                 repostedByMe: false,
                 originalDeleted: false,
                 shareMode: payload.shareMode,
+                linkedContent: payload.postType === 'CHECKIN' || payload.postType === 'RECRUITMENT'
+                    ? linkedContent
+                    : undefined,
                 sourceInfo: payload.sourceUrl
                     ? {
                         url: payload.sourceUrl,
@@ -277,7 +374,12 @@ export default function CheerComposerRuntime({
             updateCache(activeKey);
             if (activeFeedTab !== 'all') updateCache(allKey);
 
-            return { previousActive, previousAll, optimisticId };
+            return {
+                previousActive,
+                previousAll,
+                optimisticId,
+                linked: payload.postType === 'CHECKIN' || payload.postType === 'RECRUITMENT',
+            };
         },
         onError: (_error, _payload, context) => {
             if (!context) return;
@@ -289,9 +391,22 @@ export default function CheerComposerRuntime({
                 queryClient.setQueryData(getCheerPostsFeedQueryKey('all'), context.previousAll);
             }
         },
-        onSuccess: (result, _payload, context) => {
+        onSuccess: async (result, _payload, context) => {
             const createdPost = result?.created;
             if (!createdPost || !context) return;
+            if (context.linked) {
+                const { removeOptimisticCheerPostFromFeed } = await import('../utils/cheerSubmit');
+                const removeOptimistic = (key: CheerPostsFeedQueryKey) => {
+                    queryClient.setQueryData<CheerInfiniteData>(key, (old) => (
+                        removeOptimisticCheerPostFromFeed(old, context.optimisticId)
+                    ));
+                };
+                removeOptimistic(getCheerPostsFeedQueryKey(activeFeedTab, activePostType, activeSort));
+                if (activeFeedTab !== 'all') {
+                    removeOptimistic(getCheerPostsFeedQueryKey('all'));
+                }
+                return;
+            }
             const uploadedUrls = result?.uploadedUrls ?? [];
             const uploadFailed = Boolean(result?.uploadFailed);
             const replaceOptimistic = (key: CheerPostsFeedQueryKey) => {
@@ -318,21 +433,6 @@ export default function CheerComposerRuntime({
             if (activeFeedTab !== 'all') replaceOptimistic(getCheerPostsFeedQueryKey('all'));
         },
     });
-
-    const handleCreateSubmitFailure = (error: unknown) => {
-        const parsedError = parseError(error);
-        if (parsedError.type === 'AUTH' || parsedError.responseCode === 'INVALID_AUTHOR') {
-            resetAuthState();
-            onRequireLogin(true);
-            return;
-        }
-
-        if (error instanceof Error && error.message === 'IMAGE_UPLOAD_FAILED') {
-            return;
-        }
-
-        toast.error(parsedError.message || '게시글 등록에 실패했습니다.');
-    };
 
     const handleComposerSubmit = async () => {
         if (!isLoggedIn) {
@@ -494,6 +594,12 @@ export default function CheerComposerRuntime({
                 </div>
             </section>
 
+            {isLinkedRouteLoading ? (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-body font-bold text-white">
+                    연결 대상을 확인하는 중...
+                </div>
+            ) : null}
+
             {hasMountedWriteModal ? (
                 <Suspense
                     fallback={isWriteModalOpen ? (
@@ -506,22 +612,43 @@ export default function CheerComposerRuntime({
                         isOpen={isWriteModalOpen}
                         onClose={() => setIsWriteModalOpen(false)}
                         onSubmit={async (payload: CheerWritePayload) => {
+                            const isLinkedSubmission = Boolean(linkedTarget && linkedContent);
                             try {
-                                await createMutation.mutateAsync({
-                                    content: payload.content,
-                                    files: payload.files,
-                                    postType: activePostType,
-                                    shareMode: payload.shareMode,
-                                    sourceUrl: payload.sourceUrl,
-                                    sourceTitle: payload.sourceTitle,
-                                    sourceAuthor: payload.sourceAuthor,
-                                    sourceLicense: payload.sourceLicense,
-                                    sourceLicenseUrl: payload.sourceLicenseUrl,
-                                    sourceChangedNote: payload.sourceChangedNote,
-                                    sourceSnapshotType: payload.sourceSnapshotType,
-                                });
+                                const result = linkedTarget?.postType === 'CHECKIN'
+                                    ? await createMutation.mutateAsync({
+                                        content: payload.content,
+                                        files: payload.files,
+                                        postType: 'CHECKIN',
+                                        diaryId: linkedTarget.diaryId,
+                                        shareMode: 'INTERNAL_REPOST',
+                                    })
+                                    : linkedTarget?.postType === 'RECRUITMENT'
+                                        ? await createMutation.mutateAsync({
+                                            content: payload.content,
+                                            files: payload.files,
+                                            postType: 'RECRUITMENT',
+                                            partyId: linkedTarget.partyId,
+                                            shareMode: 'INTERNAL_REPOST',
+                                        })
+                                        : await createMutation.mutateAsync({
+                                            content: payload.content,
+                                            files: payload.files,
+                                            postType: activePostType,
+                                            shareMode: payload.shareMode,
+                                            sourceUrl: payload.sourceUrl,
+                                            sourceTitle: payload.sourceTitle,
+                                            sourceAuthor: payload.sourceAuthor,
+                                            sourceLicense: payload.sourceLicense,
+                                            sourceLicenseUrl: payload.sourceLicenseUrl,
+                                            sourceChangedNote: payload.sourceChangedNote,
+                                            sourceSnapshotType: payload.sourceSnapshotType,
+                                        });
+                                if (isLinkedSubmission) {
+                                    navigate(`/cheer/${result.created.id}`, { replace: true });
+                                }
                             } catch (error) {
                                 handleCreateSubmitFailure(error);
+                                if (isLinkedSubmission) throw error;
                             }
                         }}
                         teamColor={teamColor}
@@ -529,6 +656,8 @@ export default function CheerComposerRuntime({
                         teamContrastText={teamContrastText}
                         teamLabel={teamLabel}
                         teamId={teamLogoId}
+                        linkedContent={linkedContent}
+                        linkedPostType={linkedTarget?.postType}
                     />
                 </Suspense>
             ) : null}

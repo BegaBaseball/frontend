@@ -1,6 +1,9 @@
+import type { InfiniteData } from '@tanstack/react-query';
 import {
   createPost as createCheerPost,
   normalizeCheerPostTarget,
+  type CheerPost,
+  type PageResponse,
   type ShareMode,
 } from '../api/cheerApi';
 import { uploadMediaFiles } from '../api/media';
@@ -26,7 +29,24 @@ export type SubmitCheerPostPayload =
   | (SubmitCheerPostBase & { postType: 'CHECKIN'; diaryId: number; partyId?: never })
   | (SubmitCheerPostBase & { postType: 'RECRUITMENT'; diaryId?: never; partyId: number });
 
+export function removeOptimisticCheerPostFromFeed(
+  data: InfiniteData<PageResponse<CheerPost>> | undefined,
+  optimisticId: number,
+): InfiniteData<PageResponse<CheerPost>> | undefined {
+  if (!data) return data;
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      content: (page.content ?? []).filter((post) => post.id !== optimisticId),
+    })),
+  };
+}
+
 export async function submitCheerPost(payload: SubmitCheerPostPayload) {
+  if (!payload.content.trim()) {
+    throw new Error('CHEER_POST_CONTENT_REQUIRED');
+  }
   const target = normalizeCheerPostTarget(payload.postType, payload.diaryId, payload.partyId);
   let uploadedUrls: string[] = [];
 

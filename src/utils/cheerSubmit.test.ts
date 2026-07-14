@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { submitCheerPost } from './cheerSubmit';
+import {
+  removeOptimisticCheerPostFromFeed,
+  submitCheerPost,
+} from './cheerSubmit';
 
 const buildJsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -241,4 +244,80 @@ test('submitCheerPost rejects invalid linked-ID shapes before upload or create',
   }
   assert.equal(createObjectUrlMock.mock.callCount(), 0);
   assert.equal(fetchCalls, 0);
+});
+
+test('submitCheerPost rejects a whitespace-only body before upload or create', async (t) => {
+  const { createObjectUrlMock } = installImageTestDoubles(t);
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return buildJsonResponse({}, 201);
+  });
+
+  await assert.rejects(
+    () => submitCheerPost({
+      teamId: 'LG',
+      content: ' \n\t ',
+      files: [new File(['stub'], 'blank.png', { type: 'image/png' })],
+      postType: 'CHECKIN',
+      diaryId: 17,
+    }),
+    /CHEER_POST_CONTENT_REQUIRED/,
+  );
+
+  assert.equal(createObjectUrlMock.mock.callCount(), 0);
+  assert.equal(fetchCalls, 0);
+});
+
+test('linked success removes only its optimistic cache entry before navigation', () => {
+  const optimisticPost = { id: -101, content: 'optimistic linked post' };
+  const existingPost = { id: 91, content: 'server linked post' };
+  const original = {
+    pages: [{ content: [optimisticPost, existingPost] }],
+    pageParams: [0],
+  } as NonNullable<Parameters<typeof removeOptimisticCheerPostFromFeed>[0]>;
+
+  const updated = removeOptimisticCheerPostFromFeed(original, -101);
+
+  assert.deepEqual(updated?.pages[0].content?.map((post) => post.id), [91]);
+  assert.deepEqual(original.pages[0].content?.map((post) => post.id), [-101, 91]);
+});
+
+test('HTTP 200 duplicate creation returns the existing linked post ID', async (t) => {
+  let createCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    createCalls += 1;
+    return buildJsonResponse({
+      id: 91,
+      teamId: 'LG',
+      content: 'already linked',
+      author: 'Writer',
+      authorHandle: '@writer',
+      createdAt: '2026-07-14T00:00:00Z',
+      updatedAt: '2026-07-14T00:00:00Z',
+      commentCount: 0,
+      likeCount: 0,
+      bookmarkCount: 0,
+      repostCount: 0,
+      views: 0,
+      liked: false,
+      isBookmarked: false,
+      isOwner: true,
+      repostedByMe: false,
+      isHot: false,
+      postType: 'CHECKIN',
+      imageUrls: [],
+    }, 200);
+  });
+
+  const result = await submitCheerPost({
+    teamId: 'LG',
+    content: 'already linked',
+    files: [],
+    postType: 'CHECKIN',
+    diaryId: 17,
+  });
+
+  assert.equal(createCalls, 1);
+  assert.equal(result.created.id, 91);
 });
