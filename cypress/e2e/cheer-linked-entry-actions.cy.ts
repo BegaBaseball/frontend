@@ -238,7 +238,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     cy.get('[data-testid="diary-read-mode"]').should('contain.text', 'A 기록');
     cy.get('[data-testid="edit-diary-btn"]').should('be.visible');
     cy.get('[data-testid="delete-diary-btn"]').should('be.visible');
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').click();
+    cy.get('[data-testid="diary-share-to-cheer"]').click();
     cy.wait('@lookupDiary');
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/cheer/91');
     cy.get('[data-testid="edit-diary-btn"]').click();
@@ -271,7 +271,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     });
     cy.get('[data-testid="mate-desktop-action-rail"]').should('be.visible').within(() => {
       cy.contains('button', '친구에게 공유').click();
-      cy.get('[data-testid="share-party-to-cheer-btn"]').click();
+      cy.get('[data-testid="mate-share-to-cheer"]').click();
     });
     cy.wait('@lookupParty');
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/cheer/92');
@@ -286,7 +286,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     const mounted = mountMate('45');
 
     cy.get('[data-testid="mate-mobile-action-bar"] button').last().click();
-    cy.get('[data-testid="share-party-to-cheer-btn"]:visible').should('have.length', 1).click();
+    cy.get('[data-testid="mate-share-to-cheer"]:visible').should('have.length', 1).click();
     cy.wait('@lookupParty').its('request.query').should('deep.equal', { partyId: '45' });
     cy.get('[data-testid="entry-router-location"]').should(
       'have.text',
@@ -299,24 +299,24 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     const held = holdLinkedLookups();
     const mounted = mountDiary();
 
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').click();
+    cy.get('[data-testid="diary-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(1));
     cy.then(() => mounted()?.setTarget('2026-07-16'));
     cy.get('[data-testid="diary-read-mode"]').should('contain.text', 'B 기록');
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').click();
+    cy.get('[data-testid="diary-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(2));
     cy.then(() => held[0].resolve({ postId: 193 }));
     awaitLinkedLookupSettlement(mounted, 0);
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/task-9');
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').should('contain.text', '공유 확인 중');
+    cy.get('[data-testid="diary-share-to-cheer"]').should('contain.text', '공유 확인 중');
     cy.then(() => mounted()?.setTarget('2026-07-17'));
     cy.get('[data-testid="diary-read-mode"]').should('contain.text', 'C 기록');
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').click();
+    cy.get('[data-testid="diary-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(3));
     cy.then(() => held[1].reject('STALE_DIARY_ERROR'));
     awaitLinkedLookupSettlement(mounted, 1);
     cy.contains('[data-sonner-toast]', '응원석 공유 정보를 확인하지 못했습니다.').should('not.exist');
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').should('contain.text', '공유 확인 중');
+    cy.get('[data-testid="diary-share-to-cheer"]').should('contain.text', '공유 확인 중');
     cy.then(() => held[2].resolve({ postId: 95 }));
     awaitLinkedLookupSettlement(mounted, 2);
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/cheer/95');
@@ -327,7 +327,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     const held = holdLinkedLookups();
     const mounted = mountDiary();
 
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').click();
+    cy.get('[data-testid="diary-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(1));
     cy.then(() => mounted()?.unmountSubject());
     cy.get('[data-testid="entry-subject"]').should('not.exist');
@@ -336,7 +336,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/task-9');
     cy.contains('[data-sonner-toast]', '응원석 공유 정보를 확인하지 못했습니다.').should('not.exist');
     cy.then(() => mounted()?.mountSubject());
-    cy.get('[data-testid="share-diary-to-cheer-btn"]').click();
+    cy.get('[data-testid="diary-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(2));
     cy.then(() => mounted()?.unmountSubject());
     cy.get('[data-testid="entry-subject"]').should('not.exist');
@@ -351,24 +351,24 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     const held = holdLinkedLookups();
     const mounted = mountMate();
 
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').click();
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(1));
     cy.then(() => mounted()?.setTarget('45'));
     cy.contains('45 구역').should('be.visible');
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').click();
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(2));
     cy.then(() => held[0].resolve({ postId: 197 }));
     awaitLinkedLookupSettlement(mounted, 0);
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/task-9');
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').should('contain.text', '공유 확인 중');
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').should('contain.text', '공유 확인 중');
     cy.then(() => mounted()?.setTarget('46'));
     cy.contains('46 구역').should('be.visible');
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').click();
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(3));
     cy.then(() => held[1].reject('STALE_MATE_ERROR'));
     awaitLinkedLookupSettlement(mounted, 1);
     cy.contains('[data-sonner-toast]', '응원석 공유 정보를 확인하지 못했습니다.').should('not.exist');
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').should('contain.text', '공유 확인 중');
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').should('contain.text', '공유 확인 중');
     cy.then(() => held[2].resolve({ postId: 96 }));
     awaitLinkedLookupSettlement(mounted, 2);
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/cheer/96');
@@ -379,7 +379,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     const held = holdLinkedLookups();
     const mounted = mountMate();
 
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').click();
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(1));
     cy.then(() => mounted()?.unmountSubject());
     cy.get('[data-testid="entry-subject"]').should('not.exist');
@@ -388,7 +388,7 @@ describe('Diary and Mate linked cheer entry behavior', () => {
     cy.get('[data-testid="entry-router-location"]').should('have.text', '/task-9');
     cy.contains('[data-sonner-toast]', '응원석 공유 정보를 확인하지 못했습니다.').should('not.exist');
     cy.then(() => mounted()?.mountSubject());
-    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="share-party-to-cheer-btn"]').click();
+    cy.get('[data-testid="mate-desktop-action-rail"] [data-testid="mate-share-to-cheer"]').click();
     cy.wrap(null).should(() => expect(held).to.have.length(2));
     cy.then(() => mounted()?.unmountSubject());
     cy.get('[data-testid="entry-subject"]').should('not.exist');

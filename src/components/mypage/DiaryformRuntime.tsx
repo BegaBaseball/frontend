@@ -581,7 +581,7 @@ export function DiaryReadMode({
 
       <div className="diary-read-actions flex flex-wrap gap-3 justify-center">
         <Button
-          data-testid="share-diary-to-cheer-btn"
+          data-testid="diary-share-to-cheer"
           onClick={onShareToCheer}
           className="border-primary text-primary"
           variant="outline"

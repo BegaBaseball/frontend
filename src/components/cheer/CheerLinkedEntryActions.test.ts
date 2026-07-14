@@ -312,7 +312,7 @@ test('Diary read mode keeps edit/delete and renders a reasoned disabled cheer co
 
   assert.match(html, /수정하기/);
   assert.match(html, />삭제</);
-  assert.match(html, /data-testid="share-diary-to-cheer-btn"/);
+  assert.match(html, /data-testid="diary-share-to-cheer"/);
   assert.match(html, /응원석에 공유/);
   assert.match(html, /직관 완료와 티켓 인증 후 응원석에 공유할 수 있습니다/);
   assert.match(html, /disabled=""/);
@@ -340,8 +340,8 @@ test('eligible Diary read mode enables the cheer control and exposes loading sem
     isShareToCheerPending: true,
   }));
 
-  assert.doesNotMatch(enabledHtml, /data-testid="share-diary-to-cheer-btn"[^>]*disabled/);
-  assert.match(loadingHtml, /data-testid="share-diary-to-cheer-btn"[^>]*disabled/);
+  assert.doesNotMatch(enabledHtml, /data-testid="diary-share-to-cheer"[^>]*disabled/);
+  assert.match(loadingHtml, /data-testid="diary-share-to-cheer"[^>]*disabled/);
   assert.match(loadingHtml, /aria-busy="true"/);
   assert.match(loadingHtml, /공유 확인 중/);
 });
@@ -376,10 +376,10 @@ test('Mate action section shows separate friend and host-pending cheer controls 
   }));
 
   assert.match(hostPendingHtml, /친구에게 공유/);
-  assert.match(hostPendingHtml, /data-testid="share-party-to-cheer-btn"/);
+  assert.match(hostPendingHtml, /data-testid="mate-share-to-cheer"/);
   assert.match(hostPendingHtml, /응원석에 공유/);
   assert.match(nonHostHtml, /친구에게 공유/);
-  assert.doesNotMatch(nonHostHtml, /share-party-to-cheer-btn/);
+  assert.doesNotMatch(nonHostHtml, /mate-share-to-cheer/);
   assert.match(matchedHostHtml, /친구에게 공유/);
-  assert.doesNotMatch(matchedHostHtml, /share-party-to-cheer-btn/);
+  assert.doesNotMatch(matchedHostHtml, /mate-share-to-cheer/);
 });

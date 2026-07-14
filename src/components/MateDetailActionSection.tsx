@@ -135,7 +135,7 @@ export default function MateDetailActionSection({
         {shareActions.cheer && (
           <button
             type="button"
-            data-testid="share-party-to-cheer-btn"
+            data-testid="mate-share-to-cheer"
             className="inline-flex items-center justify-center gap-1.5 rounded-11 border border-primary bg-white p-3 text-13 font-bold text-primary disabled:cursor-not-allowed disabled:opacity-60 dark:bg-card dark:text-emerald-300"
             onClick={shareActions.cheer.onClick}
             disabled={isShareToCheerPending}
@@ -193,7 +193,7 @@ export default function MateDetailActionSection({
             {renderActionButtons()}
             {shareActions.cheer && (
               <Button
-                data-testid="share-party-to-cheer-btn"
+                data-testid="mate-share-to-cheer"
                 className="mt-2 h-auto w-full rounded-13 border-primary px-4 py-3 text-body font-black text-primary"
                 variant="outline"
                 onClick={shareActions.cheer.onClick}
