@@ -3,7 +3,13 @@ import type { ChangeEvent, DragEvent } from 'react';
 import { useMutation, useQueryClient, InfiniteData } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import type { PageResponse, CheerPost, LinkedContent } from '../api/cheerApi';
+import type {
+    PageResponse,
+    CheerPost,
+    LinkedContent,
+    LinkedPostLookup,
+    LinkedPostLookupParams,
+} from '../api/cheerApi';
 import { getCheerPostsFeedQueryKey } from '../hooks/cheerQueryKeys';
 import { parseError } from '../utils/errorUtils';
 import type { SubmitCheerPostPayload } from '../utils/cheerSubmit';
@@ -26,6 +32,12 @@ type OrdinaryCheerPostType = Extract<CheerPost['postType'], 'NORMAL' | 'NOTICE'>
 type CheerPostsFeedQueryKey = ReturnType<typeof getCheerPostsFeedQueryKey>;
 type WithoutTeamId<T> = T extends unknown ? Omit<T, 'teamId'> : never;
 type ComposerMutationPayload = WithoutTeamId<SubmitCheerPostPayload>;
+type LinkedComposerRouteModule = typeof import('./cheer/CheerLinkedComposerRoute');
+
+interface LinkedRouteDependencies {
+    importRouteModule: () => Promise<LinkedComposerRouteModule>;
+    lookupLinkedPost: (params: LinkedPostLookupParams) => Promise<LinkedPostLookup>;
+}
 
 interface CheerComposerRuntimeProps {
     openComposerOnMount: boolean;
@@ -49,7 +61,21 @@ interface CheerComposerRuntimeProps {
     teamLogoId?: string;
     userDisplayName: string;
     onRequireLogin: (replace?: boolean) => void;
+    linkedRouteDependencies?: LinkedRouteDependencies;
 }
+
+const importLinkedComposerRoute = () => import('./cheer/CheerLinkedComposerRoute');
+
+const lookupLinkedPost = async (params: LinkedPostLookupParams) => {
+    const { fetchLinkedPostTarget } = await import('../api/cheerApi');
+    return fetchLinkedPostTarget(params);
+};
+
+const getLinkedRouteKey = (target: LinkedPostTarget | null) => {
+    if (target?.postType === 'CHECKIN') return `CHECKIN:${target.diaryId}`;
+    if (target?.postType === 'RECRUITMENT') return `RECRUITMENT:${target.partyId}`;
+    return 'INVALID';
+};
 
 const resolveProfileImage = (imageUrl?: string | null) => {
     if (!imageUrl) return null;
@@ -79,6 +105,7 @@ export default function CheerComposerRuntime({
     teamLogoId,
     userDisplayName,
     onRequireLogin,
+    linkedRouteDependencies,
 }: CheerComposerRuntimeProps) {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
@@ -94,9 +121,15 @@ export default function CheerComposerRuntime({
     const [composerDragging, setComposerDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
     const previewsRef = useRef<{ file: File; url: string }[]>([]);
-    const didOpenComposerFromRoute = useRef(false);
     const didNotifyLoginRequiredFromWriteRoute = useRef(false);
     const linkedRouteLoaderRef = useRef<Promise<LinkedComposerRouteLoader> | null>(null);
+    const linkedRouteLoaderInstanceRef = useRef<LinkedComposerRouteLoader | null>(null);
+    const linkedRouteGenerationRef = useRef(0);
+    const activeLinkedRouteKeyRef = useRef<string | null>(null);
+    const failedLinkedRouteImportKeyRef = useRef<string | null>(null);
+    const mountedRef = useRef(false);
+    const importRouteModule = linkedRouteDependencies?.importRouteModule ?? importLinkedComposerRoute;
+    const lookupLinkedPostTarget = linkedRouteDependencies?.lookupLinkedPost ?? lookupLinkedPost;
 
     const handleCreateSubmitFailure = useCallback((error: unknown) => {
         const parsedError = parseError(error);
@@ -125,74 +158,154 @@ export default function CheerComposerRuntime({
     }, [isWriteModalOpen]);
 
     useEffect(() => {
-        if (!openComposerOnMount) return;
-        if (didOpenComposerFromRoute.current && !linkedRouteRequested) return;
-        if (isAuthLoading) return;
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+            linkedRouteGenerationRef.current += 1;
+            activeLinkedRouteKeyRef.current = null;
+            linkedRouteLoaderInstanceRef.current?.invalidate();
+        };
+    }, []);
 
-        if (!isLoggedIn) {
-            if (!didNotifyLoginRequiredFromWriteRoute.current) {
-                didNotifyLoginRequiredFromWriteRoute.current = true;
-                toast.error('로그인이 필요한 서비스입니다.');
-                onRequireLogin(true);
-            }
+    useEffect(() => {
+        const routeGeneration = ++linkedRouteGenerationRef.current;
+        const isCurrentRoute = () => (
+            mountedRef.current && linkedRouteGenerationRef.current === routeGeneration
+        );
+        const invalidateLinkedRoute = () => {
+            activeLinkedRouteKeyRef.current = null;
+            failedLinkedRouteImportKeyRef.current = null;
+            linkedRouteLoaderInstanceRef.current?.invalidate();
+        };
+        const clearLinkedRouteState = (openOrdinaryComposer: boolean) => {
+            if (!isCurrentRoute()) return;
+            setIsLinkedRouteLoading(false);
+            setLinkedContent(undefined);
+            setIsWriteModalOpen(openOrdinaryComposer);
+        };
+
+        if (!openComposerOnMount) {
+            invalidateLinkedRoute();
+            clearLinkedRouteState(false);
+            return;
+        }
+        if (isAuthLoading) {
+            invalidateLinkedRoute();
+            clearLinkedRouteState(false);
             return;
         }
 
+        if (!isLoggedIn) {
+            invalidateLinkedRoute();
+            clearLinkedRouteState(false);
+            if (!didNotifyLoginRequiredFromWriteRoute.current) {
+                didNotifyLoginRequiredFromWriteRoute.current = true;
+                if (isCurrentRoute()) {
+                    toast.error('로그인이 필요한 서비스입니다.');
+                    onRequireLogin(true);
+                }
+            }
+            return;
+        }
+        didNotifyLoginRequiredFromWriteRoute.current = false;
+
         if (linkedRouteRequested) {
+            const routeKey = getLinkedRouteKey(linkedTarget);
+            if (activeLinkedRouteKeyRef.current !== routeKey) {
+                linkedRouteLoaderInstanceRef.current?.invalidate();
+                activeLinkedRouteKeyRef.current = routeKey;
+                failedLinkedRouteImportKeyRef.current = null;
+            }
+            if (failedLinkedRouteImportKeyRef.current === routeKey) {
+                if (isCurrentRoute()) setIsLinkedRouteLoading(false);
+                return;
+            }
+            if (isCurrentRoute()) {
+                setIsLinkedRouteLoading(true);
+                setLinkedContent(undefined);
+                setIsWriteModalOpen(false);
+            }
+
             const loadLinkedRoute = async () => {
-                const linkedRouteLoaderPromise = linkedRouteLoaderRef.current
-                    ?? import('./cheer/CheerLinkedComposerRoute').then(({ createLinkedComposerRouteLoader }) => (
-                        createLinkedComposerRouteLoader()
-                    ));
-                linkedRouteLoaderRef.current = linkedRouteLoaderPromise;
-                const linkedRouteLoader = await linkedRouteLoaderPromise;
-                await linkedRouteLoader.load({
-                    requested: true,
-                    target: linkedTarget,
-                    lookup: async (params) => {
-                        const { fetchLinkedPostTarget } = await import('../api/cheerApi');
-                        return fetchLinkedPostTarget(params);
-                    },
-                    onLoadingChange: (isLoading) => {
-                        setIsLinkedRouteLoading(isLoading);
-                        if (isLoading) {
-                            setLinkedContent(undefined);
-                            setIsWriteModalOpen(false);
-                        }
-                    },
-                    onExistingPost: (postId) => {
-                        didOpenComposerFromRoute.current = true;
-                        navigate(`/cheer/${postId}`, { replace: true });
-                    },
-                    onNewPreview: (preview) => {
-                        didOpenComposerFromRoute.current = true;
-                        setLinkedContent(preview);
-                        setIsWriteModalOpen(true);
-                    },
-                    onInvalidTarget: () => {
-                        toast.error('연결 대상이 올바르지 않습니다.');
-                        navigate('/cheer', { replace: true });
-                    },
-                    onError: (error) => {
-                        const redirectedToLogin = handleCreateSubmitFailure(error);
-                        if (!redirectedToLogin) {
+                try {
+                    let linkedRouteLoaderPromise = linkedRouteLoaderRef.current;
+                    if (!linkedRouteLoaderPromise) {
+                        const importedLoader = importRouteModule().then(({ createLinkedComposerRouteLoader }) => {
+                            const loader = createLinkedComposerRouteLoader();
+                            linkedRouteLoaderInstanceRef.current = loader;
+                            return loader;
+                        });
+                        let retryableLoaderPromise: Promise<LinkedComposerRouteLoader>;
+                        retryableLoaderPromise = importedLoader.catch((error) => {
+                            if (linkedRouteLoaderRef.current === retryableLoaderPromise) {
+                                linkedRouteLoaderRef.current = null;
+                            }
+                            throw error;
+                        });
+                        linkedRouteLoaderRef.current = retryableLoaderPromise;
+                        linkedRouteLoaderPromise = retryableLoaderPromise;
+                    }
+                    const linkedRouteLoader = await linkedRouteLoaderPromise;
+                    if (!isCurrentRoute()) return;
+                    await linkedRouteLoader.load({
+                        requested: true,
+                        target: linkedTarget,
+                        lookup: lookupLinkedPostTarget,
+                        onLoadingChange: (isLoading) => {
+                            if (!isCurrentRoute()) return;
+                            setIsLinkedRouteLoading(isLoading);
+                            if (isLoading) {
+                                setLinkedContent(undefined);
+                                setIsWriteModalOpen(false);
+                            }
+                        },
+                        onExistingPost: (postId) => {
+                            if (!isCurrentRoute()) return;
+                            navigate(`/cheer/${postId}`, { replace: true });
+                        },
+                        onNewPreview: (preview) => {
+                            if (!isCurrentRoute()) return;
+                            setLinkedContent(preview);
+                            setIsWriteModalOpen(true);
+                        },
+                        onInvalidTarget: () => {
+                            if (!isCurrentRoute()) return;
+                            setIsLinkedRouteLoading(false);
+                            toast.error('연결 대상이 올바르지 않습니다.');
                             navigate('/cheer', { replace: true });
-                        }
-                    },
-                });
+                        },
+                        onError: (error) => {
+                            if (!isCurrentRoute()) return;
+                            const redirectedToLogin = handleCreateSubmitFailure(error);
+                            if (!redirectedToLogin && isCurrentRoute()) {
+                                navigate('/cheer', { replace: true });
+                            }
+                        },
+                    });
+                } catch (error) {
+                    if (!isCurrentRoute()) return;
+                    failedLinkedRouteImportKeyRef.current = routeKey;
+                    setIsLinkedRouteLoading(false);
+                    const redirectedToLogin = handleCreateSubmitFailure(error);
+                    if (!redirectedToLogin && isCurrentRoute()) {
+                        navigate('/cheer', { replace: true });
+                    }
+                }
             };
             void loadLinkedRoute();
             return;
         }
 
-        didOpenComposerFromRoute.current = true;
-        setIsWriteModalOpen(true);
+        invalidateLinkedRoute();
+        clearLinkedRouteState(true);
     }, [
         handleCreateSubmitFailure,
+        importRouteModule,
         isAuthLoading,
         isLoggedIn,
         linkedRouteRequested,
         linkedTarget,
+        lookupLinkedPostTarget,
         navigate,
         onRequireLogin,
         openComposerOnMount,

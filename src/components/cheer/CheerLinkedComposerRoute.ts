@@ -36,7 +36,7 @@ const toLinkedLookupParams = (target: unknown): LinkedPostLookupParams | null =>
   return null;
 };
 
-interface LinkedComposerRouteLoadOptions {
+export interface LinkedComposerRouteLoadOptions {
   requested: boolean;
   target: LinkedPostTarget | null;
   lookup: (params: LinkedPostLookupParams) => Promise<LinkedPostLookup>;
@@ -49,58 +49,83 @@ interface LinkedComposerRouteLoadOptions {
 
 export interface LinkedComposerRouteLoader {
   load(options: LinkedComposerRouteLoadOptions): Promise<void>;
+  invalidate(): void;
 }
 
 export const createLinkedComposerRouteLoader = (): LinkedComposerRouteLoader => {
   let handledKey: string | null = null;
   let activeRequest = 0;
+  let activeLoad: {
+    requestKey: string;
+    requestId: number;
+    options: LinkedComposerRouteLoadOptions;
+    promise: Promise<void>;
+  } | null = null;
+
+  const invalidate = () => {
+    handledKey = null;
+    activeRequest += 1;
+    activeLoad = null;
+  };
 
   return {
-    async load({
-      requested,
-      target,
-      lookup,
-      onLoadingChange,
-      onExistingPost,
-      onNewPreview,
-      onInvalidTarget,
-      onError,
-    }): Promise<void> {
-      if (!requested) return;
+    invalidate,
+    load(options): Promise<void> {
+      const { requested, target } = options;
+      if (!requested) {
+        invalidate();
+        return Promise.resolve();
+      }
 
       const params = toLinkedLookupParams(target);
       const requestKey = params
         ? ('diaryId' in params ? `CHECKIN:${params.diaryId}` : `RECRUITMENT:${params.partyId}`)
         : 'INVALID';
-      if (handledKey === requestKey) return;
+      if (handledKey === requestKey) {
+        if (activeLoad?.requestKey === requestKey) activeLoad.options = options;
+        return activeLoad?.promise ?? Promise.resolve();
+      }
       handledKey = requestKey;
       const requestId = ++activeRequest;
 
       if (!params || !target) {
-        onInvalidTarget();
-        return;
+        options.onInvalidTarget();
+        return Promise.resolve();
       }
 
-      onLoadingChange(true);
-      try {
-        const result = await lookup(params);
-        if (requestId !== activeRequest) return;
-        if (result.postId !== null && result.postId !== undefined) {
-          if (!isPositiveLinkedId(result.postId)) {
-            throw new Error('INVALID_LINKED_POST_ID');
+      const load = {
+        requestKey,
+        requestId,
+        options,
+        promise: Promise.resolve(),
+      };
+      activeLoad = load;
+      options.onLoadingChange(true);
+      load.promise = (async () => {
+        try {
+          const result = await options.lookup(params);
+          if (requestId !== activeRequest || activeLoad !== load) return;
+          if (result.postId !== null && result.postId !== undefined) {
+            if (!isPositiveLinkedId(result.postId)) {
+              throw new Error('INVALID_LINKED_POST_ID');
+            }
+            load.options.onExistingPost(result.postId);
+            return;
           }
-          onExistingPost(result.postId);
-          return;
+          if (!result.preview || result.preview.kind !== target.postType) {
+            throw new Error('INVALID_LINKED_POST_PREVIEW');
+          }
+          load.options.onNewPreview(result.preview);
+        } catch (error) {
+          if (requestId === activeRequest && activeLoad === load) load.options.onError(error);
+        } finally {
+          if (requestId === activeRequest && activeLoad === load) {
+            load.options.onLoadingChange(false);
+            activeLoad = null;
+          }
         }
-        if (!result.preview || result.preview.kind !== target.postType) {
-          throw new Error('INVALID_LINKED_POST_PREVIEW');
-        }
-        onNewPreview(result.preview);
-      } catch (error) {
-        if (requestId === activeRequest) onError(error);
-      } finally {
-        if (requestId === activeRequest) onLoadingChange(false);
-      }
+      })();
+      return load.promise;
     },
   };
 };
