@@ -72,6 +72,7 @@ const E2E_SPECS = {
   ],
   diary: [
     'cypress/e2e/diary.cy.ts',
+    'cypress/e2e/cheer-linked-entry-actions.cy.ts',
   ],
   admin: [
     'cypress/e2e/admin.cy.ts',
@@ -106,6 +107,7 @@ const E2E_SPECS = {
   mateSmoke: [
     'cypress/e2e/mate-detail-states.cy.ts',
     'cypress/e2e/mate-execution-flow.cy.ts',
+    'cypress/e2e/cheer-linked-entry-actions.cy.ts',
   ],
   mateRoute: [
     'cypress/e2e/mate.cy.ts',

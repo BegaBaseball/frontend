@@ -335,6 +335,20 @@ test('Mate route regression defaults to local Cypress with Docker opt-in', () =>
   });
 });
 
+test('Diary and Mate focused presets include linked entry behavior coverage', () => {
+  const linkedEntrySpec = 'cypress/e2e/cheer-linked-entry-actions.cy.ts';
+  const diaryPreset = printPreset('e2e', 'diary-dev');
+  const matePreset = printPreset('mate-e2e', 'smoke');
+  const selectedSpecs = (preset) => {
+    const specIndex = preset.args.indexOf('--spec');
+    assert.notEqual(specIndex, -1, 'focused preset must pass an explicit --spec selection');
+    return preset.args[specIndex + 1].split(',');
+  };
+
+  assert.ok(selectedSpecs(diaryPreset).includes(linkedEntrySpec));
+  assert.ok(selectedSpecs(matePreset).includes(linkedEntrySpec));
+});
+
 test('package Cypress scripts point to the matching qa presets', () => {
   assert.equal(packageJson.scripts['cy:run'], 'node scripts/qa-presets.mjs cypress run');
   assert.equal(packageJson.scripts['cy:run:docker'], 'node scripts/qa-presets.mjs cypress run-docker');
