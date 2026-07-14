@@ -211,19 +211,20 @@ export default function CheerComposerRuntime({
 
         if (linkedRouteRequested) {
             const routeKey = getLinkedRouteKey(linkedTarget);
-            if (activeLinkedRouteKeyRef.current !== routeKey) {
+            const routeChanged = activeLinkedRouteKeyRef.current !== routeKey;
+            if (routeChanged) {
                 linkedRouteLoaderInstanceRef.current?.invalidate();
                 activeLinkedRouteKeyRef.current = routeKey;
                 failedLinkedRouteImportKeyRef.current = null;
+                if (isCurrentRoute()) {
+                    setIsLinkedRouteLoading(true);
+                    setLinkedContent(undefined);
+                    setIsWriteModalOpen(false);
+                }
             }
             if (failedLinkedRouteImportKeyRef.current === routeKey) {
                 if (isCurrentRoute()) setIsLinkedRouteLoading(false);
                 return;
-            }
-            if (isCurrentRoute()) {
-                setIsLinkedRouteLoading(true);
-                setLinkedContent(undefined);
-                setIsWriteModalOpen(false);
             }
 
             const loadLinkedRoute = async () => {

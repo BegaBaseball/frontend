@@ -126,6 +126,24 @@ describe('linked cheer composer mounted lifecycle', () => {
     cy.get('[data-testid="composer-router-location"]').should('have.text', '/cheer/82');
   });
 
+  it('preserves a completed same-target preview across an irrelevant parent rerender', () => {
+    mount();
+    cy.wrap(null).should(() => {
+      expect(harness?.getLookupCalls()).to.deep.equal([{ diaryId: 12 }]);
+    });
+    cy.then(() => harness?.resolveLookup(0, { preview: checkinPreview }));
+    cy.contains('직관 인증').should('be.visible');
+    cy.contains('연결 대상을 확인하는 중...').should('not.exist');
+    cy.then(() => harness?.rerenderIrrelevant());
+    cy.get('main[data-render-variant]').should('have.attr', 'data-render-variant', '1');
+    cy.wait(0);
+    cy.wrap(null).should(() => {
+      expect(harness?.getLookupCalls()).to.deep.equal([{ diaryId: 12 }]);
+    });
+    cy.contains('직관 인증').should('be.visible');
+    cy.contains('연결 대상을 확인하는 중...').should('not.exist');
+  });
+
   it('invalidates a linked request when the route becomes an ordinary write', () => {
     mount();
     cy.then(() => {

@@ -57,6 +57,7 @@ export interface CheerComposerLifecycleHarness {
   resolveHeldImport: () => void;
   resolveLookup: (index: number, value: LinkedPostLookup) => void;
   rejectLookup: (index: number, error: unknown) => void;
+  rerenderIrrelevant: () => void;
   setAuth: (auth: HarnessAuth) => void;
   setRoute: (route: HarnessRoute) => void;
   seedFeed: (posts: CheerPost[]) => void;
@@ -86,6 +87,7 @@ export function mountCheerComposerLifecycleHarness(
   let auth: HarnessAuth = { isAuthLoading: true, isLoggedIn: false };
   let importCalls = 0;
   let loginCalls = 0;
+  let renderVariant = 0;
   let composerMounted = true;
   let nextImport: 'resolve' | 'reject' | 'hold' = 'resolve';
   let heldImport: Deferred<RouteModule> | null = null;
@@ -129,7 +131,7 @@ export function mountCheerComposerLifecycleHarness(
       teamContrastText: '#FFFFFF',
       teamLabel: 'LG',
       teamLogoId: 'LG',
-      userDisplayName: 'Writer',
+      userDisplayName: `Writer ${renderVariant}`,
       onRequireLogin: () => { loginCalls += 1; },
       linkedRouteDependencies: {
         importRouteModule,
@@ -149,7 +151,10 @@ export function mountCheerComposerLifecycleHarness(
           { client: queryClient },
           createElement(
             'main',
-            { 'data-linked-route-requested': String(route.linkedRouteRequested) },
+            {
+              'data-linked-route-requested': String(route.linkedRouteRequested),
+              'data-render-variant': String(renderVariant),
+            },
             composerMounted ? createElement(Runtime, runtimeProps) : null,
             createElement(LocationProbe, { onLocationChange: syncRouteAfterNavigation }),
           ),
@@ -178,6 +183,10 @@ export function mountCheerComposerLifecycleHarness(
     },
     resolveLookup: (index, value) => pendingLookups[index]?.result.resolve(value),
     rejectLookup: (index, error) => pendingLookups[index]?.result.reject(error),
+    rerenderIrrelevant: () => {
+      renderVariant += 1;
+      render();
+    },
     setAuth: (nextAuth) => {
       auth = nextAuth;
       render();
