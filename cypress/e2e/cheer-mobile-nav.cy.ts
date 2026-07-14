@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const authToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkNoZWVyVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.fake-signature';
 

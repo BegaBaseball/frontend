@@ -135,6 +135,7 @@ const consistencyLockFiles = [
 const inlineSvgAllowedFiles = new Set([
   'Login.tsx',
   'CoachBriefingContentCardRuntime.tsx',
+  'StadiumGuideRuntimeSeatMaps.gwangju.ts',
   'design-slop-guard.test.ts',
   'AdminIcons.tsx',
   'admin/ClientErrorTrendChart.tsx',
