@@ -119,6 +119,21 @@ test('renders source-missing and failed-source states without any link', () => {
   assert.doesNotMatch(failedSourceHtml, /href=/);
 });
 
+test('surfaces manual baseball data requirements as an operator-only no-link state', () => {
+  const html = renderCard({
+    kind: 'CHECKIN',
+    available: false,
+    checkin: null,
+    recruitment: null,
+    unavailableReason: 'MANUAL_BASEBALL_DATA_REQUIRED',
+  });
+
+  assert.match(html, /MANUAL_BASEBALL_DATA_REQUIRED/);
+  assert.match(html, /운영자 제공 내부 야구 데이터가 필요합니다/);
+  assert.doesNotMatch(html, /연결된 원본 정보가 삭제되었거나 현재 제공되지 않습니다/);
+  assert.doesNotMatch(html, /href=/);
+});
+
 test('clamps recruitment description only in compact mode', () => {
   const linkedContent: LinkedContent = {
     kind: 'RECRUITMENT',

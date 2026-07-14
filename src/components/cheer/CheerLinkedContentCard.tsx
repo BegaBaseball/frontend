@@ -1,4 +1,8 @@
 import type { LinkedContent } from '../../api/cheerApi';
+import {
+  MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+  MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+} from '../../utils/manualBaseballDataContract';
 
 interface CheerLinkedContentCardProps {
   linkedContent: LinkedContent;
@@ -19,6 +23,29 @@ export default function CheerLinkedContentCard({
   variant,
 }: CheerLinkedContentCardProps) {
   const paddingClass = variant === 'detail' ? 'p-4 sm:p-5' : 'p-3';
+
+  if (
+    !linkedContent.available
+    && linkedContent.unavailableReason === MANUAL_BASEBALL_DATA_REQUIRED_CODE
+  ) {
+    return (
+      <section
+        className={`mt-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-700/70 dark:bg-amber-950/30 ${paddingClass}`}
+        aria-label={`${linkedContent.kind === 'CHECKIN' ? '직관 인증' : '동행 모집'} 운영자 데이터 필요`}
+        data-error-code={MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+      >
+        <p className="text-body font-bold text-amber-900 dark:text-amber-200">
+          운영자 제공 내부 야구 데이터가 필요합니다.
+        </p>
+        <p className="mt-1 text-body font-semibold text-amber-800 dark:text-amber-300">
+          {MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE}
+        </p>
+        <p className="mt-2 inline-flex rounded-md border border-amber-300 bg-white/70 px-2 py-1 font-mono text-xs font-black text-amber-900 dark:border-amber-700/70 dark:bg-amber-950/50 dark:text-amber-200">
+          {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+        </p>
+      </section>
+    );
+  }
 
   if (!linkedContent.available) {
     return (
