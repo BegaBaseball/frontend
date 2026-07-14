@@ -1,5 +1,7 @@
 import { type UseMutationResult } from '@tanstack/react-query';
-import { type CSSProperties, lazy, Suspense } from 'react';
+import { type CSSProperties, lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 
 import './Diary.css';
 
@@ -13,6 +15,10 @@ import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
 import {
+  canShareDiaryToCheer,
+  createCheerLinkedEntryAction,
+} from '../cheer/CheerLinkedEntryActions';
+import {
   DiaryformArrowLeftIcon as MyPageArrowLeftIcon,
   DiaryformChevronLeftIcon as MyPageChevronLeftIcon,
   DiaryformChevronRightIcon as MyPageChevronRightIcon,
@@ -24,6 +30,8 @@ interface DiaryReadModeProps {
   setIsEditMode: (value: boolean) => void;
   handleDeleteDiary: () => void;
   deleteMutation: UseMutationResult<void, Error, number>;
+  onShareToCheer: () => void;
+  isShareToCheerPending: boolean;
 }
 
 const DiaryEditModeRuntime = lazy(() => import('./DiaryEditModeRuntime'));
@@ -72,6 +80,9 @@ const diaryEditModeFallback = (
 );
 
 export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryViewSectionProps) {
+  const navigate = useNavigate();
+  const cheerEntryActionRef = useRef(createCheerLinkedEntryAction());
+  const [isShareToCheerPending, setIsShareToCheerPending] = useState(false);
   const {
     selectedDate,
     currentMonth,
@@ -100,6 +111,27 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const weekCalendar = useWeekCalendar(selectedDate);
   const monthCalendar = useMonthCalendar(currentMonth);
+  useEffect(() => {
+    cheerEntryActionRef.current.invalidate();
+    setIsShareToCheerPending(false);
+    return () => cheerEntryActionRef.current.invalidate();
+  }, [selectedDiary?.id]);
+
+  const handleShareToCheer = () => {
+    void cheerEntryActionRef.current.run({
+      target: { kind: 'diary', id: selectedDiary?.id },
+      lookup: async (params) => {
+        const { fetchLinkedPostTarget } = await import('../../api/cheerApi');
+        return fetchLinkedPostTarget(params);
+      },
+      navigate,
+      onLoadingChange: setIsShareToCheerPending,
+      onError: (error) => {
+        console.error('다이어리 응원석 공유 조회 중 오류:', error);
+        toast.error('응원석 공유 정보를 확인하지 못했습니다. 다시 시도해주세요.');
+      },
+    });
+  };
 
   return (
     <>
@@ -262,6 +294,8 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
                 setIsEditMode={setIsEditMode}
                 handleDeleteDiary={handleDeleteDiary}
                 deleteMutation={deleteMutation}
+                onShareToCheer={handleShareToCheer}
+                isShareToCheerPending={isShareToCheerPending}
               />
             ) : (
               <Suspense fallback={diaryEditModeFallback}>
@@ -398,6 +432,8 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
                 setIsEditMode={setIsEditMode}
                 handleDeleteDiary={handleDeleteDiary}
                 deleteMutation={deleteMutation}
+                onShareToCheer={handleShareToCheer}
+                isShareToCheerPending={isShareToCheerPending}
               />
             ) : (
               <Suspense fallback={diaryEditModeFallback}>
@@ -430,7 +466,25 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
 }
 
 // ========== 읽기 모드 컴포넌트 ==========
-function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDiary, deleteMutation }: DiaryReadModeProps) {
+export function DiaryReadMode({
+  diaryForm,
+  selectedDiary,
+  setIsEditMode,
+  handleDeleteDiary,
+  deleteMutation,
+  onShareToCheer,
+  isShareToCheerPending,
+}: DiaryReadModeProps) {
+  const canShareToCheer = Boolean(selectedDiary && canShareDiaryToCheer(selectedDiary));
+  const shareDisabled = !canShareToCheer || isShareToCheerPending || deleteMutation.isPending;
+  const shareDisabledReason = !canShareToCheer
+    ? '직관 완료와 티켓 인증 후 응원석에 공유할 수 있습니다.'
+    : isShareToCheerPending
+      ? '응원석 공유 대상을 확인하고 있습니다.'
+      : deleteMutation.isPending
+        ? '삭제 처리가 끝난 후 다시 시도해주세요.'
+        : undefined;
+
   return (
     <div className="diary-read-mode p-6 space-y-6" data-testid="diary-read-mode">
       <div className="flex items-center justify-between">
@@ -525,7 +579,19 @@ function DiaryReadMode({ diaryForm, selectedDiary, setIsEditMode, handleDeleteDi
         )}
       </div>
 
-      <div className="diary-read-actions flex gap-3 justify-center">
+      <div className="diary-read-actions flex flex-wrap gap-3 justify-center">
+        <Button
+          data-testid="share-diary-to-cheer-btn"
+          onClick={onShareToCheer}
+          className="border-primary text-primary"
+          variant="outline"
+          disabled={shareDisabled}
+          title={shareDisabledReason}
+          aria-label={shareDisabledReason ?? '응원석에 공유'}
+          aria-busy={isShareToCheerPending}
+        >
+          {isShareToCheerPending ? '공유 확인 중...' : '응원석에 공유'}
+        </Button>
         <Button
           data-testid="edit-diary-btn"
           onClick={() => setIsEditMode(true)}
