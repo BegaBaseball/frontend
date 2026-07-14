@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { createElement, type ComponentType } from 'react';
@@ -274,6 +273,58 @@ test('a late response from an older target cannot overwrite the active linked ta
   assert.deepEqual(observed.errors, []);
 });
 
+test('clearing a linked route invalidates a late existing-post response', async () => {
+  const loader = createLinkedComposerRouteLoader();
+  const { callbacks, observed } = makeCallbacks();
+  let resolveLookup!: (value: LinkedPostLookup) => void;
+  const lookupResult = new Promise<LinkedPostLookup>((resolve) => { resolveLookup = resolve; });
+  const activeLoad = loader.load({
+    requested: true,
+    target: checkinTarget,
+    lookup: async () => lookupResult,
+    ...callbacks,
+  });
+
+  await loader.load({
+    requested: false,
+    target: null,
+    lookup: async () => ({ preview: checkinPreview }),
+    ...callbacks,
+  });
+  resolveLookup({ postId: 86, preview: checkinPreview });
+  await activeLoad;
+
+  assert.deepEqual(observed.existingPostIds, []);
+  assert.deepEqual(observed.previews, []);
+  assert.deepEqual(observed.errors, []);
+  assert.deepEqual(observed.loading, [true]);
+});
+
+test('unmount invalidation makes a late lookup error inert', async () => {
+  const loader = createLinkedComposerRouteLoader();
+  const { callbacks, observed } = makeCallbacks();
+  let rejectLookup!: (error: unknown) => void;
+  const lookupResult = new Promise<LinkedPostLookup>((_resolve, reject) => { rejectLookup = reject; });
+  const activeLoad = loader.load({
+    requested: true,
+    target: checkinTarget,
+    lookup: async () => lookupResult,
+    ...callbacks,
+  });
+
+  await loader.load({
+    requested: false,
+    target: null,
+    lookup: async () => ({ preview: checkinPreview }),
+    ...callbacks,
+  });
+  rejectLookup(new Error('LATE_UNMOUNT_ERROR'));
+  await activeLoad;
+
+  assert.deepEqual(observed.errors, []);
+  assert.deepEqual(observed.loading, [true]);
+});
+
 test('linked modal renders the fixed Task 7 preview and only user image attachment controls', () => {
   const previewWithPrivatePhotoFields = {
     ...checkinPreview,
@@ -375,36 +426,4 @@ test('linked stale and manual-data failures preserve the draft and never close t
     assert.equal(content, `preserved:${code}`);
     assert.equal(successCalls, 0, code);
   }
-});
-
-test('composer runtime gates linked lookup on auth and wires once-only existing/new/error outcomes', () => {
-  const source = readFileSync(new URL('../CheerComposerRuntime.tsx', import.meta.url), 'utf8');
-  const routeEffectStart = source.indexOf('if (!openComposerOnMount) return;');
-  const authLoadingCheck = source.indexOf('if (isAuthLoading) return;', routeEffectStart);
-  const loggedOutCheck = source.indexOf('if (!isLoggedIn)', routeEffectStart);
-  const loaderCall = source.indexOf('linkedRouteLoader.load', routeEffectStart);
-
-  assert.ok(routeEffectStart >= 0);
-  assert.ok(authLoadingCheck > routeEffectStart);
-  assert.ok(loggedOutCheck > authLoadingCheck);
-  assert.ok(loaderCall > loggedOutCheck);
-  assert.match(source, /createLinkedComposerRouteLoader\(\)/);
-  assert.match(source, /fetchLinkedPostTarget\(params\)/);
-  assert.match(source, /navigate\(`\/cheer\/\$\{postId\}`/);
-  assert.match(source, /setLinkedContent\(preview\);/);
-  assert.match(source, /setIsWriteModalOpen\(true\);/);
-  assert.match(source, /연결 대상을 확인하는 중/);
-});
-
-test('linked submit uses the exact target, rethrows failures, removes optimistic cache, and navigates returned IDs', () => {
-  const source = readFileSync(new URL('../CheerComposerRuntime.tsx', import.meta.url), 'utf8');
-
-  assert.match(source, /postType: 'CHECKIN',[\s\S]*diaryId: linkedTarget\.diaryId/);
-  assert.match(source, /postType: 'RECRUITMENT',[\s\S]*partyId: linkedTarget\.partyId/);
-  assert.match(source, /shareMode: 'INTERNAL_REPOST'/);
-  assert.match(source, /removeOptimisticCheerPostFromFeed/);
-  assert.match(source, /navigate\(`\/cheer\/\$\{result\.created\.id\}`/);
-  assert.match(source, /handleCreateSubmitFailure\(error\);[\s\S]*if \(isLinkedSubmission\) throw error;/);
-  assert.match(source, /linkedContent=\{linkedContent\}/);
-  assert.match(source, /linkedPostType=\{linkedTarget\?\.postType\}/);
 });

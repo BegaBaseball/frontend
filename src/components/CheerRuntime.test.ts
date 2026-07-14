@@ -83,10 +83,11 @@ test('CheerRuntime parses the linked write target once and passes request validi
   assert.match(source, /linkedTarget=\{linkedTarget\}/);
 });
 
-test('CheerComposerRuntime can reload a changed linked target after the first preview opens', () => {
+test('CheerComposerRuntime keeps linked lifecycle guards in the lazy composer chunk', () => {
   const source = readComposerRuntimeSource();
 
-  assert.doesNotMatch(source, /if \(didOpenComposerFromRoute\.current\) return;/);
-  assert.match(source, /if \(didOpenComposerFromRoute\.current && !linkedRouteRequested\) return;/);
+  assert.doesNotMatch(source, /didOpenComposerFromRoute/);
   assert.match(source, /useRef<Promise<LinkedComposerRouteLoader> \| null>/);
+  assert.match(source, /linkedRouteGenerationRef/);
+  assert.match(source, /linkedRouteLoaderInstanceRef\.current\?\.invalidate\(\)/);
 });
