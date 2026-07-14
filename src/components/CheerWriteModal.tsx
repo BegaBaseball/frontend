@@ -294,7 +294,7 @@ export function CheerWriteModalContent({
                         )}
                         <div className="flex-1 min-w-0 flex flex-col gap-2 sm:gap-3">
                             {isLinkedComposer && linkedContent && linkedPostType ? (
-                                <div className="space-y-2" data-testid="linked-cheer-preview">
+                                <div className="space-y-2" data-testid="cheer-linked-preview">
                                     <span className="inline-flex rounded-full bg-[var(--cheer-chip-bg)] px-2.5 py-1 text-caption font-bold text-slate-700 dark:text-white">
                                         {linkedPostType === 'CHECKIN' ? '직관 인증' : '동행 모집'}
                                     </span>

@@ -32,6 +32,7 @@ export default function CheerLinkedContentCard({
       <section
         className={`mt-3 rounded-xl border border-dashed border-amber-300 bg-amber-50/70 dark:border-amber-700/70 dark:bg-amber-950/30 ${paddingClass}`}
         aria-label={`${linkedContent.kind === 'CHECKIN' ? '직관 인증' : '동행 모집'} 운영자 데이터 필요`}
+        data-testid="cheer-linked-unavailable"
         data-error-code={MANUAL_BASEBALL_DATA_REQUIRED_CODE}
       >
         <p className="text-body font-bold text-amber-900 dark:text-amber-200">
@@ -52,6 +53,7 @@ export default function CheerLinkedContentCard({
       <section
         className={`mt-3 rounded-xl border border-dashed border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] ${paddingClass}`}
         aria-label={`${linkedContent.kind === 'CHECKIN' ? '직관 인증' : '동행 모집'} 원본 없음`}
+        data-testid="cheer-linked-unavailable"
       >
         <p className="text-body font-bold text-slate-700 dark:text-white">원본을 확인할 수 없음</p>
         <p className="mt-1 text-body font-semibold text-slate-500 dark:text-slate-300">
@@ -141,6 +143,7 @@ export default function CheerLinkedContentCard({
       {recruitment.partyId != null && (
         <a
           href={`/mate/${recruitment.partyId}`}
+          data-testid="cheer-linked-party-link"
           data-skip-cheer-card-nav
           className="mt-3 inline-flex min-h-11 items-center rounded-full bg-violet-600 px-4 text-body font-bold text-white transition-colors hover:bg-violet-700"
         >
