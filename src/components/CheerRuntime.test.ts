@@ -6,6 +6,10 @@ const readRuntimeSource = () => readFileSync(
   new URL('./CheerRuntime.tsx', import.meta.url),
   'utf8'
 );
+const readComposerRuntimeSource = () => readFileSync(
+  new URL('./CheerComposerRuntime.tsx', import.meta.url),
+  'utf8'
+);
 const readLivePanelSource = () => readFileSync(
   new URL('./CheerLivePanel.tsx', import.meta.url),
   'utf8'
@@ -54,4 +58,35 @@ test('CheerRuntime는 경기 데이터와 라이브 스냅샷을 필요한 lazy 
   assert.match(livePanelSource, /useGamesData/);
   assert.match(livePanelSource, /fetchGameLiveSnapshot/);
   assert.match(sidebarPanelsSource, /useGamesData/);
+});
+
+test('CheerRuntime feed segments stay exactly 전체, 인기, 팔로우, 라이브 without linked-type tabs', () => {
+  const source = readRuntimeSource();
+  const start = source.indexOf('const feedTabs = useMemo<FeedTabConfig[]>');
+  const end = source.indexOf('const [contentFeedTab', start);
+  const feedTabsSource = source.slice(start, end);
+  const labels = Array.from(feedTabsSource.matchAll(/label: '([^']+)'/g), (match) => match[1]);
+
+  assert.deepEqual(labels, ['전체', '인기', '팔로우', '라이브']);
+  assert.doesNotMatch(feedTabsSource, /CHECKIN|RECRUITMENT/);
+});
+
+test('CheerRuntime parses the linked write target once and passes request validity to the composer runtime', () => {
+  const source = readRuntimeSource();
+
+  assert.match(source, /parseLinkedTarget\(/);
+  assert.match(source, /searchParams\.get\('postType'\)/);
+  assert.match(source, /searchParams\.get\('diaryId'\)/);
+  assert.match(source, /searchParams\.get\('partyId'\)/);
+  assert.match(source, /const linkedRouteRequested =/);
+  assert.match(source, /linkedRouteRequested=\{linkedRouteRequested\}/);
+  assert.match(source, /linkedTarget=\{linkedTarget\}/);
+});
+
+test('CheerComposerRuntime can reload a changed linked target after the first preview opens', () => {
+  const source = readComposerRuntimeSource();
+
+  assert.doesNotMatch(source, /if \(didOpenComposerFromRoute\.current\) return;/);
+  assert.match(source, /if \(didOpenComposerFromRoute\.current && !linkedRouteRequested\) return;/);
+  assert.match(source, /useRef<Promise<LinkedComposerRouteLoader> \| null>/);
 });

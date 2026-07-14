@@ -34,6 +34,7 @@ import CheerMobileBottomNav from './CheerMobileBottomNav';
 import {
     getAccessibleCheerTextColor,
     normalizeCheerSearchQuery,
+    parseLinkedTarget,
     resolveCheerContentFeedTab,
     resolveCheerSurface,
     resolveCheerTabFromParam,
@@ -144,6 +145,19 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const [searchParams, setSearchParams] = useSearchParams();
+    const linkedPostTypeParam = searchParams.get('postType');
+    const linkedDiaryIdParam = searchParams.get('diaryId');
+    const linkedPartyIdParam = searchParams.get('partyId');
+    const linkedRouteRequested = openComposerOnMount && (
+        linkedPostTypeParam !== null
+        || linkedDiaryIdParam !== null
+        || linkedPartyIdParam !== null
+    );
+    const linkedTarget = useMemo(() => parseLinkedTarget(
+        linkedPostTypeParam,
+        linkedDiaryIdParam,
+        linkedPartyIdParam
+    ), [linkedDiaryIdParam, linkedPartyIdParam, linkedPostTypeParam]);
     const {
         userId: authUserId,
         userEmail: authUserEmail,
@@ -543,6 +557,8 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                             >
                                 <LazyCheerComposerRuntime
                                     openComposerOnMount={openComposerOnMount}
+                                    linkedRouteRequested={linkedRouteRequested}
+                                    linkedTarget={linkedTarget}
                                     isAuthLoading={isAuthLoading}
                                     isLoggedIn={isLoggedIn}
                                     hasFavoriteTeam={hasFavoriteTeam}

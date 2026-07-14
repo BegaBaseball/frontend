@@ -1,10 +1,35 @@
 export type CheerTabKey = 'all' | 'popular' | 'following' | 'live';
 export type CheerContentFeedTabKey = Exclude<CheerTabKey, 'live'>;
 export type CheerSurface = 'feed' | 'search' | 'live';
+export type LinkedPostTarget =
+  | { postType: 'CHECKIN'; diaryId: number }
+  | { postType: 'RECRUITMENT'; partyId: number };
 
 const CHEER_TAB_KEYS: readonly CheerTabKey[] = ['all', 'popular', 'following', 'live'];
 const CHEER_LIGHT_TEXT = '#FFFFFF';
 const CHEER_DARK_TEXT = '#0F172A';
+
+const parsePositiveRouteId = (value: string | null): number | null => {
+  if (value === null || !/^[1-9]\d*$/.test(value)) return null;
+  const parsed = Number(value);
+  return Number.isSafeInteger(parsed) ? parsed : null;
+};
+
+export const parseLinkedTarget = (
+  postType: string | null,
+  diaryId: string | null,
+  partyId: string | null,
+): LinkedPostTarget | null => {
+  if (postType === 'CHECKIN' && partyId === null) {
+    const parsedDiaryId = parsePositiveRouteId(diaryId);
+    return parsedDiaryId === null ? null : { postType, diaryId: parsedDiaryId };
+  }
+  if (postType === 'RECRUITMENT' && diaryId === null) {
+    const parsedPartyId = parsePositiveRouteId(partyId);
+    return parsedPartyId === null ? null : { postType, partyId: parsedPartyId };
+  }
+  return null;
+};
 
 const parseHexColor = (value: string): [number, number, number] | null => {
   const compact = value.trim().replace(/^#/, '');
