@@ -2,6 +2,41 @@
 
 import { seedCypressAuthState, toAuthApiUser } from '../support/auth';
 
+let unexpectedNetworkRequests: string[] = [];
+let isolatedWebSocketUrls: string[] = [];
+
+class IsolatedWebSocket extends EventTarget {
+  static readonly CONNECTING = 0;
+  static readonly OPEN = 1;
+  static readonly CLOSING = 2;
+  static readonly CLOSED = 3;
+
+  readonly CONNECTING = IsolatedWebSocket.CONNECTING;
+  readonly OPEN = IsolatedWebSocket.OPEN;
+  readonly CLOSING = IsolatedWebSocket.CLOSING;
+  readonly CLOSED = IsolatedWebSocket.CLOSED;
+  readonly url: string;
+  readonly protocol = '';
+  readonly extensions = '';
+  readonly bufferedAmount = 0;
+  readyState = IsolatedWebSocket.CLOSED;
+  binaryType: BinaryType = 'blob';
+  onopen: ((event: Event) => void) | null = null;
+  onmessage: ((event: MessageEvent) => void) | null = null;
+  onerror: ((event: Event) => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
+
+  constructor(url: string | URL) {
+    super();
+    this.url = String(url);
+    isolatedWebSocketUrls.push(this.url);
+  }
+
+  close() {}
+
+  send() {}
+}
+
 const authUser = {
   id: 10,
   email: 'task10@example.com',
@@ -45,7 +80,7 @@ const buildRecruitment = (overrides: Record<string, unknown> = {}) => ({
   recruitment: {
     partyId: 703,
     gameDate: '2026-07-20',
-    gameTime: { hour: 18, minute: 30 },
+    gameTime: '18:30:00',
     homeTeam: 'LG',
     awayTeam: 'HH',
     stadium: '잠실야구장',
@@ -148,6 +183,50 @@ const installAuthenticatedBootstrap = () => {
     statusCode: 200,
     body: {},
   });
+  cy.intercept({ method: 'GET', pathname: '/api/chat/my/unread-counts' }, {
+    statusCode: 200,
+    body: { totalUnreadCount: 0, unreadCounts: {} },
+  });
+  cy.intercept({ method: 'GET', pathname: '/api/dm/rooms/my' }, {
+    statusCode: 200,
+    body: [],
+  });
+  cy.intercept({ method: 'GET', pathname: '/api/kbo/schedule' }, {
+    statusCode: 200,
+    body: [],
+  });
+  cy.intercept({ method: 'GET', pathname: '/api/leaderboard' }, {
+    statusCode: 200,
+    body: emptyPage,
+  });
+  cy.intercept({ method: 'GET', pathname: '/api/diary/seat-views' }, {
+    statusCode: 200,
+    body: [],
+  });
+};
+
+const installNetworkIsolation = () => {
+  unexpectedNetworkRequests = [];
+  isolatedWebSocketUrls = [];
+  const appOrigin = new URL(Cypress.config('baseUrl') ?? 'http://127.0.0.1:4173').origin;
+
+  cy.intercept('**', (request) => {
+    const url = new URL(request.url);
+    if (url.origin !== appOrigin) {
+      unexpectedNetworkRequests.push(`${request.method} ${request.url}`);
+      request.destroy();
+      return;
+    }
+    request.continue();
+  });
+  cy.intercept({ pathname: '/api/**' }, (request) => {
+    unexpectedNetworkRequests.push(`${request.method} ${request.url}`);
+    request.reply({ statusCode: 599, body: { code: 'UNEXPECTED_TASK10_API_REQUEST' } });
+  });
+  cy.intercept({ pathname: '/auth/**' }, (request) => {
+    unexpectedNetworkRequests.push(`${request.method} ${request.url}`);
+    request.reply({ statusCode: 599, body: { code: 'UNEXPECTED_TASK10_AUTH_REQUEST' } });
+  });
 };
 
 const installCheerShell = () => {
@@ -164,6 +243,10 @@ const installCheerShell = () => {
 const visitAuthenticated = (path: string) => {
   cy.visit(path, {
     onBeforeLoad(window) {
+      Object.defineProperty(window, 'WebSocket', {
+        configurable: true,
+        value: IsolatedWebSocket,
+      });
       seedCypressAuthState(window, authUser, undefined, { skipPublicBootstrap: true });
     },
   });
@@ -237,8 +320,21 @@ describe('linked cheer posts in the production application', () => {
     cy.clearCookies();
     cy.clearLocalStorage();
     cy.viewport(1280, 800);
+    installNetworkIsolation();
     installAuthenticatedBootstrap();
     installCheerShell();
+  });
+
+  afterEach(() => {
+    cy.then(() => {
+      expect(unexpectedNetworkRequests, 'unexpected HTTP requests').to.deep.equal([]);
+      const appUrl = new URL(Cypress.config('baseUrl') ?? 'http://127.0.0.1:4173');
+      const unexpectedSockets = isolatedWebSocketUrls.filter((value) => {
+        const socketUrl = new URL(value, appUrl);
+        return socketUrl.host !== appUrl.host || socketUrl.pathname !== '/ws';
+      });
+      expect(unexpectedSockets, 'unexpected WebSocket requests').to.deep.equal([]);
+    });
   });
 
   it('opens an eligible Diary preview, requires a body, creates CHECKIN, and navigates to it', () => {
@@ -269,13 +365,14 @@ describe('linked cheer posts in the production application', () => {
         cy.contains('button', '게시하기').should('not.be.disabled').click();
       });
     cy.wait('@createLinkedPost').then(({ request }) => {
-      expect(request.body).to.include({
+      expect(request.body).to.deep.equal({
+        teamId: 'LG',
         content: '직관의 열기를 응원석에 남깁니다.',
+        images: [],
         postType: 'CHECKIN',
         diaryId: 701,
         shareMode: 'INTERNAL_REPOST',
       });
-      expect(request.body).not.to.have.property('partyId');
     });
     cy.location('pathname').should('equal', '/cheer/9701');
   });
@@ -294,6 +391,10 @@ describe('linked cheer posts in the production application', () => {
     cy.get('[data-testid="diary-share-to-cheer"]', { timeout: 20000 }).click();
     cy.wait('@lookupExistingDiary');
     cy.location('pathname').should('equal', '/cheer/9702');
+    cy.wait('@post9702');
+    cy.get('[aria-label="직관 인증 정보"]', { timeout: 20000 })
+      .should('contain.text', '직관 인증')
+      .and('contain.text', '인증 완료');
     cy.get('[data-testid="cheer-linked-preview"]').should('not.exist');
     cy.contains('[role="dialog"]', '새 응원글 작성').should('not.exist');
   });
@@ -322,6 +423,7 @@ describe('linked cheer posts in the production application', () => {
 
     cy.get('[data-testid="cheer-linked-preview"]', { timeout: 20000 })
       .should('contain.text', '응원 도구를 함께 준비하는 Task 10 파티입니다.')
+      .and('contain.text', '18:30')
       .and('contain.text', '참가비')
       .and('contain.text', '12,000원')
       .and('contain.text', '티켓')
@@ -336,13 +438,14 @@ describe('linked cheer posts in the production application', () => {
         cy.contains('button', '게시하기').click();
       });
     cy.wait('@createLinkedPost').then(({ request }) => {
-      expect(request.body).to.include({
+      expect(request.body).to.deep.equal({
+        teamId: 'LG',
         content: '함께 응원할 동행을 모집합니다.',
+        images: [],
         postType: 'RECRUITMENT',
         partyId: 703,
         shareMode: 'INTERNAL_REPOST',
       });
-      expect(request.body).not.to.have.property('diaryId');
     });
     cy.location('pathname').should('equal', '/cheer/9703');
   });
@@ -420,6 +523,13 @@ describe('linked cheer posts in the production application', () => {
 
   it('keeps the linked badge and card on an embedded original post', () => {
     const originalLinkedContent = buildRecruitment({ partyId: 708 });
+    const originalDetail = buildPost(8708, 'RECRUITMENT', {
+      content: 'Task 10 원본 모집글',
+      author: '원글 작성자',
+      authorHandle: '@original-host',
+      linkedContent: originalLinkedContent,
+    });
+    installDetail(originalDetail);
     const post = buildPost(9708, 'NORMAL', {
       content: 'Task 10 인용 본문',
       repostOfId: 8708,
@@ -443,11 +553,11 @@ describe('linked cheer posts in the production application', () => {
 
     visitAuthenticated('/cheer/9708');
     cy.wait('@post9708');
-    cy.contains('인용 원문을 함께 볼 수 있어요.', { timeout: 20000 })
-      .parent()
-      .parent()
+    cy.get('[data-testid="cheer-embedded-post"]', { timeout: 20000 })
       .within(() => {
-        cy.contains('동행 모집').should('be.visible');
+        cy.get('[data-testid="cheer-embedded-type-badge"]')
+          .should('be.visible')
+          .and('have.text', '동행 모집');
         cy.get('[aria-label="동행 모집 정보"]')
           .should('contain.text', '응원 도구를 함께 준비하는 Task 10 파티입니다.')
           .and('contain.text', '모집 중');

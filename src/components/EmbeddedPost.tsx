@@ -67,6 +67,7 @@ export default function EmbeddedPost({ post, onClick, className, linkedContentVa
     return (
         <div
             onClick={handleClick}
+            data-testid="cheer-embedded-post"
             className={`mt-3 rounded-xl border border-gray-200 dark:border-border bg-gray-50 dark:bg-secondary p-3 cursor-pointer hover:bg-gray-100 dark:hover:bg-secondary transition-colors ${className || ''}`}
             style={{
                 borderLeftColor: post.teamColor || 'var(--primary)',
@@ -102,7 +103,10 @@ export default function EmbeddedPost({ post, onClick, className, linkedContentVa
                             공지
                         </span>
                     ) : post.postType === 'CHECKIN' || post.postType === 'RECRUITMENT' ? (
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-body font-bold ${LINKED_TYPE_BADGES[post.postType]}`}>
+                        <span
+                            data-testid="cheer-embedded-type-badge"
+                            className={`shrink-0 rounded-full px-2 py-0.5 text-body font-bold ${LINKED_TYPE_BADGES[post.postType]}`}
+                        >
                             {post.postType === 'CHECKIN' ? '직관 인증' : '동행 모집'}
                         </span>
                     ) : (
