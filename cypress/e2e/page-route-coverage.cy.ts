@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const mockGuestSession = () => {
   cy.intercept('GET', '**/auth/mypage*', {
     statusCode: 401,
