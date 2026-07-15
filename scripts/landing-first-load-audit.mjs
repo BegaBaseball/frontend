@@ -5,6 +5,11 @@ import net from 'node:net';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import {
+  collectSuccessfulDeferredRequests,
+  getClosingAuditFailures,
+  isViewportIntersectionVisible,
+} from './lib/landing-audit-contracts.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(scriptDir, '..');
@@ -418,6 +423,8 @@ const createNetworkRecorder = (page, fragments) => {
       status: null,
       contentLength: null,
       deferred: matchesAnyFragment(request.url(), fragments),
+      completedAt: null,
+      failed: false,
     };
     requestIds.set(request, entry.id);
     requests.push(entry);
@@ -439,6 +446,12 @@ const createNetworkRecorder = (page, fragments) => {
   });
 
   page.on('requestfailed', (request) => {
+    const id = requestIds.get(request);
+    const entry = requests.find((candidate) => candidate.id === id);
+    if (entry) {
+      entry.completedAt = Date.now();
+      entry.failed = true;
+    }
     failedRequests.push({
       at: Date.now(),
       url: request.url(),
@@ -446,6 +459,14 @@ const createNetworkRecorder = (page, fragments) => {
       errorText: request.failure()?.errorText || 'unknown',
       deferred: matchesAnyFragment(request.url(), fragments),
     });
+  });
+
+  page.on('requestfinished', (request) => {
+    const id = requestIds.get(request);
+    const entry = requests.find((candidate) => candidate.id === id);
+    if (entry) {
+      entry.completedAt = Date.now();
+    }
   });
 
   return {
@@ -482,7 +503,8 @@ const createConsoleRecorder = (page) => {
 };
 
 const installMetricsInitScript = async (context) => {
-  await context.addInitScript(() => {
+  await context.addInitScript((visibilityPredicateSource) => {
+    const visibilityPredicate = (0, eval)(`(${visibilityPredicateSource})`);
     const describeElement = (element) => {
       if (!element) {
         return null;
@@ -526,12 +548,14 @@ const installMetricsInitScript = async (context) => {
       }
       const rect = node.getBoundingClientRect();
       const style = window.getComputedStyle(node);
-      return rect.width > 0
-        && rect.height > 0
-        && rect.bottom > 0
-        && rect.top < window.innerHeight
-        && style.display !== 'none'
-        && style.visibility !== 'hidden';
+      return visibilityPredicate({
+        rect,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: style.opacity,
+      });
     };
 
     const recordMilestones = () => {
@@ -612,10 +636,11 @@ const installMetricsInitScript = async (context) => {
     } catch (_error) {
       // Browser support can vary.
     }
-  });
+  }, isViewportIntersectionVisible.toString());
 };
 
-const readPageSnapshot = async (page) => page.evaluate(() => {
+const readPageSnapshot = async (page) => page.evaluate((visibilityPredicateSource) => {
+  const visibilityPredicate = (0, eval)(`(${visibilityPredicateSource})`);
   if (typeof window.__dumpBegaRenderPerf === 'function') {
     window.__dumpBegaRenderPerf();
   }
@@ -641,12 +666,14 @@ const readPageSnapshot = async (page) => page.evaluate(() => {
     }
     const rect = node.getBoundingClientRect();
     const style = window.getComputedStyle(node);
-    return rect.width > 0
-      && rect.height > 0
-      && rect.bottom > 0
-      && rect.top < window.innerHeight
-      && style.display !== 'none'
-      && style.visibility !== 'hidden';
+    return visibilityPredicate({
+      rect,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      display: style.display,
+      visibility: style.visibility,
+      opacity: style.opacity,
+    });
   };
   const topOffset = (selector) => {
     const node = document.querySelector(selector);
@@ -675,25 +702,28 @@ const readPageSnapshot = async (page) => page.evaluate(() => {
     closingVisible: visible('[data-testid="landing-closing"]'),
     closingMascotVisible: visible('[data-testid="landing-closing-mascot"]'),
   };
-});
+}, isViewportIntersectionVisible.toString());
 
 const waitForVisibleTestId = async (page, testId, timeoutMs = 8000) => {
   await page.waitForFunction(
-    (id) => {
+    ({ id, visibilityPredicateSource }) => {
+      const visibilityPredicate = (0, eval)(`(${visibilityPredicateSource})`);
       const node = document.querySelector(`[data-testid="${id}"]`);
       if (!node) {
         return false;
       }
       const rect = node.getBoundingClientRect();
       const style = window.getComputedStyle(node);
-      return rect.width > 0
-        && rect.height > 0
-        && rect.bottom > 0
-        && rect.top < window.innerHeight
-        && style.display !== 'none'
-        && style.visibility !== 'hidden';
+      return visibilityPredicate({
+        rect,
+        viewportWidth: window.innerWidth,
+        viewportHeight: window.innerHeight,
+        display: style.display,
+        visibility: style.visibility,
+        opacity: style.opacity,
+      });
     },
-    testId,
+    { id: testId, visibilityPredicateSource: isViewportIntersectionVisible.toString() },
     { timeout: timeoutMs },
   );
 };
@@ -790,6 +820,7 @@ const normalizeRequest = (request) => ({
   status: request.status,
   contentLength: request.contentLength,
   deferred: request.deferred,
+  completedAt: request.completedAt,
 });
 
 const isPretendardRequest = (value) => (
@@ -897,7 +928,9 @@ const runIteration = async ({
     const initialResources = initialSnapshot.resources;
     const resourceSummary = summarizeResources(initialResources);
     const initialRequests = network.until(initialEndedAt);
-    const initialDeferredRequests = initialRequests.filter((request) => request.deferred).map(normalizeRequest);
+    let initialDeferredRequests = collectSuccessfulDeferredRequests(network.requests, {
+      to: initialEndedAt,
+    }).map(normalizeRequest);
     const initialPretendardRequests = [
       ...initialRequests
         .filter((request) => isPretendardRequest(request.url))
@@ -986,11 +1019,6 @@ const runIteration = async ({
     if (entry.metrics.totalBlockingTimeProxyMs !== null && entry.metrics.totalBlockingTimeProxyMs > 200) {
       warnings.push(`Long-task blocking proxy exceeds good TBT threshold: ${entry.metrics.totalBlockingTimeProxyMs}ms > 200ms`);
     }
-    if (initialDeferredRequests.length > 0) {
-      failures.push(`lazy closing media loaded before user scroll: ${initialDeferredRequests.map((request) => request.url).join(', ')}`);
-    } else {
-      checks.push('no lazy closing media requested before scroll');
-    }
     if (initialPretendardRequests.length > 0) {
       failures.push(`Pretendard font resources loaded before user scroll/click: ${initialPretendardRequests.map((request) => request.url).join(', ')}`);
     } else {
@@ -1008,6 +1036,10 @@ const runIteration = async ({
     }
 
     const closingScrollStartedAt = Date.now();
+    initialDeferredRequests = collectSuccessfulDeferredRequests(network.requests, {
+      to: closingScrollStartedAt,
+    }).map(normalizeRequest);
+    entry.initialDeferredRequests = initialDeferredRequests;
     await page.locator('[data-testid="landing-closing"]').scrollIntoViewIfNeeded({ timeout: closingTimeoutMs });
     await waitForVisibleTestId(page, 'landing-closing-mascot', closingTimeoutMs)
       .then(() => checks.push('landing closing mascot visible after scroll'))
@@ -1027,20 +1059,30 @@ const runIteration = async ({
     await sleep(600);
 
     const afterSnapshot = await readPageSnapshot(page);
-    const afterClosingRequests = network
-      .since(closingScrollStartedAt)
-      .filter((request) => request.deferred)
-      .map(normalizeRequest);
+    const afterClosingRequests = collectSuccessfulDeferredRequests(network.requests, {
+      from: closingScrollStartedAt,
+    }).map(normalizeRequest);
     entry.afterClosingDeferredRequests = afterClosingRequests;
     entry.metrics.closingRenderedAtAfterScroll = roundMetric(afterSnapshot.landingMetrics?.closingRenderedAt);
 
-    if (!afterSnapshot.closingVisible || !afterSnapshot.closingMascotVisible) {
-      failures.push('landing closing content was not visible after scroll snapshot');
+    const closingAuditFailures = getClosingAuditFailures({
+      initialSnapshot,
+      afterSnapshot,
+      initialSuccessfulRequestCount: initialDeferredRequests.length,
+      afterSuccessfulRequestCount: afterClosingRequests.length,
+    });
+    failures.push(...closingAuditFailures);
+    if (!initialSnapshot.closingVisible && !initialSnapshot.closingMascotVisible) {
+      checks.push('landing closing section and mascot are invisible before scroll');
     }
-    if (afterClosingRequests.length === 0) {
-      failures.push('lazy closing media was not requested after scrolling to the closing section');
-    } else {
-      checks.push(`lazy closing media requested after scroll: ${afterClosingRequests.length}`);
+    if (initialDeferredRequests.length === 0) {
+      checks.push('exactly 0 successful lazy closing requests completed before scroll');
+    }
+    if (afterSnapshot.closingVisible && afterSnapshot.closingMascotVisible) {
+      checks.push('landing closing section and mascot are visible after scroll');
+    }
+    if (afterClosingRequests.length === 1) {
+      checks.push('exactly 1 successful lazy closing request completed after scroll');
     }
 
     const consoleErrors = consoleRecorder.errors();
