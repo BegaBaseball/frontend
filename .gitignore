@@ -36,3 +36,4 @@ yarn-error.log*
 /reports
 /.claude
 /.playwright-cli
+/.worktrees
