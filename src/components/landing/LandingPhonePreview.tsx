@@ -1,6 +1,5 @@
 import { BEGA_LOGO_ASSET, TEAM_ASSETS } from './landingAssets';
-
-const PHONE_TABS = ['홈', '경기', '같이가요', '응원', 'MY'] as const;
+import { LANDING_PHONE_PREVIEW } from './landingShowcaseData';
 
 export default function LandingPhonePreview() {
   return (
@@ -9,79 +8,82 @@ export default function LandingPhonePreview() {
         <img src={BEGA_LOGO_ASSET} alt="BEGA" width={38} height={20} />
         <span className="landing-phone-live">
           <i data-anim aria-hidden="true" />
-          LIVE
+          {LANDING_PHONE_PREVIEW.liveLabel}
         </span>
       </div>
 
       <article className="landing-phone-card landing-phone-score-card">
-        <p className="landing-phone-card-kicker">LIVE · 7회말 · 잠실</p>
+        <p className="landing-phone-card-kicker">{LANDING_PHONE_PREVIEW.game.status}</p>
         <div className="landing-phone-score-row">
           <span className="landing-phone-team">
-            <img src={TEAM_ASSETS.lg} alt="" width={26} height={26} />
-            LG
+            <img src={TEAM_ASSETS[LANDING_PHONE_PREVIEW.game.homeTeam]} alt="" width={26} height={26} />
+            {LANDING_PHONE_PREVIEW.game.homeLabel}
           </span>
-          <strong>5 : 2</strong>
+          <strong>
+            {LANDING_PHONE_PREVIEW.game.homeScore} : {LANDING_PHONE_PREVIEW.game.awayScore}
+          </strong>
           <span className="landing-phone-team landing-phone-team-away">
-            두산
-            <img src={TEAM_ASSETS.doosan} alt="" width={26} height={26} />
+            {LANDING_PHONE_PREVIEW.game.awayLabel}
+            <img src={TEAM_ASSETS[LANDING_PHONE_PREVIEW.game.awayTeam]} alt="" width={26} height={26} />
           </span>
         </div>
       </article>
 
       <article className="landing-phone-card landing-phone-prediction-card">
         <div className="landing-phone-card-heading">
-          <span>오늘의 승리 확률</span>
-          <b>AI 코치</b>
+          <span>{LANDING_PHONE_PREVIEW.prediction.heading}</span>
+          <b>{LANDING_PHONE_PREVIEW.prediction.badge}</b>
         </div>
         <div className="landing-phone-prediction-value">
-          <strong data-count="64" data-suffix="%">64%</strong>
-          <span>LG 승리</span>
+          <strong data-count={LANDING_PHONE_PREVIEW.prediction.probability} data-suffix="%">
+            {LANDING_PHONE_PREVIEW.prediction.probability}%
+          </strong>
+          <span>{LANDING_PHONE_PREVIEW.prediction.resultLabel}</span>
         </div>
-        <div className="landing-phone-progress" aria-label="LG 승리 확률 64%">
-          <i data-bar="64%" />
+        <div
+          className="landing-phone-progress"
+          aria-label={`${LANDING_PHONE_PREVIEW.prediction.resultLabel} 확률 ${LANDING_PHONE_PREVIEW.prediction.probability}%`}
+        >
+          <i data-bar={`${LANDING_PHONE_PREVIEW.prediction.probability}%`} />
         </div>
       </article>
 
       <article className="landing-phone-card landing-phone-mate-card">
         <div className="landing-phone-card-heading">
           <span className="landing-phone-mate-title">
-            <img src={TEAM_ASSETS.lg} alt="" width={18} height={18} />
-            LG vs 두산 · 잠실
+            <img src={TEAM_ASSETS[LANDING_PHONE_PREVIEW.mate.team]} alt="" width={18} height={18} />
+            {LANDING_PHONE_PREVIEW.mate.matchup}
           </span>
-          <b>모집 중</b>
+          <b>{LANDING_PHONE_PREVIEW.mate.status}</b>
         </div>
-        <p>10.26(일) 18:30 · 2/4명 · 3루 응원석</p>
+        <p>{LANDING_PHONE_PREVIEW.mate.details}</p>
       </article>
 
       <article className="landing-phone-card landing-phone-cheer-card">
         <div className="landing-phone-author">
-          <span aria-hidden="true">직</span>
-          <strong>직관러버</strong>
-          <time>21:42</time>
+          <span aria-hidden="true">{LANDING_PHONE_PREVIEW.cheer.avatarLabel}</span>
+          <strong>{LANDING_PHONE_PREVIEW.cheer.author}</strong>
+          <time>{LANDING_PHONE_PREVIEW.cheer.time}</time>
         </div>
-        <p>9회말 끝내기라니. 오늘 잠실 온 보람 있다 진짜</p>
+        <p>{LANDING_PHONE_PREVIEW.cheer.body}</p>
       </article>
 
       <article className="landing-phone-card landing-phone-standings-card">
-        <p className="landing-phone-card-title">팀 순위</p>
+        <p className="landing-phone-card-title">{LANDING_PHONE_PREVIEW.standings.heading}</p>
         <ol>
-          <li>
-            <b>1</b>
-            <img src={TEAM_ASSETS.lg} alt="" width={16} height={16} />
-            <span>LG</span>
-            <strong>0.618</strong>
-          </li>
-          <li>
-            <b>2</b>
-            <img src={TEAM_ASSETS.kia} alt="" width={16} height={16} />
-            <span>KIA</span>
-            <strong>0.577</strong>
-          </li>
+          {LANDING_PHONE_PREVIEW.standings.entries.map((entry) => (
+            <li key={entry.rank}>
+              <b>{entry.rank}</b>
+              <img src={TEAM_ASSETS[entry.team]} alt="" width={16} height={16} />
+              <span>{entry.label}</span>
+              <strong>{entry.rate}</strong>
+            </li>
+          ))}
         </ol>
       </article>
 
       <nav className="landing-phone-tabs" aria-label="앱 화면 예시 메뉴">
-        {PHONE_TABS.map((tab, index) => (
+        {LANDING_PHONE_PREVIEW.tabs.map((tab, index) => (
           <span className={index === 0 ? 'landing-phone-tab-active' : undefined} key={tab}>
             {tab}
           </span>

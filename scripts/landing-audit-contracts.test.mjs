@@ -75,6 +75,65 @@ test('first-load counts unique successful mascot completions and enforces the ex
   assert.ok(failures.some((failure) => failure.includes('exactly 1 successful lazy closing request after scroll, received 2')));
 });
 
+test('first-load partitions successful mascot requests by request start when completion crosses scroll', () => {
+  assert.equal(typeof helpers.partitionSuccessfulDeferredRequestsByStart, 'function');
+
+  const requests = [
+    { id: 1, at: 90, deferred: true, status: 200, completedAt: 120 },
+    { id: 1, at: 90, deferred: true, status: 200, completedAt: 120 },
+    { id: 2, at: 110, deferred: true, status: 200, completedAt: 130 },
+    { id: 3, at: 80, deferred: true, status: 500, completedAt: 95 },
+  ];
+
+  const partition = helpers.partitionSuccessfulDeferredRequestsByStart(requests, 100);
+
+  assert.deepEqual(partition.before.map((request) => request.id), [1]);
+  assert.deepEqual(partition.after.map((request) => request.id), [2]);
+  assert.ok(
+    helpers.getClosingAuditFailures({
+      initialSnapshot: { closingVisible: false, closingMascotVisible: false },
+      afterSnapshot: { closingVisible: true, closingMascotVisible: true },
+      initialSuccessfulRequestCount: partition.before.length,
+      afterSuccessfulRequestCount: partition.after.length,
+    }).some((failure) => failure.includes(
+      'exactly 0 successful lazy closing requests before scroll, received 1',
+    )),
+  );
+});
+
+test('landing interactive contract accepts only the labelled ticker toggle and reports every unexpected control', () => {
+  assert.equal(typeof helpers.getLandingInteractiveSetFailures, 'function');
+
+  const tickerToggle = {
+    tagName: 'button',
+    testId: 'landing-ticker-toggle',
+    label: '티커 일시정지',
+    descriptor: 'button[data-testid="landing-ticker-toggle"] "티커 일시정지"',
+  };
+
+  assert.deepEqual(helpers.getLandingInteractiveSetFailures([tickerToggle]), []);
+
+  const failures = helpers.getLandingInteractiveSetFailures([
+    tickerToggle,
+    {
+      tagName: 'a',
+      testId: null,
+      label: '로그인',
+      descriptor: 'a[href="/login"] "로그인"',
+    },
+    {
+      tagName: 'div',
+      testId: 'rogue-focus-target',
+      label: '추가 메뉴',
+      descriptor: 'div[data-testid="rogue-focus-target"][tabindex="0"] "추가 메뉴"',
+    },
+  ]);
+
+  assert.ok(failures.some((failure) => failure.includes('expected exactly 1 interactive element, received 3')));
+  assert.ok(failures.some((failure) => failure.includes('a[href="/login"] "로그인"')));
+  assert.ok(failures.some((failure) => failure.includes('rogue-focus-target')));
+});
+
 test('Landing screenshot guard traverses the static manifest closure without rejecting approved local assets', () => {
   assert.equal(typeof helpers.findForbiddenManifestClosureReferences, 'function');
 

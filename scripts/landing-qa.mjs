@@ -5,7 +5,10 @@ import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
-import { getPhoneWidthFailure } from './lib/landing-audit-contracts.mjs';
+import {
+  getLandingInteractiveSetFailures,
+  getPhoneWidthFailure,
+} from './lib/landing-audit-contracts.mjs';
 
 const projectRoot = process.cwd();
 const viewportCases = [
@@ -630,6 +633,7 @@ const buildSummaryMarkdown = (report) => {
       `- Stadium chips: ${report.structure.stadiumChipCount}`,
       `- Diary results: ${report.structure.diaryResultCount}`,
       `- CTA/links: ${report.structure.ctaCount}`,
+      `- Interactive elements: ${report.structure.interactiveElements.length}`,
       `- Footers: ${report.structure.footerCount}`,
     );
   }
@@ -857,6 +861,52 @@ const main = async () => {
           element ? element.getBoundingClientRect().top + window.scrollY : null
         ));
         const landing = document.querySelector('[data-testid="landing-page"]');
+        const interactiveElements = landing
+          ? Array.from(landing.querySelectorAll([
+            'a',
+            'button',
+            'input',
+            'select',
+            'textarea',
+            '[contenteditable]',
+            '[role="button"]',
+            '[role="link"]',
+            '[tabindex]',
+          ].join(', ')))
+            .filter((element) => {
+              if (element.matches('a, button, input, select, textarea, [role="button"], [role="link"]')) {
+                return true;
+              }
+              if (element.hasAttribute('contenteditable')) {
+                return element.getAttribute('contenteditable')?.toLowerCase() !== 'false';
+              }
+              return element.hasAttribute('tabindex') && element.tabIndex >= 0;
+            })
+            .map((element) => {
+              const tagName = element.tagName.toLowerCase();
+              const testId = element.getAttribute('data-testid');
+              const label = (
+                element.getAttribute('aria-label')
+                || element.textContent
+                || ''
+              ).replace(/\s+/g, ' ').trim();
+              const attributes = [
+                testId ? '[data-testid="' + testId + '"]' : '',
+                element.hasAttribute('href') ? '[href="' + element.getAttribute('href') + '"]' : '',
+                element.hasAttribute('role') ? '[role="' + element.getAttribute('role') + '"]' : '',
+                element.hasAttribute('contenteditable')
+                  ? '[contenteditable="' + element.getAttribute('contenteditable') + '"]'
+                  : '',
+                element.hasAttribute('tabindex') ? '[tabindex="' + element.getAttribute('tabindex') + '"]' : '',
+              ].join('');
+              return {
+                tagName,
+                testId,
+                label,
+                descriptor: tagName + attributes + ' "' + label + '"',
+              };
+            })
+          : [];
         return JSON.stringify({
           selectors,
           positions,
@@ -871,6 +921,7 @@ const main = async () => {
           stadiumChipCount: document.querySelectorAll('[data-testid="landing-stadium-chip"]').length,
           diaryResultCount: document.querySelectorAll('[data-testid="landing-diary-result"]').length,
           ctaCount: landing ? landing.querySelectorAll('[data-testid*="cta"], a').length : null,
+          interactiveElements,
           footerCount: landing ? landing.querySelectorAll('footer').length : null,
         });
       })()
@@ -965,6 +1016,10 @@ const main = async () => {
     if (structure.ctaCount !== 0) {
       failures.push(`Structure: expected 0 CTA/link elements, received ${structure.ctaCount}.`);
     }
+
+    failures.push(...getLandingInteractiveSetFailures(structure.interactiveElements).map(
+      (failure) => `Structure: ${failure}.`,
+    ));
 
     if (structure.footerCount !== 0) {
       failures.push(`Structure: expected no footer, received ${structure.footerCount}.`);

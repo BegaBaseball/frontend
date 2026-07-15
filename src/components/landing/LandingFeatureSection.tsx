@@ -19,21 +19,6 @@ export default function LandingFeatureSection({
   visualFirst = false,
   tone,
 }: LandingFeatureSectionProps) {
-  const copyBlock = (
-    <div className="landing-feature-copy" data-reveal="0" key="copy">
-      <p className="landing-feature-label">
-        {number} · {LANDING_FEATURE_LABELS[number]}
-      </p>
-      <h2 id={`landing-feature-${number}-title`}>{title}</h2>
-      <p className="landing-feature-description">{description}</p>
-    </div>
-  );
-  const visualBlock = (
-    <div className="landing-feature-visual" data-reveal="120" key="visual">
-      {visual}
-    </div>
-  );
-
   return (
     <section
       className={`landing-feature landing-feature-${tone}`}
@@ -42,7 +27,16 @@ export default function LandingFeatureSection({
     >
       <div className="landing-feature-watermark" aria-hidden="true">{number}</div>
       <div className="landing-feature-inner" data-visual-first={visualFirst || undefined}>
-        {visualFirst ? [visualBlock, copyBlock] : [copyBlock, visualBlock]}
+        <div className="landing-feature-copy" data-reveal="0">
+          <p className="landing-feature-label">
+            {number} · {LANDING_FEATURE_LABELS[number]}
+          </p>
+          <h2 id={`landing-feature-${number}-title`}>{title}</h2>
+          <p className="landing-feature-description">{description}</p>
+        </div>
+        <div className="landing-feature-visual" data-reveal="120">
+          {visual}
+        </div>
       </div>
     </section>
   );

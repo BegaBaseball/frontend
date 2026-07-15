@@ -9,6 +9,7 @@ import {
   collectSuccessfulDeferredRequests,
   getClosingAuditFailures,
   isViewportIntersectionVisible,
+  partitionSuccessfulDeferredRequestsByStart,
 } from './lib/landing-audit-contracts.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
@@ -820,6 +821,7 @@ const normalizeRequest = (request) => ({
   status: request.status,
   contentLength: request.contentLength,
   deferred: request.deferred,
+  at: request.at,
   completedAt: request.completedAt,
 });
 
@@ -1036,10 +1038,6 @@ const runIteration = async ({
     }
 
     const closingScrollStartedAt = Date.now();
-    initialDeferredRequests = collectSuccessfulDeferredRequests(network.requests, {
-      to: closingScrollStartedAt,
-    }).map(normalizeRequest);
-    entry.initialDeferredRequests = initialDeferredRequests;
     await page.locator('[data-testid="landing-closing"]').scrollIntoViewIfNeeded({ timeout: closingTimeoutMs });
     await waitForVisibleTestId(page, 'landing-closing-mascot', closingTimeoutMs)
       .then(() => checks.push('landing closing mascot visible after scroll'))
@@ -1059,9 +1057,13 @@ const runIteration = async ({
     await sleep(600);
 
     const afterSnapshot = await readPageSnapshot(page);
-    const afterClosingRequests = collectSuccessfulDeferredRequests(network.requests, {
-      from: closingScrollStartedAt,
-    }).map(normalizeRequest);
+    const closingRequestPartition = partitionSuccessfulDeferredRequestsByStart(
+      network.requests,
+      closingScrollStartedAt,
+    );
+    initialDeferredRequests = closingRequestPartition.before.map(normalizeRequest);
+    const afterClosingRequests = closingRequestPartition.after.map(normalizeRequest);
+    entry.initialDeferredRequests = initialDeferredRequests;
     entry.afterClosingDeferredRequests = afterClosingRequests;
     entry.metrics.closingRenderedAtAfterScroll = roundMetric(afterSnapshot.landingMetrics?.closingRenderedAt);
 
