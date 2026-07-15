@@ -131,7 +131,7 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-page').find('img[src*="landing-showcase-"]').should('not.exist');
   });
 
-  it('renders the first three numbered feature stories and their approved examples', () => {
+  it('renders all six numbered feature stories and their approved examples', () => {
     cy.viewport(1280, 900);
     visitLanding();
 
@@ -141,16 +141,35 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-feature-02').contains('감이 아니라 데이터로').should('be.visible');
     cy.getBySel('landing-feature-03').scrollIntoView();
     cy.getBySel('landing-feature-03').contains('우리 팀의 순간을').should('be.visible');
+    cy.getBySel('landing-feature-04').scrollIntoView();
+    cy.getBySel('landing-feature-04').contains('혼자 가는 직관은').should('be.visible');
+    cy.getBySel('landing-feature-05').scrollIntoView();
+    cy.getBySel('landing-feature-05').contains('처음 가는 구장도').should('be.visible');
+    cy.getBySel('landing-feature-06').scrollIntoView();
     cy.get('[data-testid^="landing-feature-0"]')
+      .should('have.length', 6)
       .then(($features) => [...$features].map((feature) => feature.dataset.testid))
       .should('deep.equal', [
         'landing-feature-01',
         'landing-feature-02',
         'landing-feature-03',
+        'landing-feature-04',
+        'landing-feature-05',
+        'landing-feature-06',
       ]);
     cy.getBySel('landing-feature-01').contains('LIVE · 7회말 · 잠실').should('be.visible');
     cy.getBySel('landing-feature-02').contains('64%').should('be.visible');
     cy.getBySel('landing-feature-03').contains('직관러버').should('be.visible');
+    cy.getBySel('landing-feature-04').contains('신청').should('be.visible');
+    cy.getBySel('landing-feature-04').contains('승인').should('be.visible');
+    cy.getBySel('landing-feature-04').contains('채팅').should('be.visible');
+    cy.getBySel('landing-feature-05')
+      .find('[data-testid="landing-stadium-chip"]')
+      .should('have.length', 9);
+    cy.getBySel('landing-feature-06').contains('승률 0.700').should('be.visible');
+    cy.getBySel('landing-feature-06')
+      .find('[data-testid="landing-diary-result"]')
+      .should('have.length', 10);
   });
 
   it('keeps score-card team logos decorative when visible text names each team', () => {

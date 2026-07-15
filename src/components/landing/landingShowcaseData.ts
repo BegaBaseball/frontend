@@ -64,6 +64,82 @@ export const LANDING_PRIMARY_FEATURE_COPY: Record<'01' | '02' | '03', LandingFea
   },
 };
 
+export const LANDING_SECONDARY_FEATURE_COPY: Record<'04' | '05' | '06', LandingFeatureCopy> = {
+  '04': {
+    title: '혼자 가는 직관은\n이제 그만',
+    description: '같은 경기에 가는 팬끼리 파티를 만들어 매칭됩니다. 신청하고, 호스트의 승인을 받고, 채팅방에서 만날 약속을 잡으세요.',
+  },
+  '05': {
+    title: '처음 가는 구장도\n단골처럼',
+    description: '9개 KBO 구장의 좌석 뷰, 구장 먹거리, 교통편까지. 직관 전에 미리 확인하고 최고의 자리를 찾아보세요.',
+  },
+  '06': {
+    title: '나의 직관 기록이\n쌓여가는 즐거움',
+    description: '다녀온 경기를 승 · 무 · 패 태그와 한 줄 소감으로 기록하세요. 시즌이 끝나면 나만의 직관 승률이 남습니다.',
+  },
+};
+
+export const LANDING_MATE_DATA = {
+  team: 'lg' as TeamKey,
+  matchup: 'LG vs 두산 · 잠실',
+  status: '모집 중',
+  details: ['2025.10.26(일) 18:30', '2/4명', '3루 응원석'],
+  steps: ['신청', '승인', '채팅'],
+  depositCopy: '경기 당일 체크인으로 보증금을 환불받으세요',
+};
+
+export const LANDING_STADIUM_CHIPS = [
+  '잠실',
+  '고척',
+  '문학',
+  '수원',
+  '대전',
+  '대구',
+  '사직',
+  '창원',
+  '광주',
+] as const;
+
+export interface LandingStadiumStat {
+  value: string;
+  label: string;
+}
+
+export const LANDING_STADIUM_DATA = {
+  imageAlt: '잠실야구장',
+  venue: '잠실야구장 · 서울종합운동장',
+  stats: [
+    { value: '25,000', label: '좌석' },
+    { value: '32', label: '먹거리' },
+    { value: '2호선', label: '교통' },
+  ] satisfies LandingStadiumStat[],
+};
+
+export interface LandingDiaryResult {
+  label: '승' | '무' | '패';
+  tone: 'win' | 'draw' | 'loss';
+}
+
+export const LANDING_DIARY_DATA = {
+  heading: '나의 10월 직관',
+  summary: '10회 · 승률 0.700',
+  results: [
+    { label: '승', tone: 'win' },
+    { label: '승', tone: 'win' },
+    { label: '패', tone: 'loss' },
+    { label: '승', tone: 'win' },
+    { label: '무', tone: 'draw' },
+    { label: '승', tone: 'win' },
+    { label: '승', tone: 'win' },
+    { label: '패', tone: 'loss' },
+    { label: '승', tone: 'win' },
+    { label: '승', tone: 'win' },
+  ] satisfies LandingDiaryResult[],
+  quoteDate: '10.26(일) 잠실',
+  quoteResult: '승',
+  quote: '끝내기 직관. 목이 쉬었지만 후회는 없다',
+};
+
 export interface LandingGameStanding {
   rank: number;
   team: TeamKey;
