@@ -37,3 +37,4 @@ yarn-error.log*
 /.claude
 /.playwright-cli
 /.worktrees
+/.superpowers/sdd
