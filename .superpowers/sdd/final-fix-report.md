@@ -77,6 +77,30 @@ The live light contrast checks now measure approximately:
 
 The existing composited dark diary regression also passes.
 
+## Second Final Review Cycle: Red Status Contrast
+
+The computed-contrast Cypress test was extended first to all four remaining visible light status foregrounds. The valid RED run produced 17 passing tests and one failing contrast test with four expected failures:
+
+| Foreground | RED ratio |
+| --- | ---: |
+| Phone `LIVE` | `3.60:1` |
+| Phone game status | `3.76:1` |
+| Feature game status | `3.76:1` |
+| Cheer `좋아요 128` | `3.76:1` |
+
+Only those four fixed-light/light foreground declarations changed from `#ef4444` to `#b91c1c`. Red dot backgrounds and other red surfaces were preserved. An explicit dark-theme rule retains the previous `#ef4444` feature game status in dark mode; the existing cheer dark override remains unchanged.
+
+The GREEN Cypress run passes 18/18 tests. The live computed foreground/background pairs now produce:
+
+| Foreground | GREEN ratio |
+| --- | ---: |
+| Phone `LIVE` on `#f9fafb` | `6.19:1` |
+| Phone game status on white | `6.47:1` |
+| Feature game status on white | `6.47:1` |
+| Cheer `좋아요 128` on white | `6.47:1` |
+
+The refreshed responsive landing audit, production build, and post-build first-load audit also pass. Mobile and feature screenshots were opened after the foreground change and remain visually coherent.
+
 ## Verification
 
 ### Responsive QA and visual smoke
@@ -121,8 +145,8 @@ Result: PASS, zero warnings and zero failures. The first sandbox run could not b
 
 | Viewport | FCP | LCP | CLS | Successful mascot requests before/after scroll |
 | --- | ---: | ---: | ---: | ---: |
-| Desktop 1440 | 148ms | 448ms | 0 | 0 / 1 |
-| Mobile 390 | 124ms | 388ms | 0 | 0 / 1 |
+| Desktop 1440 | 124ms | 372ms | 0 | 0 / 1 |
+| Mobile 390 | 124ms | 364ms | 0 | 0 / 1 |
 
 Both viewport entries record the deferred mascot request `at` and `completedAt`, with the exact request-start partition and unique successful completion contract.
 

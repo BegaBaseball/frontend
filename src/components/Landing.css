@@ -534,7 +534,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #ef4444;
+  color: #b91c1c;
   font-size: 10.5px;
   font-weight: 800;
 }
@@ -576,7 +576,7 @@
 
 .landing-phone-card-kicker {
   margin-bottom: 8px;
-  color: #ef4444;
+  color: #b91c1c;
   font-size: 10.5px;
   font-weight: 700;
 }
@@ -912,7 +912,7 @@
   align-items: center;
   gap: 6px;
   margin: 0 0 16px;
-  color: #ef4444;
+  color: #b91c1c;
   font-size: 12px;
   font-weight: 700;
 }
@@ -1283,7 +1283,7 @@
 }
 
 .landing-cheer-metrics .landing-cheer-liked {
-  color: #ef4444;
+  color: #b91c1c;
 }
 
 .landing-cheer-liked i {
@@ -2064,6 +2064,10 @@
 
 .dark .landing-cheer-follow {
   border-color: #63b39b;
+}
+
+.dark .landing-game-live {
+  color: #ef4444;
 }
 
 .dark .landing-mate-steps,

@@ -594,11 +594,15 @@ describe('Landing hero and ticker foundation', () => {
     });
   });
 
-  it('keeps every light prediction and diary foreground at WCAG AA contrast after compositing', () => {
+  it('keeps every light status, prediction, and diary foreground at WCAG AA contrast after compositing', () => {
     cy.viewport(1280, 900);
     visitLanding({ theme: 'light' });
 
     const contrastTargets = [
+      ['phone LIVE', '.landing-phone-live'],
+      ['phone game status', '.landing-phone-card-kicker'],
+      ['feature game status', '[data-testid="landing-feature-01"] .landing-game-live'],
+      ['cheer like count', '[data-testid="landing-feature-03"] .landing-cheer-liked'],
       ['prediction 36%', '[data-testid="landing-feature-02"] .landing-prediction-team-away strong'],
       ['prediction VS', '[data-testid="landing-feature-02"] .landing-prediction-matchup > i'],
       ['diary result', '[data-testid="landing-feature-06"] [data-testid="landing-diary-result"]'],
