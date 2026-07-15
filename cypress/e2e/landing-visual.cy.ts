@@ -49,6 +49,37 @@ describe('Landing hero and ticker foundation', () => {
     assertNoHorizontalOverflow();
   });
 
+  it('lets visitors pause and resume the score ticker', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-ticker-toggle').should('have.text', '티커 일시정지');
+    cy.get('.landing-ticker-track').should('have.css', 'animation-play-state', 'running');
+    cy.getBySel('landing-ticker-toggle').should('have.attr', 'aria-pressed', 'false').click();
+    cy.getBySel('landing-ticker-toggle').should('have.attr', 'aria-pressed', 'true').and('contain', '재생');
+    cy.getBySel('landing-ticker-toggle').should('have.text', '티커 재생');
+    cy.get('.landing-ticker-track').should('have.css', 'animation-play-state', 'paused');
+
+    cy.getBySel('landing-ticker-toggle').click();
+    cy.getBySel('landing-ticker-toggle')
+      .should('have.attr', 'aria-pressed', 'false')
+      .and('have.text', '티커 일시정지');
+    cy.get('.landing-ticker-track').should('have.css', 'animation-play-state', 'running');
+  });
+
+  it('aligns the duplicated ticker groups at the loop endpoint', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.get('.landing-ticker-track').should(($track) => {
+      const [animation] = $track[0].getAnimations();
+      const keyframes = (animation.effect as KeyframeEffect).getKeyframes();
+      expect(keyframes[keyframes.length - 1].transform).to.equal(
+        'translateX(calc(-50% - 22px))',
+      );
+    });
+  });
+
   it('omits navigation and calls to action', () => {
     cy.viewport(1280, 900);
     visitLanding();

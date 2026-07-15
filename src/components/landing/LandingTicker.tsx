@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { TEAM_ASSETS } from './landingAssets';
 import { TICKER_ITEMS } from './landingShowcaseData';
 
@@ -35,12 +37,27 @@ function TickerGroup({ ariaHidden = false }: TickerGroupProps) {
 }
 
 export default function LandingTicker() {
+  const [isPaused, setIsPaused] = useState(false);
+
   return (
     <aside data-testid="landing-score-ticker" aria-label="BEGA 기능 예시 스코어">
-      <div className="landing-ticker-track" data-motion-loop>
+      <div
+        className="landing-ticker-track"
+        data-motion-loop
+        data-paused={isPaused || undefined}
+      >
         <TickerGroup />
         <TickerGroup ariaHidden />
       </div>
+      <button
+        type="button"
+        className="landing-ticker-toggle"
+        data-testid="landing-ticker-toggle"
+        aria-pressed={isPaused}
+        onClick={() => setIsPaused((paused) => !paused)}
+      >
+        {isPaused ? '티커 재생' : '티커 일시정지'}
+      </button>
     </aside>
   );
 }
