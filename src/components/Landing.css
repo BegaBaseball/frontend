@@ -29,6 +29,10 @@
   animation: landing-ticker 26s linear infinite;
 }
 
+.landing-ticker-track[data-paused="true"] {
+  animation-play-state: paused;
+}
+
 .landing-ticker-group {
   flex: none;
   gap: 44px;
@@ -75,13 +79,39 @@
   color: #eab308;
 }
 
+.landing-ticker-toggle {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  z-index: 1;
+  min-height: 32px;
+  padding: 5px 10px;
+  transform: translateY(-50%);
+  border: 1px solid rgb(255 255 255 / 28%);
+  border-radius: 999px;
+  background: #0f1419;
+  box-shadow: -16px 0 18px #0f1419;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  white-space: nowrap;
+}
+
+.landing-ticker-toggle:focus-visible {
+  outline: 2px solid #63b39b;
+  outline-offset: 2px;
+}
+
 @keyframes landing-ticker {
   from {
     transform: translateX(0);
   }
 
   to {
-    transform: translateX(-50%);
+    transform: translateX(calc(-50% - 22px));
   }
 }
 
