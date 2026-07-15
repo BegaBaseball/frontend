@@ -215,3 +215,61 @@ export const LANDING_CHEER_POSTS: readonly LandingCheerPost[] = [
     liked: false,
   },
 ];
+
+export interface LandingRetroLeaderboardEntry {
+  rank: number;
+  handle: string;
+  rate: string;
+  tone: 'leader' | 'highlight' | 'muted';
+}
+
+export const LANDING_OFFSEASON_DATA = {
+  label: '시즌이 끝나도',
+  title: '야구는 겨울에도 계속됩니다',
+  description: '오프시즌엔 스토브리그 인사이트로, 그리고 시즌 기록을 겨루는 복고풍 리더보드로.',
+  insight: {
+    label: 'OFFSEASON INSIGHT',
+    title: '스토브리그의 모든 소식,\n데이터로 정리해드립니다',
+    description: 'FA 이적 · 신인 드래프트 · 스프링캠프 리포트까지, 겨울에도 팬심이 식지 않도록.',
+    chips: ['FA 트래커', '캠프 리포트'],
+  },
+  retro: {
+    label: 'RETRO MODE',
+    title: '8-bit 리더보드에서\n시즌 기록을 겨루세요',
+    description: '직관 승률 · 예측 적중률 랭킹. 픽셀 야구장에서 만나요.',
+    leaderboard: [
+      { rank: 1, handle: 'TIGERS_V12', rate: '.712', tone: 'leader' },
+      { rank: 2, handle: 'JIKGWAN_LOVER', rate: '.700', tone: 'highlight' },
+      { rank: 3, handle: 'BEGA_FAN_01', rate: '.685', tone: 'muted' },
+    ] satisfies LandingRetroLeaderboardEntry[],
+  },
+};
+
+export interface LandingStartGuideStep {
+  number: 1 | 2 | 3;
+  title: string;
+  description: string;
+}
+
+export const LANDING_START_GUIDE: readonly LandingStartGuideStep[] = [
+  {
+    number: 1,
+    title: '응원 팀을 고르세요',
+    description: '10개 구단 중 내 팀을 선택하면 피드와 일정이 우리 팀 중심으로 정렬됩니다.',
+  },
+  {
+    number: 2,
+    title: '오늘 경기를 확인하세요',
+    description: '실시간 스코어와 AI 승리 확률을 보고, 경기 전 예측에 참여해보세요.',
+  },
+  {
+    number: 3,
+    title: '직관을 기록하세요',
+    description: '같이가요로 메이트를 만나고, 다녀온 경기는 직관일기에 남기세요.',
+  },
+];
+
+export const LANDING_CLOSING_COPY = {
+  title: '야구팬의 하루가\n전부 BEGA 안에 있습니다',
+  description: '실시간 경기 정보부터 함께 갈 메이트까지,\n시즌의 모든 순간을 함께하세요.',
+};
