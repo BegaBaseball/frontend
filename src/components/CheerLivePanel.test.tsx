@@ -6,6 +6,8 @@ import CheerLiveEventSummary from './CheerLiveEventSummary';
 import {
   BASEBALL_DATA_SYNC_PENDING_CODE,
   getBaseballScheduleErrorPresentation,
+} from './cheer/CheerScheduleErrorPresentation';
+import {
   MANUAL_BASEBALL_DATA_REQUIRED_CODE,
   MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
 } from '../utils/errorUtils';

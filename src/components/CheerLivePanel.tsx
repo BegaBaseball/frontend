@@ -4,14 +4,12 @@ import { useQuery } from '@tanstack/react-query';
 import { useGamesData } from '../api/home';
 import { fetchGameLiveSnapshot } from '../api/prediction';
 import type { Game as HomeGame } from '../types/home';
-import {
-  getBaseballScheduleErrorPresentation,
-  parseError,
-} from '../utils/errorUtils';
+import { parseError } from '../utils/errorUtils';
 import { LIVE_GAME_EVENT_LIMIT, LIVE_GAME_POLL_INTERVAL_MS, normalizeLiveStatus } from '../utils/liveGame';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import TeamLogo from './TeamLogo';
 import { getAccessibleCheerTextColor } from './cheer/CheerPresentation';
+import { getBaseballScheduleErrorPresentation } from './cheer/CheerScheduleErrorPresentation';
 import CheerLiveEventSummary from './CheerLiveEventSummary';
 import { StatusBadge } from './ui/status-badge';
 
