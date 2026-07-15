@@ -115,7 +115,7 @@ exit 0, no output
 
 ## Review
 
-The required frontend audit-only reviewer was invoked in review-only mode but did not return a result within the final verification window. It was interrupted after the fresh completion gate rather than delaying the task indefinitely. The root agent will run the independent Task 4 review.
+The initial frontend audit-only child did not return within the final verification window and was interrupted after the fresh completion gate. The independent root review then identified two scoped improvements: exact content/order coverage for the new handoff examples and invalid `span > h3` nesting in the mate card. Both are addressed in the review-fix section below.
 
 ## Commit
 
@@ -127,4 +127,75 @@ feat: complete landing feature stories
 
 ## Concerns
 
-No Task 4 blocker or failing verification remains. The independent root review is still pending. Full landing dark-theme completion, final closing sections, scripted multi-viewport QA, and final screenshot inspection remain intentionally reserved for Tasks 5–6.
+No Task 4 blocker or failing verification remains. Full landing dark-theme completion, final closing sections, scripted multi-viewport QA, and final screenshot inspection remain intentionally reserved for Tasks 5–6.
+
+---
+
+## Review Fix: Exact Handoff Contract and Valid Mate Heading Structure
+
+### What Changed
+
+- Strengthened the existing Task 4 Cypress case to assert the exact mate matchup, date, party size, seat, progression order, and deposit copy.
+- Added exact handoff-order assertions for all nine stadium chip labels, the full venue label, and `25,000 / 32 / 2호선` statistic values.
+- Added an exact DOM-order assertion for the ten diary results and an exact full-text assertion for the approved diary quote.
+- Replaced the invalid inline `<span>` wrapper around the mate-card `<h3>` with a visually equivalent block `<div>` while retaining the same class, flex styling, text, and layout.
+
+### TDD Rationale and Pre-Refactor Evidence
+
+No new product RED was possible for these review fixes. The review explicitly identified missing assertion precision around already-correct rendered content, and the semantic wrapper change does not alter visible behavior. Manufacturing a failure would require corrupting an approved static value or the correct result order solely for the test.
+
+The exact assertions were therefore added before the semantic production refactor and run against commit `ce39ef43`'s unchanged production output. They passed, demonstrating that this is test strengthening over the already-correct product contract. The original valid Task 4 missing-section RED above remains the behavior RED record.
+
+Pre-refactor focused result:
+
+```text
+env CYPRESS_ALLOW_GLOBAL_FALLBACK=1 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
+9 passing (7s)
+All specs passed!
+```
+
+### Post-Refactor GREEN
+
+Fresh focused result after the `span > h3` correction:
+
+```text
+env CYPRESS_ALLOW_GLOBAL_FALLBACK=1 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
+9 passing (6s)
+All specs passed!
+```
+
+Additional fresh verification:
+
+```text
+npx tsc --noEmit --pretty false
+exit 0, no TypeScript diagnostics
+
+node --import tsx --test src/components/design-slop-guard.test.ts
+15 tests, 15 pass, 0 fail
+
+python3 scripts/validate_baseball_data_policy.py
+External baseball data policy OK
+
+git diff --check
+exit 0, no output
+```
+
+### Review-Fix Self-Check
+
+- Confirmed each new array assertion fails for missing, extra, or reordered values rather than checking only element counts or substring presence.
+- Confirmed exact string assertions cover every Task 4 static handoff value named by the independent review.
+- Confirmed the mate-card heading remains an `<h3>` under its feature `<h2>` and now has valid block-level ancestry.
+- Confirmed the semantic refactor changed no class name, CSS rule, baseball value, DOM text, interactive behavior, or visual placement.
+- Confirmed no external source, request, crawler, scraper, web search, repair fallback, screenshot, inline SVG, CTA, link, or button was added.
+
+### Review-Fix Commit
+
+Planned message:
+
+```text
+fix: strengthen landing feature story contract
+```
+
+### Review-Fix Concerns
+
+No review-fix blocker or failing verification remains.

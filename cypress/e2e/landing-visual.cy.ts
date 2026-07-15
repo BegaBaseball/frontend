@@ -160,16 +160,45 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-feature-01').contains('LIVE · 7회말 · 잠실').should('be.visible');
     cy.getBySel('landing-feature-02').contains('64%').should('be.visible');
     cy.getBySel('landing-feature-03').contains('직관러버').should('be.visible');
-    cy.getBySel('landing-feature-04').contains('신청').should('be.visible');
-    cy.getBySel('landing-feature-04').contains('승인').should('be.visible');
-    cy.getBySel('landing-feature-04').contains('채팅').should('be.visible');
-    cy.getBySel('landing-feature-05')
-      .find('[data-testid="landing-stadium-chip"]')
-      .should('have.length', 9);
+    cy.getBySel('landing-feature-04').within(() => {
+      cy.get('.landing-mate-matchup h3').should('have.text', 'LG vs 두산 · 잠실');
+      cy.get('.landing-mate-details li')
+        .then(($details) => [...$details].map((detail) => detail.textContent?.trim()))
+        .should('deep.equal', ['2025.10.26(일) 18:30', '2/4명', '3루 응원석']);
+      cy.get('.landing-mate-steps li')
+        .then(($steps) => [...$steps].map((step) => step.textContent?.trim()))
+        .should('deep.equal', ['신청', '승인', '채팅']);
+      cy.get('.landing-mate-deposit')
+        .should('have.text', '경기 당일 체크인으로 보증금을 환불받으세요');
+    });
+    cy.getBySel('landing-feature-05').within(() => {
+      cy.get('[data-testid="landing-stadium-chip"]')
+        .then(($chips) => [...$chips].map((chip) => chip.textContent?.trim()))
+        .should('deep.equal', [
+          '잠실',
+          '고척',
+          '문학',
+          '수원',
+          '대전',
+          '대구',
+          '사직',
+          '창원',
+          '광주',
+        ]);
+      cy.get('.landing-stadium-art figcaption')
+        .should('have.text', '잠실야구장 · 서울종합운동장');
+      cy.get('.landing-stadium-stats dd')
+        .then(($stats) => [...$stats].map((stat) => stat.textContent?.trim()))
+        .should('deep.equal', ['25,000', '32', '2호선']);
+    });
     cy.getBySel('landing-feature-06').contains('승률 0.700').should('be.visible');
-    cy.getBySel('landing-feature-06')
-      .find('[data-testid="landing-diary-result"]')
-      .should('have.length', 10);
+    cy.getBySel('landing-feature-06').within(() => {
+      cy.get('[data-testid="landing-diary-result"]')
+        .then(($results) => [...$results].map((result) => result.textContent?.trim()))
+        .should('deep.equal', ['승', '승', '패', '승', '무', '승', '승', '패', '승', '승']);
+      cy.get('.landing-diary-quote')
+        .should('have.text', '10.26(일) 잠실 · 승 — “끝내기 직관. 목이 쉬었지만 후회는 없다”');
+    });
   });
 
   it('keeps score-card team logos decorative when visible text names each team', () => {
