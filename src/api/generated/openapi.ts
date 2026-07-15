@@ -5862,14 +5862,19 @@ export interface components {
             streak: number;
         };
         MatePaymentCapabilityResponse: {
-            paymentMode?: string;
-            businessMode?: string;
-            provider?: string;
-            environment?: string;
-            tossPaymentEnabled?: boolean;
-            sellingPaymentRequired?: boolean;
-            payoutEnabled?: boolean;
-            payoutProvider?: string;
+            /** @enum {string} */
+            paymentMode: "DIRECT_TRADE" | "TOSS_TEST" | "IN_APP_PAYMENT";
+            /** @enum {string} */
+            businessMode: "DIRECT_TRADE" | "IN_APP_PAYMENT";
+            /** @enum {string} */
+            provider: "TOSS" | "UNSUPPORTED";
+            /** @enum {string} */
+            environment: "NONE" | "TEST" | "LIVE";
+            tossPaymentEnabled: boolean;
+            sellingPaymentRequired: boolean;
+            payoutEnabled: boolean;
+            /** @enum {string} */
+            payoutProvider: "SIM" | "TOSS" | "UNSUPPORTED";
         };
         MatePartyMemberSummary: {
             initial?: string;
