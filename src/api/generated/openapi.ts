@@ -1466,6 +1466,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/maintenance/cheer-posts/cleanup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cleanupSoftDeletedCheerPosts"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/games/{gameId}/sync-snapshot": {
         parameters: {
             query?: never;
@@ -6385,9 +6401,9 @@ export interface components {
             franchise?: components["schemas"]["TeamFranchiseEntity"];
             isActive?: boolean;
             aliases?: string;
-            activeKboTeam?: boolean;
             /** Format: int32 */
             franchiseId?: number;
+            activeKboTeam?: boolean;
         };
         DayStats: {
             /** Format: int32 */
@@ -6708,15 +6724,15 @@ export interface components {
             createdAt?: string;
         };
         PageObject: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
             pageable?: components["schemas"]["PageableObject"];
-            /** Format: int32 */
-            numberOfElements?: number;
             first?: boolean;
             last?: boolean;
+            /** Format: int32 */
+            numberOfElements?: number;
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["AuditLogDto"][];
@@ -6737,8 +6753,8 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
         };
         SortObject: {
-            sorted?: boolean;
             unsorted?: boolean;
+            sorted?: boolean;
             empty?: boolean;
         };
         ApiResponsePageAdminReportDto: {
@@ -9716,6 +9732,26 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseMediaBackfillReport"];
+                };
+            };
+        };
+    };
+    cleanupSoftDeletedCheerPosts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };

@@ -1,0 +1,72 @@
+name: Backend OpenAPI Contract
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/generate-openapi-types.mjs"
+      - "scripts/openapi-types-lib.mjs"
+      - "scripts/openapi-types.test.mjs"
+      - "src/api/generated/openapi.ts"
+      - ".github/workflows/backend-openapi-contract.yml"
+  push:
+    branches:
+      - main
+      - develop
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "scripts/generate-openapi-types.mjs"
+      - "scripts/openapi-types-lib.mjs"
+      - "scripts/openapi-types.test.mjs"
+      - "src/api/generated/openapi.ts"
+      - ".github/workflows/backend-openapi-contract.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: backend-openapi-contract-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    name: Generated Type Drift
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+
+      - name: Checkout canonical backend contract
+        uses: actions/checkout@v4
+        with:
+          repository: BegaBaseball/backend
+          ref: main
+          path: backend
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Run contract tests
+        working-directory: frontend
+        run: npm run test:api-contract
+
+      - name: Verify generated API types
+        working-directory: frontend
+        env:
+          OPENAPI_SCHEMA_URL: ${{ github.workspace }}/backend/BEGA_PROJECT/contracts/openapi.json
+        run: npm run api:types:check
