@@ -78,7 +78,7 @@ The ticker, deep-mint app-preview section, phone interior, deep-mint offseason c
 
 Motion is decorative and never required to understand content.
 
-- The ticker uses two identical groups and a 26-second linear `translateX(-50%)` loop.
+- The ticker uses two identical groups and a 26-second linear loop, with an adjacent text-labelled pause/resume control that changes `animation-play-state`. This accessibility control is not a CTA or navigation element.
 - Elements marked for reveal enter once through `IntersectionObserver` at approximately `0.18` threshold, using opacity and a 28px vertical offset.
 - Bars animate to their declared percentage when their section enters.
 - Hero statistics count up over 1.2 seconds with cubic ease-out.
@@ -100,7 +100,7 @@ The landing makes no API request and adds no crawler, scraper, browser repair, w
 - The first ticker group has an explicit label that identifies it as a BEGA product example.
 - Meaningful logo and stadium images have concise alternate text; repeated decorative team marks use empty alternate text where surrounding text already names the team.
 - Color is not the only status indicator: status, result, and progress values remain present as text.
-- With no CTA or interactive vignette controls, the page introduces no false affordances or unnecessary tab stops.
+- With no CTA or interactive vignette controls, the page introduces no false affordances. The ticker pause/resume control is the only landing utility control and has a clear accessible label.
 - Reduced-motion users receive the complete final state with no delayed hidden content.
 
 ## Error and Fallback Behavior

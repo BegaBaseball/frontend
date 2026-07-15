@@ -37,3 +37,6 @@ yarn-error.log*
 /.claude
 /.playwright-cli
 /.worktrees
+/.superpowers/sdd/progress.md
+/.superpowers/sdd/*-brief.md
+/.superpowers/sdd/review-*.diff

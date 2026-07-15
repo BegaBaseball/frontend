@@ -11,6 +11,11 @@ import {
   isBudgetWithinLimit,
 } from './lib/bundle-budget-policy.mjs';
 import { detectReactDevArtifacts } from './lib/react-dev-artifact-policy.mjs';
+import {
+  collectManifestStaticClosure,
+  findForbiddenManifestClosureReferences,
+  resolveManifestEntryKey,
+} from './lib/landing-audit-contracts.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -429,16 +434,17 @@ const manifestImportGuards = [
     forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'PublicShellIcons-', 'FirstLoadIcons-'],
   },
   {
-    label: 'ThemeToggleButton manifest avoids heavy icon runtime',
-    directory: clientAssetsDir,
-    filePattern: /^ThemeToggleButton-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'FirstLoadIcons-'],
-  },
-  {
     label: 'Landing manifest avoids heavy icon runtime',
     directory: clientAssetsDir,
     filePattern: /^Landing-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'FirstLoadIcons-'],
+    forbiddenImportSubstrings: [
+      'vendor-icons-',
+      'AppIcon-',
+      'FirstLoadIcons-',
+      'ThemeToggleButton-',
+      'LandingFeaturesRuntime-',
+      'landing-showcase-',
+    ],
   },
   {
     label: 'PublicNavbarDesktopAuthControls manifest avoids heavy icon runtime',
@@ -514,12 +520,6 @@ const manifestImportGuards = [
       'src/components/ChatBotFloatingButton.tsx',
       'ChatBotFloatingButton-',
     ],
-  },
-  {
-    label: 'LandingFeaturesRuntime manifest imports',
-    directory: clientAssetsDir,
-    filePattern: /^LandingFeaturesRuntime-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'PublicShellIcons-'],
   },
   {
     label: 'WelcomeGuide manifest imports',
@@ -1678,6 +1678,12 @@ const manifestImportGuards = [
   },
 ];
 
+const landingScreenshotStaticClosureGuard = {
+  label: 'Landing static closure avoids screenshot-era assets',
+  entrypoints: ['src/components/Landing.tsx'],
+  forbiddenSubstrings: ['landing-showcase-'],
+};
+
 const homeFirstLoadStaticClosureGuards = [
   {
     label: '/home first-load static closure',
@@ -1995,62 +2001,6 @@ const getManifestEntryJsGzipSize = (entry) => {
   return fs.existsSync(filePath) ? gzipSync(fs.readFileSync(filePath)).length : 0;
 };
 
-const resolveManifestEntryKey = (manifest, key) => {
-  if (manifest?.[key]) {
-    return key;
-  }
-
-  const baseName = path.basename(key, path.extname(key));
-  if (!baseName) {
-    return null;
-  }
-
-  const matches = Object.entries(manifest || {})
-    .filter(([entryKey, entry]) => (
-      entry?.name === baseName
-      || entry?.file?.startsWith(`assets/${baseName}-`)
-      || entryKey.startsWith(`_${baseName}-`)
-    ))
-    .sort(([leftKey], [rightKey]) => leftKey.localeCompare(rightKey));
-
-  return matches[0]?.[0] ?? null;
-};
-
-const collectManifestStaticClosure = (manifest, entrypoints) => {
-  const includedKeys = new Set();
-  const missingEntrypoints = [];
-  const missingImports = [];
-
-  const visit = (key, parent = null) => {
-    const resolvedKey = resolveManifestEntryKey(manifest, key);
-
-    if (resolvedKey && includedKeys.has(resolvedKey)) {
-      return;
-    }
-
-    const entry = resolvedKey ? manifest?.[resolvedKey] : null;
-    if (!entry) {
-      if (parent) {
-        missingImports.push({ key, parent });
-      } else {
-        missingEntrypoints.push(key);
-      }
-      return;
-    }
-
-    includedKeys.add(resolvedKey);
-    (Array.isArray(entry.imports) ? entry.imports : []).forEach((importKey) => visit(importKey, resolvedKey));
-  };
-
-  entrypoints.forEach((entrypoint) => visit(entrypoint));
-
-  return {
-    includedKeys: [...includedKeys].sort(),
-    missingEntrypoints,
-    missingImports,
-  };
-};
-
 const getManifestEntryFileSummary = (manifest, key) => {
   const resolvedKey = resolveManifestEntryKey(manifest, key);
   const entry = resolvedKey ? manifest?.[resolvedKey] : null;
@@ -2194,6 +2144,47 @@ const homeFirstLoadStaticClosureResults = isModuleFederationBuild ? [] : homeFir
 
 const routeStaticClosureResults = routeStaticClosureTargets.map(buildRouteStaticClosureResult);
 
+const landingScreenshotStaticClosureResult = (() => {
+  if (isModuleFederationBuild) {
+    return {
+      label: landingScreenshotStaticClosureGuard.label,
+      ok: true,
+      skipped: true,
+      entrypoints: landingScreenshotStaticClosureGuard.entrypoints,
+      forbiddenSubstrings: landingScreenshotStaticClosureGuard.forbiddenSubstrings,
+    };
+  }
+
+  if (!clientManifest) {
+    return {
+      label: landingScreenshotStaticClosureGuard.label,
+      ok: false,
+      reason: 'missing_manifest',
+      entrypoints: landingScreenshotStaticClosureGuard.entrypoints,
+      forbiddenSubstrings: landingScreenshotStaticClosureGuard.forbiddenSubstrings,
+    };
+  }
+
+  const result = findForbiddenManifestClosureReferences(
+    clientManifest,
+    landingScreenshotStaticClosureGuard.entrypoints,
+    landingScreenshotStaticClosureGuard.forbiddenSubstrings,
+  );
+
+  return {
+    label: landingScreenshotStaticClosureGuard.label,
+    ok: result.missingEntrypoints.length === 0
+      && result.missingImports.length === 0
+      && result.violations.length === 0,
+    entrypoints: landingScreenshotStaticClosureGuard.entrypoints,
+    forbiddenSubstrings: landingScreenshotStaticClosureGuard.forbiddenSubstrings,
+    includedKeys: result.includedKeys,
+    missingEntrypoints: result.missingEntrypoints,
+    missingImports: result.missingImports,
+    violations: result.violations,
+  };
+})();
+
 const devArtifactResults = [
   { label: 'client JS assets', directory: clientAssetsDir },
   { label: 'worker JS assets', directory: workerAssetsDir },
@@ -2287,6 +2278,18 @@ const failures = [
             : `${result.label} exceeded route gzip budget (${result.totalJsGzipBytes} > ${result.maxJsGzipBytes})`,
       type: 'route_static_closure',
     })),
+  ...(!landingScreenshotStaticClosureResult.ok
+    ? [{
+        message: landingScreenshotStaticClosureResult.reason === 'missing_manifest'
+          ? `client manifest missing for static closure guard "${landingScreenshotStaticClosureResult.label}"`
+          : landingScreenshotStaticClosureResult.missingEntrypoints.length > 0
+            ? `${landingScreenshotStaticClosureResult.label} missing entrypoint(s): ${landingScreenshotStaticClosureResult.missingEntrypoints.join(', ')}`
+            : landingScreenshotStaticClosureResult.missingImports.length > 0
+              ? `${landingScreenshotStaticClosureResult.label} missing import(s): ${landingScreenshotStaticClosureResult.missingImports.map((item) => `${item.key} from ${item.parent}`).join(', ')}`
+              : `${landingScreenshotStaticClosureResult.label} included forbidden emitted reference(s): ${landingScreenshotStaticClosureResult.violations.map((item) => `${item.reference} matched ${item.substring}`).join(', ')}`,
+        type: 'landing_screenshot_static_closure',
+      }]
+    : []),
 ];
 
 const report = {
@@ -2306,6 +2309,7 @@ const report = {
   manifestImportGuardResults,
   homeFirstLoadStaticClosureResults,
   routeStaticClosureResults,
+  landingScreenshotStaticClosureResult,
   ok: failures.length === 0,
   failures,
 };
