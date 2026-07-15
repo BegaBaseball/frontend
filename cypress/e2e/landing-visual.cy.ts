@@ -141,7 +141,13 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-feature-02').contains('감이 아니라 데이터로').should('be.visible');
     cy.getBySel('landing-feature-03').scrollIntoView();
     cy.getBySel('landing-feature-03').contains('우리 팀의 순간을').should('be.visible');
-    cy.get('[data-testid^="landing-feature-0"]').should('have.length', 3);
+    cy.get('[data-testid^="landing-feature-0"]')
+      .then(($features) => [...$features].map((feature) => feature.dataset.testid))
+      .should('deep.equal', [
+        'landing-feature-01',
+        'landing-feature-02',
+        'landing-feature-03',
+      ]);
     cy.getBySel('landing-feature-01').contains('LIVE · 7회말 · 잠실').should('be.visible');
     cy.getBySel('landing-feature-02').contains('64%').should('be.visible');
     cy.getBySel('landing-feature-03').contains('직관러버').should('be.visible');

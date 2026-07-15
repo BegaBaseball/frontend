@@ -128,3 +128,72 @@ feat: add primary landing feature stories
 ## Concerns
 
 No Task 3 blocker or failing verification remains. Full landing dark-theme completion, features `04–06`, and end-to-end landing QA are intentionally reserved for their later approved plan tasks.
+
+---
+
+## Review Fix: Derived Inning Progress and Exact Feature Order
+
+### What Changed
+
+- Replaced the duplicated `9이닝 중 6이닝 진행` accessible label with a value derived from `LANDING_GAME_DATA.inningStates.length` and its completed-state count.
+- Strengthened the feature test from count-only coverage to collect the rendered `data-testid` values and deep-equal the exact order `landing-feature-01`, `landing-feature-02`, `landing-feature-03`.
+- Preserved all visible content, baseball examples, animation behavior, responsive layout, and accessibility output.
+
+### TDD Rationale
+
+No new behavior RED was possible for this review fix. The production change centralizes an existing accessible label without changing its rendered value, and the test change makes an already-correct feature order assertion more precise. A deliberately failing assertion would require corrupting the approved order or changing visible/accessibility behavior solely to manufacture a failure.
+
+The strengthened order assertion was therefore added and run before the production refactor. It passed against the unchanged implementation, as expected for a test-quality improvement. The original valid Task 3 RED above remains the behavior RED record.
+
+Pre-refactor focused command and result:
+
+```text
+env CYPRESS_ALLOW_GLOBAL_FALLBACK=1 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
+9 passing (5s)
+All specs passed!
+```
+
+### Post-Refactor GREEN
+
+Fresh focused command and result:
+
+```text
+env CYPRESS_ALLOW_GLOBAL_FALLBACK=1 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
+9 passing (5s)
+All specs passed!
+```
+
+Additional fresh verification:
+
+```text
+npx tsc --noEmit --pretty false
+exit 0, no TypeScript diagnostics
+
+node --import tsx --test src/components/design-slop-guard.test.ts
+15 tests, 15 pass, 0 fail
+
+python3 scripts/validate_baseball_data_policy.py
+External baseball data policy OK
+
+git diff --check
+exit 0, no output
+```
+
+### Review Self-Check
+
+- Confirmed the derived label still resolves to the exact existing text `9이닝 중 6이닝 진행`.
+- Confirmed changing the length or completed entries in `inningStates` now updates both the nine-segment rendering and its accessible progress label from the same operator-provided source.
+- Confirmed the order assertion fails on missing, extra, or reordered numbered feature sections rather than checking only the count.
+- Confirmed no external baseball source, request, repair, crawler, scraper, web search, or new static baseball value was added.
+
+### Review Fix Commit
+
+Planned message:
+
+```text
+fix: derive landing inning progress state
+```
+
+### Review Fix Concerns
+
+No review-fix blocker or failing verification remains.
