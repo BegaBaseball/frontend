@@ -2,8 +2,11 @@ import { useEffect } from 'react';
 
 import landingCriticalCss from './Landing.css?inline';
 import LandingAppPreview from './landing/LandingAppPreview';
+import LandingClosing from './landing/LandingClosing';
 import LandingFeatureSection from './landing/LandingFeatureSection';
 import LandingHero from './landing/LandingHero';
+import LandingOffseason from './landing/LandingOffseason';
+import LandingStartGuide from './landing/LandingStartGuide';
 import LandingTicker from './landing/LandingTicker';
 import {
   LANDING_PRIMARY_FEATURE_COPY,
@@ -77,6 +80,9 @@ export default function Landing() {
         visualFirst
         tone="plain"
       />
+      <LandingOffseason />
+      <LandingStartGuide />
+      <LandingClosing />
     </main>
   );
 }

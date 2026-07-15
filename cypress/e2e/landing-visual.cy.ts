@@ -4,9 +4,15 @@ import { getHomeAuthRequestTraces, installHomeAuthRequestTrace } from '../suppor
 
 interface VisitLandingOptions {
   reducedMotion?: boolean;
+  theme?: 'light' | 'dark';
+  seedPressStartFont?: boolean;
 }
 
-const visitLanding = ({ reducedMotion = false }: VisitLandingOptions = {}) => {
+const visitLanding = ({
+  reducedMotion = false,
+  seedPressStartFont = false,
+  theme,
+}: VisitLandingOptions = {}) => {
   cy.intercept('GET', '**/auth/mypage*', {
     statusCode: 401,
     body: {
@@ -20,6 +26,19 @@ const visitLanding = ({ reducedMotion = false }: VisitLandingOptions = {}) => {
       win.localStorage.clear();
       win.sessionStorage.clear();
       installHomeAuthRequestTrace(win);
+
+      if (theme) {
+        win.localStorage.setItem('kbo-theme', theme);
+      }
+
+      if (seedPressStartFont) {
+        const link = win.document.createElement('link');
+        link.id = 'retro-font-press-start';
+        link.rel = 'stylesheet';
+        link.href = 'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap';
+        link.dataset.testOwner = 'existing';
+        win.document.head.appendChild(link);
+      }
 
       if (reducedMotion) {
         win.matchMedia = (query) => ({
@@ -229,11 +248,112 @@ describe('Landing hero and ticker foundation', () => {
       expect(getComputedStyle($node[0]).animationName).to.equal('none');
     });
     cy.get('[data-reveal]').should('have.css', 'opacity', '1');
+    cy.getBySel('landing-closing-mascot').should(($mascot) => {
+      expect(getComputedStyle($mascot[0]).animationName).to.equal('none');
+    });
+    cy.getBySel('landing-closing').find('[data-reveal]').should('have.css', 'opacity', '1');
     cy.get('.landing-phone-progress [data-bar]').should(($bar) => {
       const style = getComputedStyle($bar[0]);
       expect(style.transitionDuration).to.equal('0s');
       expect(style.transitionDelay).to.equal('0s');
       expect($bar[0].style.width).to.equal('64%');
     });
+  });
+
+  it('renders the CTA-free offseason, semantic start guide, and mascot closing', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-offseason').scrollIntoView().within(() => {
+      cy.contains('야구는 겨울에도 계속됩니다').should('be.visible');
+      cy.contains('RETRO MODE').should('be.visible');
+      cy.get('[data-testid="landing-offseason-chip"]')
+        .then(($chips) => [...$chips].map((chip) => chip.textContent?.trim()))
+        .should('deep.equal', ['FA 트래커', '캠프 리포트']);
+      cy.get('[data-testid="landing-retro-leaderboard"] li').should('have.length', 3);
+    });
+
+    cy.getBySel('landing-start-guide').scrollIntoView().within(() => {
+      cy.contains('HOW TO START').should('be.visible');
+      cy.contains('시작은 3분이면 충분해요').should('be.visible');
+      cy.get('article').should('have.length', 3);
+      cy.get('article h3')
+        .then(($headings) => [...$headings].map((heading) => heading.textContent?.trim()))
+        .should('deep.equal', [
+          '응원 팀을 고르세요',
+          '오늘 경기를 확인하세요',
+          '직관을 기록하세요',
+        ]);
+    });
+
+    cy.getBySel('landing-closing').scrollIntoView().within(() => {
+      cy.get('img[alt="BEGA 마스코트"]').should('be.visible');
+      cy.contains('야구팬의 하루가').should('be.visible');
+      cy.getBySel('landing-closing-logo-chip').should(($chip) => {
+        expect($chip[0].tagName).to.equal('DIV');
+        expect($chip).not.to.have.attr('role');
+        expect($chip).not.to.have.attr('tabindex');
+      });
+      cy.getBySel('landing-closing-logo-chip').find('button, a').should('not.exist');
+    });
+
+    cy.getBySel('landing-page').find('[data-testid*="cta"], a').should('not.exist');
+    cy.getBySel('landing-ticker-toggle').should('exist').and('be.visible').focus().should('have.focus');
+  });
+
+  it('maps light sections to dark surfaces without changing fixed palettes', () => {
+    cy.viewport(1280, 900);
+    visitLanding({ theme: 'dark' });
+
+    cy.getBySel('landing-offseason')
+      .should('have.css', 'background-color', 'rgb(16, 18, 21)');
+    cy.getBySel('landing-app-preview')
+      .should('have.css', 'background-color', 'rgb(23, 59, 52)');
+    cy.getBySel('landing-phone')
+      .should('have.css', 'background-color', 'rgb(242, 242, 247)');
+    cy.getBySel('landing-retro-card')
+      .should('have.css', 'background-color', 'rgb(10, 10, 10)');
+  });
+
+  it('fits the complete landing and phone at 375 by 812 without horizontal overflow', () => {
+    cy.viewport(375, 812);
+    visitLanding();
+
+    cy.getBySel('landing-closing').scrollIntoView().should('be.visible');
+    assertNoHorizontalOverflow();
+    cy.getBySel('landing-ticker-toggle').should('be.visible').focus().should('have.focus');
+    cy.getBySel('landing-phone').should(($phone) => {
+      expect($phone[0].getBoundingClientRect().width).to.be.at.most(347);
+    });
+  });
+
+  it('owns only the Press Start font link it creates', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.get('head link#retro-font-press-start')
+      .should('have.length', 1)
+      .and('have.attr', 'href')
+      .and('include', 'family=Press+Start+2P');
+
+    cy.window().then((win) => {
+      win.history.pushState({}, '', '/login');
+      win.dispatchEvent(new win.PopStateEvent('popstate'));
+    });
+    cy.getBySel('landing-page').should('not.exist');
+    cy.get('head link#retro-font-press-start').should('not.exist');
+
+    visitLanding({ seedPressStartFont: true });
+    cy.get('head link#retro-font-press-start')
+      .should('have.length', 1)
+      .and('have.attr', 'data-test-owner', 'existing');
+    cy.window().then((win) => {
+      win.history.pushState({}, '', '/login');
+      win.dispatchEvent(new win.PopStateEvent('popstate'));
+    });
+    cy.getBySel('landing-page').should('not.exist');
+    cy.get('head link#retro-font-press-start')
+      .should('have.length', 1)
+      .and('have.attr', 'data-test-owner', 'existing');
   });
 });
