@@ -8,9 +8,20 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const projectRoot = process.cwd();
 const viewportCases = [
-  { label: 'mobile', width: 375, height: 812, heroFontSize: '40px', visiblePanels: 1, mockupVisible: false },
-  { label: 'tablet', width: 768, height: 1024, heroFontSize: '48px', visiblePanels: 1, mockupVisible: false },
-  { label: 'desktop', width: 1280, height: 900, heroFontSize: '56px', visiblePanels: 2, mockupVisible: true },
+  { label: 'mobile', width: 375, height: 812 },
+  { label: 'tablet', width: 768, height: 1024 },
+  { label: 'desktop', width: 1280, height: 900 },
+];
+const landingSelectors = [
+  '[data-testid="landing-page"]',
+  '[data-testid="landing-score-ticker"]',
+  '[data-testid="landing-hero"]',
+  '[data-testid="landing-app-preview"]',
+  '[data-testid="landing-feature-01"]',
+  '[data-testid="landing-feature-06"]',
+  '[data-testid="landing-offseason"]',
+  '[data-testid="landing-start-guide"]',
+  '[data-testid="landing-closing"]',
 ];
 
 const parseArgs = () => {
@@ -93,8 +104,8 @@ const getArtifactPaths = (directory) => ({
   mobile: join(directory, 'landing-mobile.png'),
   tablet: join(directory, 'landing-tablet.png'),
   desktop: join(directory, 'landing-desktop.png'),
-  capabilities: join(directory, 'landing-capabilities.png'),
-  features: join(directory, 'landing-features.png'),
+  feature: join(directory, 'landing-feature.png'),
+  closing: join(directory, 'landing-closing.png'),
 });
 
 const isServerReady = async (url) => {
@@ -356,10 +367,63 @@ const getPageWebSocketUrl = async (port, baseUrl) => {
   throw new Error(`Failed to resolve a Chrome DevTools target for ${baseUrl}. Visible pages: ${knownPages}`);
 };
 
-const captureScreenshot = async (client, filepath) => {
+const captureFullPageScreenshot = async (client, filepath) => {
+  const layout = await client.send('Page.getLayoutMetrics');
+  const contentSize = layout.cssContentSize || layout.contentSize;
   const screenshot = await client.send('Page.captureScreenshot', {
     format: 'png',
     fromSurface: true,
+    captureBeyondViewport: true,
+    clip: {
+      x: 0,
+      y: 0,
+      width: Math.ceil(contentSize.width),
+      height: Math.ceil(contentSize.height),
+      scale: 1,
+    },
+  });
+  writeFileSync(filepath, Buffer.from(screenshot.data, 'base64'));
+};
+
+const captureElementScreenshot = async (client, selector, filepath) => {
+  await client.send('Runtime.evaluate', {
+    expression: `document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({ block: 'center', behavior: 'auto' }); 'ok';`,
+    returnByValue: true,
+  });
+  await delay(800);
+
+  const clip = await evaluateJson(client, `
+    (() => {
+      const element = document.querySelector(${JSON.stringify(selector)});
+      if (!element) {
+        return JSON.stringify({ found: false });
+      }
+      const rect = element.getBoundingClientRect();
+      return JSON.stringify({
+        found: true,
+        x: Math.max(0, rect.left + window.scrollX),
+        y: Math.max(0, rect.top + window.scrollY),
+        width: Math.ceil(rect.width),
+        height: Math.ceil(rect.height),
+      });
+    })()
+  `);
+
+  if (!clip.found) {
+    throw new Error(`Screenshot selector not found: ${selector}`);
+  }
+
+  const screenshot = await client.send('Page.captureScreenshot', {
+    format: 'png',
+    fromSurface: true,
+    captureBeyondViewport: true,
+    clip: {
+      x: clip.x,
+      y: clip.y,
+      width: clip.width,
+      height: clip.height,
+      scale: 1,
+    },
   });
   writeFileSync(filepath, Buffer.from(screenshot.data, 'base64'));
 };
@@ -493,28 +557,21 @@ const assertLandingMetrics = (metrics) => {
       continue;
     }
 
-    if (value.scrollWidth !== testCase.width) {
-      failures.push(`${testCase.label}: expected scrollWidth ${testCase.width}, received ${value.scrollWidth}.`);
+    if (value.scrollWidth > value.viewport.width + 1) {
+      failures.push(`${testCase.label}: scrollWidth ${value.scrollWidth}px exceeds viewport ${value.viewport.width}px.`);
     }
 
-    if (value.heroFontSize !== testCase.heroFontSize) {
-      failures.push(`${testCase.label}: expected hero font ${testCase.heroFontSize}, received ${value.heroFontSize}.`);
+    if (value.featureCount !== 6) {
+      failures.push(`${testCase.label}: expected 6 numbered features, received ${value.featureCount}.`);
     }
 
-    if (value.visibleFeaturePanels !== testCase.visiblePanels) {
-      failures.push(`${testCase.label}: expected ${testCase.visiblePanels} visible feature panels, received ${value.visibleFeaturePanels}.`);
+    if (value.ctaCount !== 0) {
+      failures.push(`${testCase.label}: expected 0 CTA/link elements, received ${value.ctaCount}.`);
     }
 
-    if (value.mockupVisible !== testCase.mockupVisible) {
-      failures.push(`${testCase.label}: expected mockupVisible=${testCase.mockupVisible}, received ${value.mockupVisible}.`);
-    }
-
-    for (const [key, metric] of Object.entries(value.buttonHeights)) {
-      const height = typeof metric === 'number' ? metric : metric?.height ?? 0;
-      const visible = typeof metric === 'number' ? height > 0 : metric?.visible !== false;
-      if (visible && height < 44) {
-        failures.push(`${testCase.label}: button ${key} height ${height}px is below 44px.`);
-      }
+    const maxPhoneWidth = Math.min(372, value.viewport.width - 28);
+    if (value.phoneWidth > maxPhoneWidth) {
+      failures.push(`${testCase.label}: phone width ${value.phoneWidth}px exceeds ${maxPhoneWidth}px.`);
     }
   }
 
@@ -547,36 +604,40 @@ const buildSummaryMarkdown = (report) => {
   if (metricEntries.length > 0) {
     lines.push(
       '',
-      '| Viewport | Width | Hero | Panels | Mockup |',
-      '| --- | ---: | --- | ---: | --- |',
+      '| Viewport | Width | Scroll width | Hero | Phone | Features | CTA/links |',
+      '| --- | ---: | ---: | --- | ---: | ---: | ---: |',
     );
 
     for (const [label, metric] of metricEntries) {
-      lines.push(`| ${label} | ${metric.viewport.width}px | ${metric.heroFontSize} | ${metric.visibleFeaturePanels} | ${metric.mockupVisible ? 'shown' : 'hidden'} |`);
+      lines.push(`| ${label} | ${metric.viewport.width}px | ${metric.scrollWidth}px | ${metric.heroFontSize} | ${metric.phoneWidth}px | ${metric.featureCount} | ${metric.ctaCount} |`);
     }
   } else {
     lines.push('', '- No metric snapshots were captured.');
   }
 
-  if (report.navigation) {
+  if (report.structure) {
     lines.push(
       '',
-      '**Navigation**',
-      `- Header login: ${report.navigation.loginPath}`,
-      `- Header start: ${report.navigation.headerCtaPath}`,
-      `- Hero start: ${report.navigation.heroPrimaryPath}`,
-      `- Secondary CTA scrollY: ${report.navigation.secondaryScroll.scrollY}, featuresTop: ${report.navigation.secondaryScroll.featuresTop}`,
+      '**Structure**',
+      `- Required sections present: ${report.structure.allSelectorsPresent}`,
+      `- Required section order: ${report.structure.inOrder}`,
+      `- Numbered features: ${report.structure.featureCount}`,
+      `- Stadium chips: ${report.structure.stadiumChipCount}`,
+      `- Diary results: ${report.structure.diaryResultCount}`,
+      `- CTA/links: ${report.structure.ctaCount}`,
+      `- Footers: ${report.structure.footerCount}`,
     );
   }
 
-  if (report.interaction) {
+  if (report.theme) {
     lines.push(
       '',
-      '**Interaction**',
-      `- First feature after click: ${report.interaction.firstAfterClick}`,
-      `- Fourth feature after click: ${report.interaction.fourthAfterClick}`,
-      `- First feature after fourth click: ${report.interaction.firstAfterFourth}`,
-      `- Mockup image: ${report.interaction.mockupImageBefore} -> ${report.interaction.mockupImageAfter}`,
+      '**Theme**',
+      `- Dark class: ${report.theme.darkClass}`,
+      `- Offseason surface: ${report.theme.offseasonBackground}`,
+      `- App preview surface: ${report.theme.appPreviewBackground}`,
+      `- Phone surface: ${report.theme.phoneBackground}`,
+      `- Retro surface: ${report.theme.retroBackground}`,
     );
   }
 
@@ -584,9 +645,12 @@ const buildSummaryMarkdown = (report) => {
     lines.push(
       '',
       '**Reduced Motion**',
-      `- Mockup transition: ${report.reducedMotion.mockupTransition}`,
-      `- Feature card transition: ${report.reducedMotion.featureCardTransition}`,
-      `- Hero button transition: ${report.reducedMotion.heroButtonTransition}`,
+      `- Ticker: ${report.reducedMotion.ticker}`,
+      `- Live dot: ${report.reducedMotion.liveDot}`,
+      `- Rolling score: ${report.reducedMotion.rollingScore}`,
+      `- Like heart: ${report.reducedMotion.likeHeart}`,
+      `- Mascot: ${report.reducedMotion.mascot}`,
+      `- Reveal nodes visible: ${report.reducedMotion.revealsVisible}`,
     );
   }
 
@@ -700,41 +764,43 @@ const main = async () => {
 
     await client.send('Page.navigate', { url: args.baseUrl });
     await delay(4000);
-    const landingInitialSelectors = [
-      '[data-testid="landing-page"]',
-      '.ds-hero-title',
-      '[data-testid="landing-header-login"]',
-      '[data-testid="landing-header-cta"]',
-      '[data-testid="landing-hero-cta-primary"]',
-      '[data-testid="landing-hero-cta-secondary"]',
-      '[data-testid="landing-capability-showcase"]',
-      '[data-testid="landing-capability-grid"]',
-      '[data-testid="landing-cta-button"]',
-    ];
-    const landingFeatureSelectors = [
-      ...landingInitialSelectors,
-      '[data-testid="landing-feature-layout"]',
-    ];
-    const landingCapabilitySelectors = [
-      ...landingInitialSelectors,
-      '[data-testid="landing-capability-grid"] img',
-    ];
-    const loadDeferredFeatures = async (description) => {
-      await client.send('Runtime.evaluate', {
-        expression: `document.getElementById('features')?.scrollIntoView({ block: 'start' }); 'ok';`,
-        returnByValue: true,
-      });
-      await delay(700);
-      await ensureReady(landingFeatureSelectors, description, 10000);
-    };
-
-    await ensureReady(landingInitialSelectors, 'landing initial page');
-    await loadDeferredFeatures('landing deferred features bootstrap');
+    await ensureReady(landingSelectors, 'redesigned landing page', 10000);
     await client.send('Runtime.evaluate', {
-      expression: `window.scrollTo({ top: 0, behavior: 'auto' }); 'ok';`,
+      expression: `localStorage.setItem('kbo-theme', 'light'); 'ok';`,
       returnByValue: true,
     });
-    await delay(200);
+    await client.send('Page.reload');
+    await delay(4000);
+    await ensureReady(landingSelectors, 'redesigned landing light baseline', 10000);
+
+    const revealLanding = async () => {
+      const result = await evaluateJson(client, `
+        new Promise((resolve) => {
+          document.documentElement.style.scrollBehavior = 'auto';
+          const nodes = Array.from(document.querySelectorAll('[data-reveal]'));
+          let index = 0;
+          const visitNext = () => {
+            if (index >= nodes.length) {
+              window.scrollTo({ top: 0, behavior: 'auto' });
+              setTimeout(() => resolve(JSON.stringify({
+                count: nodes.length,
+                revealedCount: nodes.filter((node) => node.dataset.revealed === 'true').length,
+                visibleCount: nodes.filter((node) => getComputedStyle(node).opacity === '1').length,
+              })), 800);
+              return;
+            }
+            nodes[index].scrollIntoView({ block: 'center', behavior: 'auto' });
+            index += 1;
+            setTimeout(visitNext, 140);
+          };
+          visitNext();
+        })
+      `, true);
+
+      if (result.revealedCount !== result.count || result.visibleCount !== result.count) {
+        throw new Error(`Reveal sweep incomplete: ${result.revealedCount}/${result.count} revealed, ${result.visibleCount}/${result.count} visible.`);
+      }
+    };
 
     const metrics = {};
 
@@ -746,49 +812,26 @@ const main = async () => {
         mobile: testCase.label === 'mobile',
       });
       await delay(400);
-      await ensureReady(landingFeatureSelectors, `${testCase.label} landing viewport`);
+      await ensureReady(landingSelectors, `${testCase.label} redesigned landing viewport`);
+      await revealLanding();
 
       metrics[testCase.label] = await evaluateJson(client, `
-        JSON.stringify({
-          viewport: { width: window.innerWidth, height: window.innerHeight },
-          scrollWidth: document.documentElement.scrollWidth,
-          heroFontSize: getComputedStyle(document.querySelector('.ds-hero-title')).fontSize,
-          visibleFeaturePanels: Array.from(document.querySelector('[data-testid="landing-feature-layout"]').children)
-            .filter((element) => getComputedStyle(element).display !== 'none').length,
-          mockupVisible: (() => {
-            const mockup = document.querySelector('[data-testid="landing-laptop-mockup"]');
-            return mockup ? getComputedStyle(mockup.parentElement).display !== 'none' : false;
-          })(),
-          buttonHeights: (() => {
-            const buttonMetric = (selector) => {
-              const element = document.querySelector(selector);
-              if (!element) {
-                return { height: 0, visible: false };
-              }
-
-              const style = getComputedStyle(element);
-              const rect = element.getBoundingClientRect();
-              return {
-                height: rect.height,
-                visible: style.display !== 'none'
-                  && style.visibility !== 'hidden'
-                  && rect.width > 0
-                  && rect.height > 0,
-              };
-            };
-
-            return {
-              headerLogin: buttonMetric('[data-testid="landing-header-login"]'),
-              headerCta: buttonMetric('[data-testid="landing-header-cta"]'),
-              heroPrimary: buttonMetric('[data-testid="landing-hero-cta-primary"]'),
-              heroSecondary: buttonMetric('[data-testid="landing-hero-cta-secondary"]'),
-              cta: buttonMetric('[data-testid="landing-cta-button"]'),
-            };
-          })(),
-        })
+        (() => {
+          const landing = document.querySelector('[data-testid="landing-page"]');
+          const phone = document.querySelector('[data-testid="landing-phone"]');
+          const heroHeading = document.querySelector('[data-testid="landing-hero"] h1');
+          return JSON.stringify({
+            viewport: { width: window.innerWidth, height: window.innerHeight },
+            scrollWidth: Math.max(document.documentElement.scrollWidth, document.body.scrollWidth),
+            heroFontSize: heroHeading ? getComputedStyle(heroHeading).fontSize : null,
+            phoneWidth: phone ? Number(phone.getBoundingClientRect().width.toFixed(2)) : null,
+            featureCount: document.querySelectorAll('[data-testid^="landing-feature-0"]').length,
+            ctaCount: landing ? landing.querySelectorAll('[data-testid*="cta"], a').length : null,
+          });
+        })()
       `);
 
-      await captureScreenshot(client, artifacts[testCase.label]);
+      await captureFullPageScreenshot(client, artifacts[testCase.label]);
     }
 
     await client.send('Emulation.setDeviceMetricsOverride', {
@@ -798,123 +841,62 @@ const main = async () => {
       mobile: false,
     });
     await delay(400);
-    await ensureReady(landingFeatureSelectors, 'landing desktop interaction');
+    await ensureReady(landingSelectors, 'landing desktop detail captures');
+    await revealLanding();
+
+    const structure = await evaluateJson(client, `
+      (() => {
+        const selectors = ${JSON.stringify(landingSelectors)};
+        const elements = selectors.map((selector) => document.querySelector(selector));
+        const positions = elements.map((element) => (
+          element ? element.getBoundingClientRect().top + window.scrollY : null
+        ));
+        const landing = document.querySelector('[data-testid="landing-page"]');
+        return JSON.stringify({
+          selectors,
+          positions,
+          allSelectorsPresent: positions.every((position) => position !== null),
+          inOrder: elements.every((element, index) => (
+            index === 0
+            || !!(elements[index - 1]?.compareDocumentPosition(element) & Node.DOCUMENT_POSITION_FOLLOWING)
+          )),
+          featureCount: document.querySelectorAll('[data-testid^="landing-feature-0"]').length,
+          featureIds: Array.from(document.querySelectorAll('[data-testid^="landing-feature-0"]'))
+            .map((element) => element.getAttribute('data-testid')),
+          stadiumChipCount: document.querySelectorAll('[data-testid="landing-stadium-chip"]').length,
+          diaryResultCount: document.querySelectorAll('[data-testid="landing-diary-result"]').length,
+          ctaCount: landing ? landing.querySelectorAll('[data-testid*="cta"], a').length : null,
+          footerCount: landing ? landing.querySelectorAll('footer').length : null,
+        });
+      })()
+    `);
+
+    await captureElementScreenshot(client, '[data-testid="landing-feature-01"]', artifacts.feature);
+    await captureElementScreenshot(client, '[data-testid="landing-closing"]', artifacts.closing);
 
     await client.send('Runtime.evaluate', {
-      expression: `document.querySelector('[data-testid="landing-capability-showcase"]')?.scrollIntoView({ block: 'start' }); 'ok';`,
+      expression: `localStorage.setItem('kbo-theme', 'dark'); 'ok';`,
       returnByValue: true,
     });
-    await delay(700);
-    await ensureReady(landingCapabilitySelectors, 'landing capability capture');
-    await captureScreenshot(client, artifacts.capabilities);
-
-    const interaction = await evaluateJson(client, `
-      new Promise((resolve) => {
-        const first = document.querySelector('[data-testid="landing-feature-card-0"]');
-        const fourth = document.querySelector('[data-testid="landing-feature-card-3"]');
-        const mockup = document.querySelector('[data-testid="landing-laptop-mockup"]');
-        const before = mockup?.querySelector('img')?.getAttribute('alt') || '';
-
-        first?.click();
-        setTimeout(() => {
-          const firstAfterClick = first?.getAttribute('aria-expanded') || null;
-          fourth?.click();
-          setTimeout(() => {
-            const fourthAfterClick = fourth?.getAttribute('aria-expanded') || null;
-            const firstAfterFourth = first?.getAttribute('aria-expanded') || null;
-            setTimeout(() => {
-              resolve(JSON.stringify({
-                firstAfterClick,
-                fourthAfterClick,
-                firstAfterFourth,
-                mockupImageBefore: before,
-                mockupImageAfter: mockup?.querySelector('img')?.getAttribute('alt') || '',
-                scrollY: window.scrollY,
-                guideVisible: !!Array.from(document.querySelectorAll('h4')).find((node) => node.textContent?.includes('사용 가이드')),
-              }));
-            }, 500);
-          }, 250);
-        }, 250);
-      })
-    `, true);
-
-    await client.send('Runtime.evaluate', {
-      expression: `document.getElementById('features')?.scrollIntoView({ block: 'start' }); 'ok';`,
-      returnByValue: true,
-    });
-    await delay(400);
-    await ensureReady(landingFeatureSelectors, 'landing features capture');
-    await captureScreenshot(client, join(args.outDir, 'landing-features.png'));
-
-    await client.send('Page.navigate', { url: args.baseUrl });
+    await client.send('Page.reload');
     await delay(4000);
-    await ensureReady(landingInitialSelectors, 'landing secondary navigation');
-    const secondaryScroll = await evaluateJson(client, `
-      new Promise((resolve) => {
-        const features = document.getElementById('features');
-        window.scrollTo({ top: 0, behavior: 'auto' });
-        document.querySelector('[data-testid="landing-hero-cta-secondary"]')?.click();
-        setTimeout(() => {
-          resolve(JSON.stringify({
-            path: location.pathname,
-            scrollY: window.scrollY,
-            featuresTop: features?.getBoundingClientRect().top ?? null,
-          }));
-        }, 1000);
-      })
-    `, true);
+    await ensureReady(landingSelectors, 'landing dark theme reload');
 
-    await client.send('Page.navigate', { url: args.baseUrl });
-    await delay(4000);
-    await ensureReady(landingInitialSelectors, 'landing login navigation');
-    const loginNavigation = await evaluateJson(client, `
-      new Promise((resolve) => {
-        document.querySelector('[data-testid="landing-header-login"]')?.click();
-        setTimeout(() => {
-          resolve(JSON.stringify({
-            path: location.pathname,
-          }));
-        }, 300);
-      })
-    `, true);
-
-    await client.send('Page.navigate', { url: args.baseUrl });
-    await delay(4000);
-    await ensureReady(landingInitialSelectors, 'landing header CTA navigation');
-    const headerCtaNavigation = await evaluateJson(client, `
-      new Promise((resolve) => {
-        document.querySelector('[data-testid="landing-header-cta"]')?.click();
-        setTimeout(() => {
-          resolve(JSON.stringify({
-            path: location.pathname,
-          }));
-        }, 300);
-      })
-    `, true);
-
-    await client.send('Page.navigate', { url: args.baseUrl });
-    await delay(4000);
-    await ensureReady(landingInitialSelectors, 'landing hero CTA navigation');
-    const heroPrimaryNavigation = await evaluateJson(client, `
-      new Promise((resolve) => {
-        document.querySelector('[data-testid="landing-hero-cta-primary"]')?.click();
-        setTimeout(() => {
-          resolve(JSON.stringify({
-            path: location.pathname,
-          }));
-        }, 300);
-      })
-    `, true);
-
-    await client.send('Page.navigate', { url: args.baseUrl });
-    await delay(4000);
-    await client.send('Emulation.setDeviceMetricsOverride', {
-      width: 1280,
-      height: 900,
-      deviceScaleFactor: 1,
-      mobile: false,
-    });
-    await delay(400);
+    const theme = await evaluateJson(client, `
+      (() => {
+        const background = (selector) => {
+          const element = document.querySelector(selector);
+          return element ? getComputedStyle(element).backgroundColor : null;
+        };
+        return JSON.stringify({
+          darkClass: document.documentElement.classList.contains('dark'),
+          offseasonBackground: background('[data-testid="landing-offseason"]'),
+          appPreviewBackground: background('[data-testid="landing-app-preview"]'),
+          phoneBackground: background('[data-testid="landing-phone"]'),
+          retroBackground: background('[data-testid="landing-retro-card"]'),
+        });
+      })()
+    `);
 
     await client.send('Emulation.setEmulatedMedia', {
       features: [
@@ -923,19 +905,25 @@ const main = async () => {
     });
     await client.send('Page.reload');
     await delay(4000);
-    await ensureReady(landingInitialSelectors, 'landing reduced motion reload');
-    await loadDeferredFeatures('landing reduced motion deferred features');
+    await ensureReady(landingSelectors, 'landing reduced motion reload');
 
     const reducedMotion = await evaluateJson(client, `
       (() => {
-        const mockup = document.querySelector('[data-testid="landing-laptop-mockup"]');
-        const featureCard = document.querySelector('[data-testid="landing-feature-card-0"]');
-        const heroButton = document.querySelector('[data-testid="landing-hero-cta-primary"]');
+        const animationName = (selector) => {
+          const element = document.querySelector(selector);
+          return element ? getComputedStyle(element).animationName : null;
+        };
+        const revealOpacities = Array.from(document.querySelectorAll('[data-reveal]'))
+          .map((element) => getComputedStyle(element).opacity);
 
         return JSON.stringify({
-          mockupTransition: mockup ? getComputedStyle(mockup).transitionDuration : null,
-          featureCardTransition: featureCard ? getComputedStyle(featureCard).transitionDuration : null,
-          heroButtonTransition: heroButton ? getComputedStyle(heroButton).transitionDuration : null,
+          ticker: animationName('[data-testid="landing-score-ticker"] [data-motion-loop]'),
+          liveDot: animationName('.landing-game-live [data-anim]'),
+          rollingScore: animationName('.landing-game-score-roll'),
+          likeHeart: animationName('.landing-cheer-liked [data-anim]'),
+          mascot: animationName('[data-testid="landing-closing-mascot"]'),
+          revealCount: revealOpacities.length,
+          revealsVisible: revealOpacities.every((opacity) => opacity === '1'),
         });
       })()
     `);
@@ -944,54 +932,63 @@ const main = async () => {
       ...assertLandingMetrics(metrics),
     ];
 
-    if (interaction.firstAfterClick !== 'true') {
-      failures.push(`Interaction: first feature should expand, received ${interaction.firstAfterClick}.`);
+    if (!structure.allSelectorsPresent) {
+      failures.push('Structure: one or more required landing sections are missing.');
     }
 
-    if (interaction.fourthAfterClick !== 'true') {
-      failures.push(`Interaction: fourth feature should expand, received ${interaction.fourthAfterClick}.`);
+    if (!structure.inOrder) {
+      failures.push(`Structure: required sections are out of order (${structure.positions.join(', ')}).`);
     }
 
-    if (interaction.firstAfterFourth !== 'false') {
-      failures.push(`Interaction: first feature should collapse after fourth expands, received ${interaction.firstAfterFourth}.`);
+    if (structure.featureCount !== 6) {
+      failures.push(`Structure: expected 6 numbered features, received ${structure.featureCount}.`);
     }
 
-    if (!interaction.guideVisible) {
-      failures.push('Interaction: feature guide did not render after expansion.');
+    const expectedFeatureIds = Array.from({ length: 6 }, (_, index) => `landing-feature-0${index + 1}`);
+    if (JSON.stringify(structure.featureIds) !== JSON.stringify(expectedFeatureIds)) {
+      failures.push(`Structure: feature IDs are not the expected 01-06 sequence (${structure.featureIds.join(', ')}).`);
     }
 
-    if (interaction.mockupImageBefore === interaction.mockupImageAfter || interaction.mockupImageAfter !== '전력분석실') {
-      failures.push(`Interaction: laptop mockup image did not change. before=${interaction.mockupImageBefore} after=${interaction.mockupImageAfter}`);
+    if (structure.stadiumChipCount !== 9) {
+      failures.push(`Structure: expected 9 stadium chips, received ${structure.stadiumChipCount}.`);
     }
 
-    if (secondaryScroll.path !== '/') {
-      failures.push(`Navigation: secondary CTA should stay on landing, received ${secondaryScroll.path}.`);
+    if (structure.diaryResultCount !== 10) {
+      failures.push(`Structure: expected 10 diary results, received ${structure.diaryResultCount}.`);
     }
 
-    if ((secondaryScroll.scrollY ?? 0) <= 0) {
-      failures.push(`Navigation: secondary CTA should scroll the page, received scrollY=${secondaryScroll.scrollY}.`);
+    if (structure.ctaCount !== 0) {
+      failures.push(`Structure: expected 0 CTA/link elements, received ${structure.ctaCount}.`);
     }
 
-    if (secondaryScroll.featuresTop === null || Math.abs(secondaryScroll.featuresTop) > 120) {
-      failures.push(`Navigation: secondary CTA should align the features section near the viewport top, received featuresTop=${secondaryScroll.featuresTop}.`);
+    if (structure.footerCount !== 0) {
+      failures.push(`Structure: expected no footer, received ${structure.footerCount}.`);
     }
 
-    if (loginNavigation.path !== '/login') {
-      failures.push(`Navigation: header login should navigate to /login, received ${loginNavigation.path}.`);
+    if (!theme.darkClass) {
+      failures.push('Theme: dark class was not applied.');
     }
 
-    if (headerCtaNavigation.path !== '/home') {
-      failures.push(`Navigation: header start should navigate to /home, received ${headerCtaNavigation.path}.`);
-    }
-
-    if (heroPrimaryNavigation.path !== '/home') {
-      failures.push(`Navigation: hero start should navigate to /home, received ${heroPrimaryNavigation.path}.`);
-    }
-
-    for (const [key, value] of Object.entries(reducedMotion)) {
-      if (value !== '0s') {
-        failures.push(`Reduced motion: expected ${key} to be 0s, received ${value}.`);
+    const expectedTheme = {
+      offseasonBackground: 'rgb(16, 18, 21)',
+      appPreviewBackground: 'rgb(23, 59, 52)',
+      phoneBackground: 'rgb(242, 242, 247)',
+      retroBackground: 'rgb(10, 10, 10)',
+    };
+    for (const [key, expected] of Object.entries(expectedTheme)) {
+      if (theme[key] !== expected) {
+        failures.push(`Theme: expected ${key}=${expected}, received ${theme[key]}.`);
       }
+    }
+
+    for (const key of ['ticker', 'liveDot', 'rollingScore', 'likeHeart', 'mascot']) {
+      if (reducedMotion[key] !== 'none') {
+        failures.push(`Reduced motion: expected ${key} animation name none, received ${reducedMotion[key]}.`);
+      }
+    }
+
+    if (!reducedMotion.revealsVisible) {
+      failures.push(`Reduced motion: not all ${reducedMotion.revealCount} reveal nodes have opacity 1.`);
     }
 
     report = {
@@ -999,13 +996,8 @@ const main = async () => {
       baseUrl: args.baseUrl,
       artifacts,
       metrics,
-      navigation: {
-        secondaryScroll,
-        loginPath: loginNavigation.path,
-        headerCtaPath: headerCtaNavigation.path,
-        heroPrimaryPath: heroPrimaryNavigation.path,
-      },
-      interaction,
+      structure,
+      theme,
       reducedMotion,
       pass: failures.length === 0,
       failures,

@@ -10,6 +10,9 @@ const viteConfigSource = readFileSync(new URL('../vite.config.ts', import.meta.u
 const bundleGuardSource = readFileSync(new URL('./bundle-guard.mjs', import.meta.url), 'utf8');
 const mainEntrySource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
 const landingSource = readFileSync(new URL('../src/components/Landing.tsx', import.meta.url), 'utf8');
+const landingAssetsSource = readFileSync(new URL('../src/components/landing/landingAssets.ts', import.meta.url), 'utf8');
+const landingClosingSource = readFileSync(new URL('../src/components/landing/LandingClosing.tsx', import.meta.url), 'utf8');
+const landingFirstLoadAuditSource = readFileSync(new URL('./landing-first-load-audit.mjs', import.meta.url), 'utf8');
 const coreWebVitalsTelemetrySource = readFileSync(new URL('../src/utils/coreWebVitalsTelemetry.ts', import.meta.url), 'utf8');
 const seoHeadSource = readFileSync(new URL('../src/seo/SeoHead.tsx', import.meta.url), 'utf8');
 const predictionMatchScheduleDataRuntimeSource = readFileSync(
@@ -106,20 +109,64 @@ test('preloads the match schedule data chunk before the first Suspense render', 
   );
 });
 
-test('keeps hidden landing screenshots below the primary LCP image priority', () => {
-  const primaryImage = landingSource.match(/<img\s+src=\{homeScreenshot\}[\s\S]*?\/>/)?.[0];
-  const predictionImage = landingSource.match(/<img\s+src=\{predictionScreenshot\}[\s\S]*?\/>/)?.[0];
-  const mateImage = landingSource.match(/<img\s+src=\{mateScreenshot\}[\s\S]*?\/>/)?.[0];
+test('keeps the redesigned landing CTA-free, local-asset-only, and lazy below the fold', () => {
+  const landingAssetPaths = Array.from(
+    landingAssetsSource.matchAll(/import\s+\w+\s+from\s+'([^']+)'/g),
+    (match) => match[1],
+  );
+  const mascotImage = landingClosingSource.match(
+    /<img[\s\S]*?data-testid="landing-closing-mascot"[\s\S]*?\/>/,
+  )?.[0];
 
-  assert.ok(primaryImage);
-  assert.ok(predictionImage);
-  assert.ok(mateImage);
-  assert.ok(primaryImage.includes('loading="eager"'));
-  assert.ok(primaryImage.includes("fetchpriority: 'high'"));
-  for (const secondaryImage of [predictionImage, mateImage]) {
-    assert.ok(secondaryImage.includes('loading="lazy"'));
-    assert.ok(secondaryImage.includes("fetchpriority: 'low'"));
-    assert.equal(secondaryImage.includes('loading="eager"'), false);
+  assert.ok(landingSource.includes('<LandingTicker />'));
+  assert.ok(landingSource.includes('<LandingClosing />'));
+  assert.equal(landingSource.includes('LandingFeaturesRuntime'), false);
+  assert.equal(landingSource.includes('ThemeToggleButton'), false);
+  assert.equal(landingSource.includes('landing-showcase-'), false);
+  assert.equal(landingSource.includes('data-testid="landing-cta'), false);
+  assert.equal(landingSource.includes('<a '), false);
+
+  assert.ok(landingAssetPaths.length > 0);
+  assert.ok(landingAssetPaths.every((assetPath) => assetPath.startsWith('../../assets/')));
+  assert.equal(/https?:\/\//.test(landingAssetsSource), false);
+
+  assert.ok(mascotImage);
+  assert.ok(mascotImage.includes('loading="lazy"'));
+  assert.ok(mascotImage.includes('decoding="async"'));
+
+  assert.ok(bundleGuardSource.includes("label: 'Landing manifest avoids heavy icon runtime'"));
+  assert.equal(bundleGuardSource.includes("label: 'ThemeToggleButton manifest avoids heavy icon runtime'"), false);
+  assert.equal(bundleGuardSource.includes("label: 'LandingFeaturesRuntime manifest imports'"), false);
+  for (const forbiddenImport of ['ThemeToggleButton-', 'LandingFeaturesRuntime-', 'landing-showcase-']) {
+    assert.ok(bundleGuardSource.includes(`'${forbiddenImport}'`));
+  }
+});
+
+test('audits the redesigned landing first load with current assets and lazy closing media', () => {
+  const landingAssetNames = Array.from(
+    landingAssetsSource.matchAll(/\.\.\/\.\.\/assets\/([^']+)/g),
+    (match) => match[1].split('/').at(-1)?.replace(/\.(png|webp)$/i, ''),
+  ).filter(
+    (assetName): assetName is string => Boolean(assetName),
+  );
+
+  assert.ok(landingAssetNames.length > 0);
+  for (const assetName of landingAssetNames) {
+    assert.ok(landingFirstLoadAuditSource.includes(`'${assetName}'`));
+  }
+
+  assert.ok(landingFirstLoadAuditSource.includes('deferredClosingAssetNames'));
+  assert.ok(landingFirstLoadAuditSource.includes("page.locator('[data-testid=\"landing-closing\"]')"));
+  assert.ok(landingFirstLoadAuditSource.includes("waitForVisibleTestId(page, 'landing-closing-mascot'"));
+  assert.ok(landingFirstLoadAuditSource.includes('afterClosingDeferredRequests'));
+  for (const obsoleteContract of [
+    'LandingFeaturesRuntime',
+    'PublicShellIcons',
+    'landing-showcase-',
+    'landing-hero-cta-secondary',
+    'landing-feature-layout',
+  ]) {
+    assert.equal(landingFirstLoadAuditSource.includes(obsoleteContract), false);
   }
 });
 

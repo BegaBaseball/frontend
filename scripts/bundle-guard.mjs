@@ -429,16 +429,17 @@ const manifestImportGuards = [
     forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'PublicShellIcons-', 'FirstLoadIcons-'],
   },
   {
-    label: 'ThemeToggleButton manifest avoids heavy icon runtime',
-    directory: clientAssetsDir,
-    filePattern: /^ThemeToggleButton-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'FirstLoadIcons-'],
-  },
-  {
     label: 'Landing manifest avoids heavy icon runtime',
     directory: clientAssetsDir,
     filePattern: /^Landing-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'FirstLoadIcons-'],
+    forbiddenImportSubstrings: [
+      'vendor-icons-',
+      'AppIcon-',
+      'FirstLoadIcons-',
+      'ThemeToggleButton-',
+      'LandingFeaturesRuntime-',
+      'landing-showcase-',
+    ],
   },
   {
     label: 'PublicNavbarDesktopAuthControls manifest avoids heavy icon runtime',
@@ -514,12 +515,6 @@ const manifestImportGuards = [
       'src/components/ChatBotFloatingButton.tsx',
       'ChatBotFloatingButton-',
     ],
-  },
-  {
-    label: 'LandingFeaturesRuntime manifest imports',
-    directory: clientAssetsDir,
-    filePattern: /^LandingFeaturesRuntime-.*\.js$/,
-    forbiddenImportSubstrings: ['vendor-icons-', 'AppIcon-', 'PublicShellIcons-'],
   },
   {
     label: 'WelcomeGuide manifest imports',

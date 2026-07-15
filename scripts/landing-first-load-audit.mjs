@@ -13,15 +13,7 @@ const manifestPath = path.join(distDir, '.vite', 'client-manifest.json');
 
 const iterationCount = parsePositiveInt(process.env.LANDING_FIRST_LOAD_ITERATIONS, 1);
 const settleMs = parsePositiveInt(process.env.LANDING_FIRST_LOAD_SETTLE_MS, 3200);
-const featureTimeoutMs = parsePositiveInt(process.env.LANDING_FIRST_LOAD_FEATURE_TIMEOUT_MS, 8000);
-// ViewportDeferred wraps the feature runtime with rootMargin="240px 0px 240px 0px"
-// (see src/components/Landing.tsx). When the feature section sits within
-// viewportHeight + this margin at first paint, the IntersectionObserver fires
-// immediately, so eager-loading the runtime is then EXPECTED, not a regression.
-const featureTriggerRootMarginPx = parsePositiveInt(
-  process.env.LANDING_FIRST_LOAD_FEATURE_ROOT_MARGIN_PX,
-  240,
-);
+const closingTimeoutMs = parsePositiveInt(process.env.LANDING_FIRST_LOAD_CLOSING_TIMEOUT_MS, 8000);
 const jsonPath = path.resolve(
   frontendRoot,
   process.env.LANDING_FIRST_LOAD_JSON || 'reports/landing-first-load-audit.json',
@@ -32,17 +24,28 @@ const markdownPath = path.resolve(
 );
 const criticalLandingAssetBudgetBytes = parsePositiveInt(
   process.env.LANDING_FIRST_LOAD_CRITICAL_ASSET_BUDGET_BYTES,
-  128 * 1024,
+  512 * 1024,
 );
 const stylesheetBudgetBytes = parsePositiveInt(
   process.env.LANDING_FIRST_LOAD_STYLESHEET_BUDGET_BYTES,
   260 * 1024,
 );
 const criticalLandingAssetNames = [
-  'landing-showcase-home-',
-  'landing-showcase-prediction-',
-  'landing-showcase-mate-',
-  'bega-logo-192',
+  'd8ca714d95aedcc16fe63c80cbc299c6e3858c70',
+  'stadium_bg',
+  '202a55c2e2083b7f096b21380d22d1769e56d762',
+  '560639a3d1481dca02309d52b06d0efe43f355f7',
+  '5162bdc3599041e7b7b1da494d7d0dcc490e5893',
+  '24a312517fb1be189f3fae2611b33f19a72d9401',
+  'b414fb1229152a89657a33002953975be2a9217b',
+  '9e7d58fab40f3e586f2a0aaf6ee3c59993bcf101',
+  'bb63ace90c2b7b74e708cae2f562fbca654538ec',
+  '51e88fde588eb7cf7d5390b0fce1bb07ff440d2e',
+  'd94cd6cb1a915d591b57bbca900f8268281068e3',
+  'd97539563d3c93f568cb7a4331c9e607cfafe914',
+];
+const deferredClosingAssetNames = [
+  '27f7b8ac0aacea2470847e809062c7bbf0e4163f',
 ];
 const stateAuthManifestReferencePatterns = [
   { label: 'authStore', pattern: /src\/store\/authStore|authStore-/i },
@@ -194,22 +197,38 @@ const isCriticalLandingAsset = (filePath) => (
   criticalLandingAssetNames.some((assetName) => filePath.includes(assetName))
 );
 
+const isDeferredClosingAsset = (filePath) => (
+  deferredClosingAssetNames.some((assetName) => filePath.includes(assetName))
+);
+
 const collectCriticalLandingAssets = async (landingAssets = []) => {
   const criticalAssets = landingAssets.filter(isCriticalLandingAsset);
-  const unexpectedAssets = landingAssets.filter((asset) => !isCriticalLandingAsset(asset));
+  const deferredAssets = landingAssets.filter(isDeferredClosingAsset);
+  const unexpectedAssets = landingAssets.filter((asset) => (
+    !isCriticalLandingAsset(asset) && !isDeferredClosingAsset(asset)
+  ));
   const assets = await Promise.all(criticalAssets.map(async (file) => ({
+    file,
+    sizeBytes: await distFileSize(file),
+  })));
+  const closingAssets = await Promise.all(deferredAssets.map(async (file) => ({
     file,
     sizeBytes: await distFileSize(file),
   })));
   const missingNames = criticalLandingAssetNames.filter((assetName) => (
     !criticalAssets.some((file) => file.includes(assetName))
   ));
+  const missingDeferredNames = deferredClosingAssetNames.filter((assetName) => (
+    !deferredAssets.some((file) => file.includes(assetName))
+  ));
   const totalBytes = assets.reduce((total, asset) => total + (asset.sizeBytes || 0), 0);
 
   return {
     assets,
+    closingAssets,
     totalBytes,
     missingNames,
+    missingDeferredNames,
     unexpectedAssets,
     budgetBytes: criticalLandingAssetBudgetBytes,
   };
@@ -302,32 +321,16 @@ const readManifest = async () => {
   const landingEntry = entries.find(([key, entry]) => (
     entry?.file?.endsWith('.js')
     && (key.includes('Landing') || entry.file.includes('Landing-'))
-    && !key.includes('LandingFeaturesRuntime')
-    && !entry.file.includes('LandingFeaturesRuntime')
   ));
-  const featuresEntry = entries.find(([key, entry]) => (
-    key === 'src/components/LandingFeaturesRuntime.tsx'
-    || entry?.file?.includes('LandingFeaturesRuntime')
-  ));
-  const publicShellEntries = entries
-    .filter(([key, entry]) => key.includes('PublicShellIcons') || entry?.file?.includes('PublicShellIcons'))
-    .map(([, entry]) => entry.file)
-    .filter(Boolean);
 
   const resolveImportFile = (manifestKey) => manifest[manifestKey]?.file || null;
   const landingImports = landingEntry?.[1]?.imports || [];
   const landingImportFiles = landingImports.map(resolveImportFile).filter(Boolean);
-  const featureImports = featuresEntry?.[1]?.imports || [];
-  const featureImportFiles = featureImports.map(resolveImportFile).filter(Boolean);
-  const publicShellFromFeatureImports = featureImportFiles.filter((file) => file.includes('PublicShellIcons'));
-  const publicShell = [...new Set([...publicShellEntries, ...publicShellFromFeatureImports])];
-  const featureAssets = featuresEntry?.[1]?.assets || [];
-  const featureRuntime = featuresEntry?.[1]?.file || null;
-  const fragments = [...new Set([
-    featureRuntime,
-    ...publicShell,
-    ...featureAssets,
-  ].filter(Boolean))];
+  const landingAssets = [...new Set([
+    ...(landingEntry?.[1]?.assets || []),
+    ...landingImports.flatMap((importKey) => manifest[importKey]?.assets || []),
+  ])];
+  const closingAssets = landingAssets.filter(isDeferredClosingAsset);
   const collectStaticGraph = (rootKeys) => {
     const seen = new Set();
     const queue = [...rootKeys.filter(Boolean)];
@@ -376,24 +379,13 @@ const readManifest = async () => {
           imports: landingImports,
           importFiles: landingImportFiles,
           dynamicImports: landingEntry[1].dynamicImports || [],
-          assets: landingEntry[1].assets || [],
-        }
-      : null,
-    features: featuresEntry
-      ? {
-          key: featuresEntry[0],
-          file: featuresEntry[1].file,
-          imports: featureImports,
-          importFiles: featureImportFiles,
-          assets: featureAssets,
+          assets: landingAssets,
         }
       : null,
     initialGraph,
     deferredResources: {
-      featureRuntime,
-      publicShell,
-      featureAssets,
-      fragments,
+      closingAssets,
+      fragments: closingAssets,
     },
   };
 };
@@ -516,7 +508,7 @@ const installMetricsInitScript = async (context) => {
       layoutShifts: [],
       longTasks: [],
       heroRenderedAt: null,
-      featuresRenderedAt: null,
+      closingRenderedAt: null,
     };
 
     try {
@@ -534,15 +526,20 @@ const installMetricsInitScript = async (context) => {
       }
       const rect = node.getBoundingClientRect();
       const style = window.getComputedStyle(node);
-      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      return rect.width > 0
+        && rect.height > 0
+        && rect.bottom > 0
+        && rect.top < window.innerHeight
+        && style.display !== 'none'
+        && style.visibility !== 'hidden';
     };
 
     const recordMilestones = () => {
       if (window.__landingFirstLoadMetrics.heroRenderedAt === null && isVisible('[data-testid="landing-hero"]')) {
         window.__landingFirstLoadMetrics.heroRenderedAt = performance.now();
       }
-      if (window.__landingFirstLoadMetrics.featuresRenderedAt === null && isVisible('[data-testid="landing-feature-layout"]')) {
-        window.__landingFirstLoadMetrics.featuresRenderedAt = performance.now();
+      if (window.__landingFirstLoadMetrics.closingRenderedAt === null && isVisible('[data-testid="landing-closing-mascot"]')) {
+        window.__landingFirstLoadMetrics.closingRenderedAt = performance.now();
       }
     };
 
@@ -644,23 +641,23 @@ const readPageSnapshot = async (page) => page.evaluate(() => {
     }
     const rect = node.getBoundingClientRect();
     const style = window.getComputedStyle(node);
-    return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    return rect.width > 0
+      && rect.height > 0
+      && rect.bottom > 0
+      && rect.top < window.innerHeight
+      && style.display !== 'none'
+      && style.visibility !== 'hidden';
   };
   const topOffset = (selector) => {
     const node = document.querySelector(selector);
     return node ? Number(node.getBoundingClientRect().top.toFixed(2)) : null;
   };
-  // Measure the exact element the IntersectionObserver watches (the
-  // ViewportDeferred container). Fall back to the loaded layout / placeholder
-  // for older builds without the container test hook.
-  const featureSectionTop = topOffset('[data-testid="landing-features-deferred"]')
-    ?? topOffset('[data-testid="landing-feature-layout"]')
-    ?? topOffset('[data-testid="landing-features-placeholder"]');
+  const closingSectionTop = topOffset('[data-testid="landing-closing"]');
 
   return {
     url: window.location.href,
     viewportHeight: window.innerHeight,
-    featureSectionTop,
+    closingSectionTop,
     navigation: navigationEntry
       ? {
           domInteractive: Number(navigationEntry.domInteractive.toFixed(2)),
@@ -675,7 +672,8 @@ const readPageSnapshot = async (page) => page.evaluate(() => {
     landingMetrics: window.__landingFirstLoadMetrics || null,
     renderPerf: window.__begaRenderPerf || null,
     heroVisible: visible('[data-testid="landing-hero"]'),
-    featuresVisible: visible('[data-testid="landing-feature-layout"]'),
+    closingVisible: visible('[data-testid="landing-closing"]'),
+    closingMascotVisible: visible('[data-testid="landing-closing-mascot"]'),
   };
 });
 
@@ -688,7 +686,12 @@ const waitForVisibleTestId = async (page, testId, timeoutMs = 8000) => {
       }
       const rect = node.getBoundingClientRect();
       const style = window.getComputedStyle(node);
-      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      return rect.width > 0
+        && rect.height > 0
+        && rect.bottom > 0
+        && rect.top < window.innerHeight
+        && style.display !== 'none'
+        && style.visibility !== 'hidden';
     },
     testId,
     { timeout: timeoutMs },
@@ -865,7 +868,7 @@ const runIteration = async ({
     initialOptimizedImageRequests: [],
     initialStateAuthRuntimeRequests: [],
     initialStylesheetRequests: [],
-    afterFeatureDeferredRequests: [],
+    afterClosingDeferredRequests: [],
     failedRequests: [],
     consoleErrors: [],
     checks,
@@ -947,13 +950,7 @@ const runIteration = async ({
     const initialRequestTop = topResources(initialResources, 12);
     const renderPerf = initialSnapshot.renderPerf || null;
 
-    // Is the feature section within the ViewportDeferred trigger zone at scroll 0?
-    // If so, the IntersectionObserver legitimately fires on first paint and the
-    // deferred runtime is expected to load before any explicit scroll/click.
-    const featureSectionTop = initialSnapshot.featureSectionTop;
-    const viewportHeight = initialSnapshot.viewportHeight || viewport.viewport.height;
-    const featureWithinEagerTriggerZone = typeof featureSectionTop === 'number'
-      && featureSectionTop <= viewportHeight + featureTriggerRootMarginPx;
+    const closingSectionTop = initialSnapshot.closingSectionTop;
 
     entry.metrics = {
       fcpMs: fcp,
@@ -966,10 +963,8 @@ const runIteration = async ({
       topRequests: initialRequestTop,
       renderPerf,
       heroRenderedAt: roundMetric(initialSnapshot.landingMetrics?.heroRenderedAt),
-      featuresRenderedAtBeforeClick: roundMetric(initialSnapshot.landingMetrics?.featuresRenderedAt),
-      featureSectionTopAtScrollZero: roundMetric(featureSectionTop),
-      featureTriggerRootMarginPx,
-      featureWithinEagerTriggerZone,
+      closingRenderedAtBeforeScroll: roundMetric(initialSnapshot.landingMetrics?.closingRenderedAt),
+      closingSectionTopAtScrollZero: roundMetric(closingSectionTop),
     };
     entry.initialDeferredRequests = initialDeferredRequests;
     entry.initialPretendardRequests = initialPretendardRequests;
@@ -992,16 +987,9 @@ const runIteration = async ({
       warnings.push(`Long-task blocking proxy exceeds good TBT threshold: ${entry.metrics.totalBlockingTimeProxyMs}ms > 200ms`);
     }
     if (initialDeferredRequests.length > 0) {
-      if (featureWithinEagerTriggerZone) {
-        // Expected: the feature section is within viewport + rootMargin at scroll 0,
-        // so ViewportDeferred's IntersectionObserver fires on first paint. This is
-        // correct lazy-load behavior (still off the critical bundle), not a regression.
-        checks.push(`deferred feature runtime eagerly requested before scroll/click because the feature section is within the viewport + ${featureTriggerRootMarginPx}px IntersectionObserver margin (section top=${roundMetric(featureSectionTop)}px, viewport=${viewportHeight}px), expected ViewportDeferred behavior`);
-      } else {
-        failures.push(`deferred resources loaded before user scroll/click while the feature section was below the trigger zone (section top=${roundMetric(featureSectionTop)}px > viewport ${viewportHeight}px + ${featureTriggerRootMarginPx}px): ${initialDeferredRequests.map((request) => request.url).join(', ')}`);
-      }
+      failures.push(`lazy closing media loaded before user scroll: ${initialDeferredRequests.map((request) => request.url).join(', ')}`);
     } else {
-      checks.push('no deferred landing feature resources requested before scroll/click');
+      checks.push('no lazy closing media requested before scroll');
     }
     if (initialPretendardRequests.length > 0) {
       failures.push(`Pretendard font resources loaded before user scroll/click: ${initialPretendardRequests.map((request) => request.url).join(', ')}`);
@@ -1019,36 +1007,40 @@ const runIteration = async ({
       checks.push('no auth/Zustand runtime requested before scroll/click');
     }
 
-    const featureClickStartedAt = Date.now();
-    await page.click('[data-testid="landing-hero-cta-secondary"]', { timeout: 5000 });
-    await waitForVisibleTestId(page, 'landing-feature-layout', featureTimeoutMs)
-      .then(() => checks.push('landing features visible after secondary CTA click'))
+    const closingScrollStartedAt = Date.now();
+    await page.locator('[data-testid="landing-closing"]').scrollIntoViewIfNeeded({ timeout: closingTimeoutMs });
+    await waitForVisibleTestId(page, 'landing-closing-mascot', closingTimeoutMs)
+      .then(() => checks.push('landing closing mascot visible after scroll'))
       .catch((error) => {
-        failures.push(`landing features not visible after secondary CTA click: ${error instanceof Error ? error.message : String(error)}`);
+        failures.push(`landing closing mascot not visible after scroll: ${error instanceof Error ? error.message : String(error)}`);
       });
+    await page.waitForFunction(
+      () => {
+        const image = document.querySelector('[data-testid="landing-closing-mascot"]');
+        return image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0;
+      },
+      undefined,
+      { timeout: closingTimeoutMs },
+    ).catch((error) => {
+      failures.push(`landing closing mascot did not finish loading after scroll: ${error instanceof Error ? error.message : String(error)}`);
+    });
     await sleep(600);
 
     const afterSnapshot = await readPageSnapshot(page);
-    const afterFeatureRequests = network
-      .since(featureClickStartedAt)
+    const afterClosingRequests = network
+      .since(closingScrollStartedAt)
       .filter((request) => request.deferred)
       .map(normalizeRequest);
-    entry.afterFeatureDeferredRequests = afterFeatureRequests;
-    entry.metrics.featuresRenderedAtAfterClick = roundMetric(afterSnapshot.landingMetrics?.featuresRenderedAt);
+    entry.afterClosingDeferredRequests = afterClosingRequests;
+    entry.metrics.closingRenderedAtAfterScroll = roundMetric(afterSnapshot.landingMetrics?.closingRenderedAt);
 
-    if (!afterSnapshot.featuresVisible) {
-      failures.push('landing features were not visible after click snapshot');
+    if (!afterSnapshot.closingVisible || !afterSnapshot.closingMascotVisible) {
+      failures.push('landing closing content was not visible after scroll snapshot');
     }
-    if (afterFeatureRequests.length === 0) {
-      if (initialDeferredRequests.length > 0) {
-        // Deferred resources already loaded via viewport intersection before the
-        // click, so no post-click fetch is expected. Deferral still worked.
-        checks.push('deferred feature resources already loaded via viewport intersection before the CTA click (no post-click fetch expected)');
-      } else {
-        failures.push('no deferred resources requested after features CTA click');
-      }
+    if (afterClosingRequests.length === 0) {
+      failures.push('lazy closing media was not requested after scrolling to the closing section');
     } else {
-      checks.push(`deferred resources requested after click: ${afterFeatureRequests.length}`);
+      checks.push(`lazy closing media requested after scroll: ${afterClosingRequests.length}`);
     }
 
     const consoleErrors = consoleRecorder.errors();
@@ -1116,7 +1108,7 @@ const summarizeViewport = (viewport, entries) => {
       ),
       maxInitialDeferredRequestCount: Math.max(...entries.map((entry) => entry.initialDeferredRequests.length), 0),
       maxInitialStateAuthRuntimeRequestCount: Math.max(...entries.map((entry) => entry.initialStateAuthRuntimeRequests.length), 0),
-      maxAfterFeatureDeferredRequestCount: Math.max(...entries.map((entry) => entry.afterFeatureDeferredRequests.length), 0),
+      maxAfterClosingDeferredRequestCount: Math.max(...entries.map((entry) => entry.afterClosingDeferredRequests.length), 0),
     },
     entries,
   };
@@ -1278,7 +1270,7 @@ const buildMarkdown = (report) => {
     '',
     '## Core Metrics',
     '',
-    '| Viewport | Status | FCP p95 | LCP p95 | Max CLS | TBT proxy p95 | Initial deferred max | After-click deferred max |',
+    '| Viewport | Status | FCP p95 | LCP p95 | Max CLS | TBT proxy p95 | Initial lazy closing max | After-scroll closing max |',
     '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: |',
     ...report.viewports.map((viewport) => [
       viewport.label,
@@ -1288,14 +1280,12 @@ const buildMarkdown = (report) => {
       viewport.summary.maxCls,
       formatMs(viewport.summary.totalBlockingTimeProxyP95Ms),
       viewport.summary.maxInitialDeferredRequestCount,
-      viewport.summary.maxAfterFeatureDeferredRequestCount,
+      viewport.summary.maxAfterClosingDeferredRequestCount,
     ].join(' | ')).map((row) => `| ${row} |`),
     '',
-    '## Deferred Resources',
+    '## Deferred Closing Media',
     '',
-    `- Feature runtime: ${report.deferredResources.featureRuntime || 'n/a'}`,
-    `- Public shell chunks: ${report.deferredResources.publicShell.join(', ') || 'n/a'}`,
-    `- Feature assets: ${report.deferredResources.featureAssets.join(', ') || 'n/a'}`,
+    `- Closing assets: ${report.deferredResources.closingAssets.join(', ') || 'n/a'}`,
     '',
     '## Landing Critical Assets',
     '',
@@ -1306,6 +1296,12 @@ const buildMarkdown = (report) => {
     '| --- | ---: |',
     ...(report.landingCriticalAssets?.assets || []).map((asset) => (
       `| ${asset.file} | ${formatBytes(asset.sizeBytes || 0)} |`
+    )),
+    '',
+    '### Lazy closing assets',
+    '',
+    ...(report.landingCriticalAssets?.closingAssets || []).map((asset) => (
+      `- ${asset.file}: ${formatBytes(asset.sizeBytes || 0)}`
     )),
     '',
     '## Landing Initial JS',
@@ -1403,12 +1399,6 @@ const run = async () => {
     setupFailures.push('Landing manifest entry was not found');
   }
 
-  if (manifest.landing?.dynamicImports?.includes('src/components/LandingFeaturesRuntime.tsx')) {
-    checks.push('Landing keeps LandingFeaturesRuntime as a dynamic import');
-  } else {
-    warnings.push('LandingFeaturesRuntime dynamic import was not found in the Landing manifest entry');
-  }
-
   const optimizedImageLandingImports = [
     ...(manifest.landing?.imports || []),
     ...(manifest.landing?.importFiles || []),
@@ -1438,29 +1428,32 @@ const run = async () => {
   if (landingCriticalAssets.missingNames.length > 0) {
     setupFailures.push(`Landing critical assets missing from manifest: ${landingCriticalAssets.missingNames.join(', ')}`);
   }
+  if (landingCriticalAssets.missingDeferredNames.length > 0) {
+    setupFailures.push(`Landing lazy closing assets missing from manifest: ${landingCriticalAssets.missingDeferredNames.join(', ')}`);
+  }
   if (landingCriticalAssets.unexpectedAssets.length > 0) {
     setupFailures.push(`Landing manifest contains unexpected first-load assets: ${landingCriticalAssets.unexpectedAssets.join(', ')}`);
   }
   const missingSizedAssets = landingCriticalAssets.assets.filter((asset) => asset.sizeBytes === null);
+  const missingSizedClosingAssets = landingCriticalAssets.closingAssets.filter((asset) => asset.sizeBytes === null);
   if (missingSizedAssets.length > 0) {
     setupFailures.push(`Landing critical asset files missing from dist: ${missingSizedAssets.map((asset) => asset.file).join(', ')}`);
+  }
+  if (missingSizedClosingAssets.length > 0) {
+    setupFailures.push(`Landing lazy closing asset files missing from dist: ${missingSizedClosingAssets.map((asset) => asset.file).join(', ')}`);
   }
   if (landingCriticalAssets.totalBytes > landingCriticalAssets.budgetBytes) {
     setupFailures.push(`Landing critical assets exceed budget: ${formatBytes(landingCriticalAssets.totalBytes)} > ${formatBytes(landingCriticalAssets.budgetBytes)}`);
   }
   if (
     landingCriticalAssets.missingNames.length === 0
+    && landingCriticalAssets.missingDeferredNames.length === 0
     && landingCriticalAssets.unexpectedAssets.length === 0
     && missingSizedAssets.length === 0
+    && missingSizedClosingAssets.length === 0
     && landingCriticalAssets.totalBytes <= landingCriticalAssets.budgetBytes
   ) {
-    checks.push(`Landing critical assets stay within ${formatBytes(landingCriticalAssets.budgetBytes)} budget`);
-  }
-
-  if (manifest.features?.imports?.some((key) => key.includes('PublicShellIcons'))) {
-    checks.push('PublicShellIcons remains scoped to LandingFeaturesRuntime');
-  } else {
-    warnings.push('PublicShellIcons import was not found under LandingFeaturesRuntime');
+    checks.push(`Landing critical assets stay within ${formatBytes(landingCriticalAssets.budgetBytes)} budget and closing media remains separately classified`);
   }
 
   const { chromium } = await loadPlaywright();
@@ -1519,7 +1512,6 @@ const run = async () => {
       entry: manifest.entry,
       initialGraph: manifest.initialGraph,
       landing: manifest.landing,
-      features: manifest.features,
     },
   };
 
