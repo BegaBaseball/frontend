@@ -131,6 +131,22 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-page').find('img[src*="landing-showcase-"]').should('not.exist');
   });
 
+  it('renders the first three numbered feature stories and their approved examples', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-feature-01').scrollIntoView();
+    cy.getBySel('landing-feature-01').contains('오늘의 KBO').should('be.visible');
+    cy.getBySel('landing-feature-02').scrollIntoView();
+    cy.getBySel('landing-feature-02').contains('감이 아니라 데이터로').should('be.visible');
+    cy.getBySel('landing-feature-03').scrollIntoView();
+    cy.getBySel('landing-feature-03').contains('우리 팀의 순간을').should('be.visible');
+    cy.get('[data-testid^="landing-feature-0"]').should('have.length', 3);
+    cy.getBySel('landing-feature-01').contains('LIVE · 7회말 · 잠실').should('be.visible');
+    cy.getBySel('landing-feature-02').contains('64%').should('be.visible');
+    cy.getBySel('landing-feature-03').contains('직관러버').should('be.visible');
+  });
+
   it('keeps score-card team logos decorative when visible text names each team', () => {
     cy.viewport(1280, 900);
     visitLanding();

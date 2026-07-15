@@ -32,3 +32,110 @@ export const TICKER_ITEMS: TickerItem[] = [
   { firstTeam: 'kt', firstLabel: 'KT', score: '2 : 2', secondTeam: 'nc', secondLabel: 'NC', status: '연장 10회', tone: 'extra' },
   { firstTeam: 'hanwha', firstLabel: '한화', score: '18:30', secondTeam: 'kiwoom', secondLabel: '키움', status: '예정', tone: 'scheduled' },
 ];
+
+export type LandingFeatureNumber = '01' | '02' | '03' | '04' | '05' | '06';
+
+export const LANDING_FEATURE_LABELS: Record<LandingFeatureNumber, string> = {
+  '01': '경기 데이터',
+  '02': '승리예측',
+  '03': '응원글',
+  '04': '같이가요',
+  '05': '구장가이드',
+  '06': '직관일기',
+};
+
+export interface LandingFeatureCopy {
+  title: string;
+  description: string;
+}
+
+export const LANDING_PRIMARY_FEATURE_COPY: Record<'01' | '02' | '03', LandingFeatureCopy> = {
+  '01': {
+    title: '오늘의 KBO,\n점수부터 순위까지 실시간',
+    description: '경기가 흐르는 대로 점수가 굴러갑니다. 오늘의 경기 일정과 실시간 스코어, 팀 순위와 기록을 한 화면에서 확인하세요.',
+  },
+  '02': {
+    title: '감이 아니라 데이터로\n오늘 경기를 읽다',
+    description: 'AI 코치가 선발 투수, 최근 흐름, 상대 전적을 종합해 승리 확률을 계산합니다. 경기 전 예측에 참여하고 팬들의 선택과 비교해보세요.',
+  },
+  '03': {
+    title: '우리 팀의 순간을\n팬들과 함께 외치다',
+    description: '끝내기 홈런의 흥분을 혼자 삼키지 마세요. 팀별 피드에서 응원글을 올리고, 좋아요와 팔로우로 같은 팀 팬들과 연결됩니다.',
+  },
+};
+
+export interface LandingGameStanding {
+  rank: number;
+  team: TeamKey;
+  label: string;
+  rate: string;
+  barWidth: string;
+}
+
+export const LANDING_GAME_DATA = {
+  liveLabel: 'LIVE · 7회말 · 잠실',
+  homeTeam: 'lg' as TeamKey,
+  homeLabel: 'LG',
+  awayTeam: 'doosan' as TeamKey,
+  awayLabel: '두산',
+  scoreRoll: [3, 4, 5],
+  awayScore: 2,
+  inningStates: [true, true, true, true, true, true, false, false, false],
+  standingsLabel: '팀 순위',
+  standings: [
+    { rank: 1, team: 'lg', label: 'LG', rate: '0.618', barWidth: '88%' },
+    { rank: 2, team: 'kia', label: 'KIA', rate: '0.577', barWidth: '80%' },
+    { rank: 3, team: 'hanwha', label: '한화', rate: '0.563', barWidth: '76%' },
+  ] satisfies LandingGameStanding[],
+};
+
+export const LANDING_PREDICTION_DATA = {
+  heading: '오늘의 승리 확률',
+  badge: 'AI 코치',
+  firstTeam: 'lg' as TeamKey,
+  firstLabel: 'LG',
+  firstProbability: 64,
+  secondTeam: 'doosan' as TeamKey,
+  secondLabel: '두산',
+  secondProbability: 36,
+  facts: ['선발 ERA 2.84', '최근 10경기 7승', '상대 전적 9:5'],
+};
+
+export interface LandingCheerPost {
+  team: 'lg' | 'kia';
+  avatarLabel: string;
+  author: string;
+  handle: string;
+  time: string;
+  body: string;
+  likes: number;
+  comments: number;
+  liked: boolean;
+  followLabel?: string;
+}
+
+export const LANDING_CHEER_POSTS: readonly LandingCheerPost[] = [
+  {
+    team: 'lg',
+    avatarLabel: '직',
+    author: '직관러버',
+    handle: '@lg_twins_fan',
+    time: '21:42',
+    body: '9회말 끝내기라니. 오늘 잠실 온 보람 있다 진짜',
+    likes: 128,
+    comments: 24,
+    liked: true,
+    followLabel: '팔로우',
+  },
+  {
+    team: 'kia',
+    avatarLabel: '호',
+    author: '호랑이의심장',
+    handle: '@tigers_v12',
+    time: '21:10',
+    body: '선발 7이닝 무실점, 다음 등판도 믿는다',
+    likes: 86,
+    comments: 11,
+    liked: false,
+  },
+];
