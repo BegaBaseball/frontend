@@ -51,6 +51,20 @@ const assertNoHorizontalOverflow = () => {
   });
 };
 
+const contrastAgainstWhite = (color: string) => {
+  const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  if (!channels || channels.length !== 3) throw new Error(`Unsupported color: ${color}`);
+
+  const luminance = channels
+    .map((channel) => channel / 255)
+    .map((channel) => channel <= 0.04045
+      ? channel / 12.92
+      : ((channel + 0.055) / 1.055) ** 2.4)
+    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+
+  return 1.05 / (luminance + 0.05);
+};
+
 describe('Landing hero and ticker foundation', () => {
   beforeEach(() => {
     cy.clearCookies();
@@ -117,6 +131,26 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-page').find('img[src*="landing-showcase-"]').should('not.exist');
   });
 
+  it('keeps score-card team logos decorative when visible text names each team', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.get('.landing-phone-score-row img').should('have.length', 2).each(($logo) => {
+      expect($logo).to.have.attr('alt', '');
+    });
+  });
+
+  it('keeps inactive fixed-light phone tabs at readable contrast', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.get('.landing-phone-tabs').should('have.css', 'background-color', 'rgb(255, 255, 255)');
+    cy.get('.landing-phone-tabs span:not(.landing-phone-tab-active)').each(($tab) => {
+      const color = getComputedStyle($tab[0]).color;
+      expect(contrastAgainstWhite(color), `${$tab.text()} contrast`).to.be.at.least(4.5);
+    });
+  });
+
   it('shows the final state and disables looping motion for reduced-motion visitors', () => {
     cy.viewport(1280, 900);
     visitLanding({ reducedMotion: true });
@@ -125,5 +159,11 @@ describe('Landing hero and ticker foundation', () => {
       expect(getComputedStyle($node[0]).animationName).to.equal('none');
     });
     cy.get('[data-reveal]').should('have.css', 'opacity', '1');
+    cy.get('.landing-phone-progress [data-bar]').should(($bar) => {
+      const style = getComputedStyle($bar[0]);
+      expect(style.transitionDuration).to.equal('0s');
+      expect(style.transitionDelay).to.equal('0s');
+      expect($bar[0].style.width).to.equal('64%');
+    });
   });
 });

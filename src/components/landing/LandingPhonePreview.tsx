@@ -17,13 +17,13 @@ export default function LandingPhonePreview() {
         <p className="landing-phone-card-kicker">LIVE · 7회말 · 잠실</p>
         <div className="landing-phone-score-row">
           <span className="landing-phone-team">
-            <img src={TEAM_ASSETS.lg} alt="LG" width={26} height={26} />
+            <img src={TEAM_ASSETS.lg} alt="" width={26} height={26} />
             LG
           </span>
           <strong>5 : 2</strong>
           <span className="landing-phone-team landing-phone-team-away">
             두산
-            <img src={TEAM_ASSETS.doosan} alt="두산" width={26} height={26} />
+            <img src={TEAM_ASSETS.doosan} alt="" width={26} height={26} />
           </span>
         </div>
       </article>
