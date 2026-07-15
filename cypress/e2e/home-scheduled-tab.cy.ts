@@ -295,24 +295,34 @@ describe('Home scheduled tab', () => {
     cy.contains('곧 열리는 경기').should('be.visible');
     cy.contains('연기/취소').should('be.visible');
 
-    cy.contains('[data-slot="card"]', 'LG').should('be.visible');
-    cy.contains('[data-slot="card"]', 'NC').should('be.visible');
-    cy.contains('[data-slot="card"]', 'KIA').should('be.visible');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260211LGHH0"]')
+      .should('be.visible')
+      .and('contain.text', 'LG');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260211KTNC0"]')
+      .should('be.visible')
+      .and('contain.text', 'NC');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260214KIASS0"]')
+      .should('be.visible')
+      .and('contain.text', 'KIA');
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
       .should('have.attr', 'aria-expanded', 'false')
       .should('contain.text', '펼치기');
 
-    cy.contains('[data-slot="card"]', '경기 연기').should('not.exist');
-    cy.contains('[data-slot="card"]', '경기 취소').should('not.exist');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260212KTSS0"]').should('not.exist');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260213LTSK0"]').should('not.exist');
     cy.contains('연기/취소 경기가 접혀 있습니다. 펼치기 버튼으로 확인하세요.').should('be.visible');
 
     cy.get('[data-testid="home-scheduled-secondary-toggle"]')
       .click({ force: true })
       .should('have.attr', 'aria-expanded', 'true');
 
-    cy.contains('[data-slot="card"]', '경기 연기').should('be.visible');
-    cy.contains('[data-slot="card"]', '경기 취소').should('be.visible');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260212KTSS0"]')
+      .should('be.visible')
+      .and('contain.text', '경기 연기');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260213LTSK0"]')
+      .should('be.visible')
+      .and('contain.text', '경기 취소');
 
     cy.contains('기타 상태 경기 1건은 예정경기 탭에서 제외되었습니다.').should('be.visible');
   });
@@ -456,7 +466,7 @@ describe('Home scheduled tab', () => {
     cy.contains('button', '예정경기', { timeout: 15000 }).click();
     cy.contains('경기 일정을 불러오지 못했습니다').should('be.visible');
     cy.contains('곧 열리는 경기').should('not.exist');
-    cy.contains('[data-slot="card"]', 'LG').should('not.exist');
+    cy.get('[data-testid="home-game-card"][data-game-id="20260211LGHH0"]').should('not.exist');
   });
 
   it('navigates to prediction using scheduled card CTA', () => {
@@ -468,7 +478,8 @@ describe('Home scheduled tab', () => {
 
     cy.get('[data-slot="alert-dialog-overlay"]').should('not.exist');
 
-    cy.contains('[data-slot="card"]', 'LG')
+    cy.get('[data-testid="home-game-card"][data-game-id="20260211LGHH0"]')
+      .find('[role="button"]')
       .as('scheduledPredictionCard')
       .should('be.visible')
       .should('have.attr', 'role', 'button');
