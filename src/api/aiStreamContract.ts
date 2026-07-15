@@ -132,13 +132,14 @@ const CHAT_META_FIELDS = [
   'fallback_triggered', 'fallback_answer_used', 'fallback_reason',
   'grounding_mode', 'source_tier', 'as_of_date', 'finish_reason', 'cancelled',
   'cache_key_prefix', 'cache_similarity', 'error', 'tool_calls', 'tool_results',
-  'data_sources', 'answer_sources', 'visualizations', 'perf',
+  'data_sources', 'answer_sources', 'visualizations', 'perf', 'model_usage',
+  'model_usage_complete',
 ] as const;
 
 const validateChatMeta = (data: Record<string, unknown>) => {
   rejectUnknownKeys(data, CHAT_META_FIELDS, 'data');
   ['verified', 'cached', 'semantic_cached', 'planner_cache_hit', 'fallback_triggered',
-    'fallback_answer_used', 'cancelled'].forEach((field) => validateOptionalBoolean(data[field], `data.${field}`));
+    'fallback_answer_used', 'cancelled', 'model_usage_complete'].forEach((field) => validateOptionalBoolean(data[field], `data.${field}`));
   ['intent', 'strategy', 'style', 'planner_mode', 'tool_execution_mode', 'fallback_reason',
     'grounding_mode', 'source_tier', 'as_of_date', 'finish_reason', 'cache_key_prefix',
     'error'].forEach((field) => validateOptionalString(data[field], `data.${field}`));
@@ -151,6 +152,9 @@ const validateChatMeta = (data: Record<string, unknown>) => {
   ['tool_results', 'answer_sources', 'visualizations'].forEach((field) => {
     if (data[field] !== undefined && !Array.isArray(data[field])) fail(`data.${field} must be an array`);
   });
+  if (data.model_usage !== undefined && !Array.isArray(data.model_usage)) {
+    fail('data.model_usage must be an array');
+  }
   if (data.perf !== undefined) requireRecord(data.perf, 'data.perf');
 };
 
@@ -385,7 +389,7 @@ export const decodeAiStreamV2Event = (event: SseEvent): AiStreamV2Event => {
 };
 
 export const resolveAiEventVersion = (value: unknown): AiEventVersion => {
-  if (value === undefined || value === null || value === '') return '2';
+  if (value === undefined || value === null || value === '') return '1';
   if (value === '1' || value === '2') return value;
   return fail('VITE_AI_EVENT_VERSION must be 1 or 2');
 };

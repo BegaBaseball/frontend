@@ -125,6 +125,13 @@ export interface components {
              * @default null
              */
             intent?: string | null;
+            /** Model Usage */
+            model_usage?: components["schemas"]["JsonValue"][];
+            /**
+             * Model Usage Complete
+             * @default null
+             */
+            model_usage_complete?: boolean | null;
             /** Perf */
             perf?: {
                 [key: string]: components["schemas"]["JsonValue"];

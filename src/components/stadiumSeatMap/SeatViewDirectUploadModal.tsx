@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import {
   ImageSquareIcon as ImagePlus,
   SpinnerGapIcon as Loader2,
@@ -42,6 +42,14 @@ export default function SeatViewDirectUploadModal({
   const [tags, setTags] = useState<SeatViewUploadTag[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const onCloseRef = useRef(onClose);
+  const submittingRef = useRef(submitting);
+  const titleId = useId();
+  const descriptionId = useId();
+  onCloseRef.current = onClose;
+  submittingRef.current = submitting;
 
   useEffect(() => {
     if (!file) {
@@ -53,6 +61,46 @@ export default function SeatViewDirectUploadModal({
     setPreviewUrl(objectUrl);
     return () => URL.revokeObjectURL(objectUrl);
   }, [file]);
+
+  useEffect(() => {
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+    closeButtonRef.current?.focus();
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        if (!submittingRef.current) onCloseRef.current();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialogRef.current.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      previouslyFocused?.focus();
+    };
+  }, []);
 
   const locationLabel = useMemo(() => [section, block].filter(Boolean).join(' · '), [block, section]);
   const canSubmit = !submitting;
@@ -109,15 +157,24 @@ export default function SeatViewDirectUploadModal({
       data-testid="seat-view-direct-upload-modal"
       className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/55 px-3 py-4 backdrop-blur-sm sm:items-center"
     >
-      <div className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        tabIndex={-1}
+        className="max-h-[92vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-950"
+      >
         <div className="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
           <div className="min-w-0">
-            <h2 className="text-base font-black text-slate-900 dark:text-white">시야 사진 올리기</h2>
-            <p className="mt-0.5 truncate text-12 font-bold text-slate-500 dark:text-slate-300">
+            <h2 id={titleId} className="text-base font-black text-slate-900 dark:text-white">시야 사진 올리기</h2>
+            <p id={descriptionId} className="mt-0.5 truncate text-12 font-bold text-slate-500 dark:text-slate-300">
               {[stadium, locationLabel].filter(Boolean).join(' · ')}
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             type="button"
             onClick={onClose}
             disabled={submitting}
