@@ -13,7 +13,7 @@
 - The operator handoff and approved design at `docs/superpowers/specs/2026-07-15-bega-landing-redesign-design.md` are authoritative.
 - Preserve `RootEntryRoute` and `RootEntryRouteAuthAware`; authenticated `/` still redirects to `/home`.
 - The anonymous landing must make no `/auth/mypage` bootstrap request.
-- The landing contains no CTA, navigation header, login button, app-open button, feature-navigation button, or navigation footer.
+- The landing contains no CTA, navigation header, login button, app-open button, feature-navigation button, or navigation footer. A text-labelled ticker pause/resume accessibility control is allowed and is not a CTA.
 - Render all product vignettes in React/HTML/CSS; do not render the six `landing-showcase-*.webp` product screenshots.
 - Reuse repository assets only: BEGA logo `d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png`, mascot `27f7b8ac0aacea2470847e809062c7bbf0e4163f.webp`, stadium `images/stadium_bg.webp`, and the ten existing team logo files.
 - Treat every score, date, standing, probability, venue fact, and record as operator-provided static marketing data. Add no API call, crawler, scraper, web search, external baseball client, or synthesized repair.
@@ -93,6 +93,8 @@ cy.getBySel('landing-team-row').find('img').should('have.length', 10);
 cy.get('[data-testid^="landing-header-"]').should('not.exist');
 cy.get('[data-testid*="cta"]').should('not.exist');
 cy.get('footer').should('not.exist');
+cy.getBySel('landing-ticker-toggle').should('have.attr', 'aria-pressed', 'false').click();
+cy.getBySel('landing-ticker-toggle').should('have.attr', 'aria-pressed', 'true').and('contain', '재생');
 cy.get('@getSessionProfile.all').should('have.length', 0);
 getHomeAuthRequestTraces().should('deep.equal', []);
 ```
@@ -135,14 +137,17 @@ Map each `TeamKey` to the existing hashed imports from `TeamLogo.tsx`; import th
 
 - [ ] **Step 4: Render the accessible ticker and hero**
 
-`LandingTicker` renders `TICKER_ITEMS` twice, with the second group `aria-hidden="true"`. `LandingHero` renders the exact headline, subcopy, `10 / 720 / 9` statistics, ten logos, and SCROLL indicator. Use these stable hooks:
+`LandingTicker` renders `TICKER_ITEMS` twice, with the second group `aria-hidden="true"`, plus a text-labelled pause/resume button that toggles `aria-pressed` and `animation-play-state`. `LandingHero` renders the exact headline, subcopy, `10 / 720 / 9` statistics, ten logos, and SCROLL indicator. Use these stable hooks:
 
 ```tsx
 <aside data-testid="landing-score-ticker" aria-label="BEGA 기능 예시 스코어">
-  <div className="landing-ticker-track" data-motion-loop>
+  <div className="landing-ticker-track" data-motion-loop data-paused={isPaused || undefined}>
     <TickerGroup />
     <TickerGroup ariaHidden />
   </div>
+  <button type="button" data-testid="landing-ticker-toggle" aria-pressed={isPaused}>
+    {isPaused ? '티커 재생' : '티커 일시정지'}
+  </button>
 </aside>
 
 <section className="landing-hero" data-testid="landing-hero">
@@ -173,7 +178,7 @@ export default function Landing() {
 }
 ```
 
-Base CSS must set `.landing-page { min-height: 100vh; overflow: clip; background: #fff; color: #0f1419; }`, the 26-second ticker keyframe, hero clamp sizing, `1120px` content width, and dark page surfaces.
+Base CSS must set `.landing-page { min-height: 100vh; overflow: clip; background: #fff; color: #0f1419; }`, the 26-second ticker keyframe, hero clamp sizing, `1120px` content width, and dark page surfaces. Align the duplicated track with `translateX(calc(-50% - 22px))` for the 44px inter-group gap and pause it under `[data-paused="true"]`.
 
 - [ ] **Step 6: Re-run the focused spec and verify GREEN for this behavior group**
 
@@ -418,7 +423,8 @@ cy.getBySel('landing-offseason').contains('야구는 겨울에도 계속됩니�
 cy.getBySel('landing-offseason').contains('RETRO MODE').should('be.visible');
 cy.getBySel('landing-start-guide').find('article').should('have.length', 3);
 cy.getBySel('landing-closing').find('img[alt="BEGA 마스코트"]').should('be.visible');
-cy.getBySel('landing-page').find('button, a').should('not.exist');
+cy.getBySel('landing-page').find('[data-testid*="cta"], a').should('not.exist');
+cy.getBySel('landing-ticker-toggle').should('exist');
 
 cy.viewport(375, 812);
 assertNoHorizontalOverflow();
@@ -473,6 +479,9 @@ git commit -m "feat: finish landing introduction flow"
 **Files:**
 
 - Modify: `scripts/landing-qa.mjs`
+- Modify: `scripts/bundle-guard.mjs` only for obsolete landing chunk expectations proven by a failing production build
+- Modify: `scripts/vite-manual-chunks.test.ts` to replace deleted screenshot/runtime source contracts with the redesigned landing contract
+- Modify: `scripts/landing-first-load-audit.mjs` only if its own focused run proves that deleted `LandingFeaturesRuntime` assumptions make the audit stale
 - Modify: `cypress/e2e/landing-visual.cy.ts` only if the runtime reveals a missing regression assertion
 - Modify: landing production files only when a new failing regression test proves a defect
 
@@ -480,6 +489,10 @@ git commit -m "feat: finish landing introduction flow"
 
 - `npm run qa:landing` continues to write `output/landing-qa/landing-report.json`, `landing-summary.md`, and desktop/tablet/mobile PNGs.
 - Replace old report fields `navigation` and `interaction` with `structure`, `theme`, and `reducedMotion`.
+
+- [ ] **Step 0: Record the stale build/static-audit failures before changing guards**
+
+Run the production build and the focused static landing/bundle contract test first. Treat missing obsolete `ThemeToggleButton`, `LandingFeaturesRuntime`, or screenshot-era contracts as valid RED only when the current manifest/source proves those chunks or elements no longer belong to the redesigned landing. Replace them with current `Landing` manifest, CTA-free, local-asset, and lazy closing-image protections; do not weaken unrelated bundle budgets.
 
 - [ ] **Step 1: Change the QA script selectors and metrics**
 
@@ -529,6 +542,7 @@ From `bega_frontend`:
 ```bash
 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
 npm run qa:landing
+npx tsx --test scripts/vite-manual-chunks.test.ts
 npm run build
 ```
 
@@ -538,7 +552,7 @@ From `/Users/mac/project/KBO_platform`:
 python3 scripts/validate_baseball_data_policy.py
 ```
 
-Expected: every command exits `0`; Cypress has zero failures; landing QA reports `pass: true`; build completes; baseball policy validation passes.
+Expected: every command exits `0`; Cypress has zero failures; landing QA reports `pass: true`; focused static bundle contracts pass; build completes with the redesigned landing manifest guard; baseball policy validation passes.
 
 - [ ] **Step 5: Inspect generated desktop and mobile screenshots**
 
@@ -556,14 +570,14 @@ Ask `frontend-code-reviewer` to inspect only the landing files for React structu
 
 - [ ] **Step 7: Re-run verification after accepted review fixes**
 
-Repeat all four commands from Step 4 and re-inspect the two screenshots. Fresh successful output is required before any completion claim.
+Repeat all five commands from Step 4 and re-inspect the two screenshots. Fresh successful output is required before any completion claim.
 
 - [ ] **Step 8: Commit QA and verified fixes**
 
-Stage only `scripts/landing-qa.mjs`, the landing spec, and landing production files actually changed by verified fixes:
+Stage only `scripts/landing-qa.mjs`, verified landing/bundle guard files, the landing spec, and landing production files actually changed by verified fixes:
 
 ```bash
-git add scripts/landing-qa.mjs cypress/e2e/landing-visual.cy.ts src/components/Landing.tsx src/components/Landing.css src/components/landing
+git add scripts/landing-qa.mjs scripts/bundle-guard.mjs scripts/vite-manual-chunks.test.ts scripts/landing-first-load-audit.mjs cypress/e2e/landing-visual.cy.ts src/components/Landing.tsx src/components/Landing.css src/components/landing
 git diff --cached --check
 git commit -m "test: verify redesigned landing experience"
 ```
