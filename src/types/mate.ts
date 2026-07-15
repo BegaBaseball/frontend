@@ -1,4 +1,6 @@
 // src/types/mate.ts
+import type { components } from '../api/generated/openapi';
+
 export interface Party {
   id: number;
   hostId?: number;
@@ -33,18 +35,8 @@ export interface Party {
   createdAt: string;
 }
 
-export type MatePaymentBusinessMode = 'DIRECT_TRADE' | 'IN_APP_PAYMENT';
-
-export interface MatePaymentCapability {
-  paymentMode: 'DIRECT_TRADE' | 'TOSS_TEST' | 'IN_APP_PAYMENT';
-  businessMode: MatePaymentBusinessMode;
-  provider: string;
-  environment: 'NONE' | 'TEST' | 'LIVE';
-  tossPaymentEnabled: boolean;
-  sellingPaymentRequired: boolean;
-  payoutEnabled: boolean;
-  payoutProvider: string;
-}
+export type MatePaymentCapability = components['schemas']['MatePaymentCapabilityResponse'];
+export type MatePaymentBusinessMode = MatePaymentCapability['businessMode'];
 
 export interface MemberSummary {
   initial: string;
