@@ -35,6 +35,8 @@ type MetaPayload = {
   intent?: string;
   strategy?: string;
   style: string;
+  modelUsage?: unknown[];
+  modelUsageComplete?: boolean;
   dataSources: Array<{ title: string; url?: string; content?: string }>;
   toolCalls: Array<{ toolName: string; parameters: Record<string, unknown> }>;
 };
@@ -180,7 +182,7 @@ test('sendChatMessageStream rejects when SSE error event is received', async (t)
 test('sendChatMessageStream normalizes meta payload into shared AI shapes', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: meta\n',
-    'data: {"verified":true,"cached":true,"intent":"team_summary","strategy":"rag_v3","style":"compact","data_sources":[{"title":"KBO","url":"https://example.com/source"}],"tool_calls":[{"tool_name":"document_query","parameters":{"team":"KIA"}}]}\n',
+    'data: {"verified":true,"cached":true,"intent":"team_summary","strategy":"rag_v3","style":"compact","model_usage":[{"role":"answer","tokens":12}],"model_usage_complete":true,"data_sources":[{"title":"KBO","url":"https://example.com/source"}],"tool_calls":[{"tool_name":"document_query","parameters":{"team":"KIA"}}]}\n',
     '\n',
     'event: done\n',
     'data: [DONE]\n',
@@ -206,6 +208,8 @@ test('sendChatMessageStream normalizes meta payload into shared AI shapes', asyn
   assert.equal(receivedMeta.intent, 'team_summary');
   assert.equal(receivedMeta.strategy, 'rag_v3');
   assert.equal(receivedMeta.style, 'compact');
+  assert.deepEqual(receivedMeta.modelUsage, [{ role: 'answer', tokens: 12 }]);
+  assert.equal(receivedMeta.modelUsageComplete, true);
   assert.deepEqual(receivedMeta.dataSources, [
     { title: 'KBO', url: 'https://example.com/source', content: undefined },
   ]);

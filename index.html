@@ -106,6 +106,7 @@
         root.classList.add(theme);
 
         const bgColor = theme === 'dark' ? '#000000' : '#ffffff';
+        root.style.setProperty('--app-shell-bg', bgColor);
         if (theme === 'dark') {
           if (document.body) {
             document.body.style.backgroundColor = '#000000';
@@ -149,7 +150,7 @@
       <!-- SEO_ROOT_SLOT -->
     </div>
     <!-- #root 밖에 위치: React DOM 조정 시 제거되지 않아 0.2s 페이드가 완전히 완료됨 -->
-    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#000000;z-index:9999;transition:opacity 0.2s ease;">
+    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:var(--app-shell-bg,#ffffff);z-index:9999;transition:opacity 0.2s ease;">
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.12);border-top-color:#3b82f6;border-radius:50%;animation:shell-spin 0.7s linear infinite;"></div>
     </div>
     <style>@keyframes shell-spin{to{transform:rotate(360deg)}}</style>

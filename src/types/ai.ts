@@ -20,6 +20,8 @@ export interface AiStreamMetaPayload {
   tool_execution_mode?: string;
   fallback_reason?: string;
   perf?: Record<string, unknown>;
+  model_usage?: unknown[];
+  model_usage_complete?: boolean;
   data_sources?: Array<{ title?: string; url?: string; content?: string }>;
   tool_calls?: Array<{ tool_name?: string; toolName?: string; parameters?: Record<string, unknown> }>;
   finish_reason?: string;
@@ -37,6 +39,8 @@ export interface AiStreamMeta {
   toolExecutionMode?: string;
   fallbackReason?: string;
   perf?: Record<string, unknown>;
+  modelUsage?: unknown[];
+  modelUsageComplete?: boolean;
   dataSources: AiDataSource[];
   toolCalls: AiToolCall[];
   finish_reason?: string;

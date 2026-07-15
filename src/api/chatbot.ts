@@ -75,6 +75,8 @@ const toLegacyChatMetaPayload = (data: ChatMetaV2): AiStreamMetaPayload => ({
   tool_execution_mode: data.tool_execution_mode ?? undefined,
   fallback_reason: data.fallback_reason ?? undefined,
   perf: data.perf,
+  model_usage: data.model_usage,
+  model_usage_complete: data.model_usage_complete ?? undefined,
   data_sources: data.data_sources?.map((source) => ({
     title: source.title ?? undefined,
     url: source.url ?? undefined,
