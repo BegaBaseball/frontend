@@ -2,7 +2,11 @@
 
 import { getHomeAuthRequestTraces, installHomeAuthRequestTrace } from '../support/homePage';
 
-const visitLanding = () => {
+interface VisitLandingOptions {
+  reducedMotion?: boolean;
+}
+
+const visitLanding = ({ reducedMotion = false }: VisitLandingOptions = {}) => {
   cy.intercept('GET', '**/auth/mypage*', {
     statusCode: 401,
     body: {
@@ -16,6 +20,19 @@ const visitLanding = () => {
       win.localStorage.clear();
       win.sessionStorage.clear();
       installHomeAuthRequestTrace(win);
+
+      if (reducedMotion) {
+        win.matchMedia = (query) => ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          onchange: null,
+          addListener: () => undefined,
+          removeListener: () => undefined,
+          addEventListener: () => undefined,
+          removeEventListener: () => undefined,
+          dispatchEvent: () => false,
+        });
+      }
     },
   });
 
@@ -87,5 +104,26 @@ describe('Landing hero and ticker foundation', () => {
     cy.get('[data-testid^="landing-header-"]').should('not.exist');
     cy.get('[data-testid*="cta"]').should('not.exist');
     cy.get('footer').should('not.exist');
+  });
+
+  it('renders the app preview as a code-rendered phone', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-app-preview').scrollIntoView().should('be.visible');
+    cy.getBySel('landing-phone').should('be.visible');
+    cy.getBySel('landing-phone').contains('오늘의 승리 확률').should('be.visible');
+    cy.getBySel('landing-phone').contains('같이가요').should('be.visible');
+    cy.getBySel('landing-page').find('img[src*="landing-showcase-"]').should('not.exist');
+  });
+
+  it('shows the final state and disables looping motion for reduced-motion visitors', () => {
+    cy.viewport(1280, 900);
+    visitLanding({ reducedMotion: true });
+
+    cy.get('[data-motion-loop]').should(($node) => {
+      expect(getComputedStyle($node[0]).animationName).to.equal('none');
+    });
+    cy.get('[data-reveal]').should('have.css', 'opacity', '1');
   });
 });
