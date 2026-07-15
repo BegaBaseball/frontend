@@ -5,9 +5,7 @@ import { useGamesData } from '../api/home';
 import { fetchGameLiveSnapshot } from '../api/prediction';
 import type { Game as HomeGame } from '../types/home';
 import {
-  isManualBaseballDataRequiredCode,
-  MANUAL_BASEBALL_DATA_REQUIRED_CODE,
-  MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+  getBaseballScheduleErrorPresentation,
   parseError,
 } from '../utils/errorUtils';
 import { LIVE_GAME_EVENT_LIMIT, LIVE_GAME_POLL_INTERVAL_MS, normalizeLiveStatus } from '../utils/liveGame';
@@ -78,7 +76,7 @@ export default function CheerLivePanel({
   });
   const parsedLiveSnapshotError = liveSnapshotError ? parseError(liveSnapshotError) : null;
   const parsedGamesError = gamesError ? parseError(gamesError) : null;
-  const isManualGamesError = isManualBaseballDataRequiredCode(parsedGamesError?.responseCode);
+  const gamesErrorPresentation = getBaseballScheduleErrorPresentation(parsedGamesError?.responseCode);
   const teamAccentText = getAccessibleCheerTextColor(teamAccent);
   if (isLoading) {
     return (
@@ -97,11 +95,11 @@ export default function CheerLivePanel({
         data-error-code={parsedGamesError?.responseCode || undefined}
       >
         <h2 className="font-black text-red-700 dark:text-red-200">
-          {isManualGamesError ? MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE : '라이브 경기 정보를 불러오지 못했습니다.'}
+          {gamesErrorPresentation.message}
         </h2>
-        {isManualGamesError ? (
+        {gamesErrorPresentation.codeToken ? (
           <code className="mt-2 inline-flex rounded border border-red-300/70 bg-red-100/70 px-2 py-0.5 text-[11px] text-red-800 dark:border-red-700 dark:bg-red-900/30 dark:text-red-100">
-            {MANUAL_BASEBALL_DATA_REQUIRED_CODE}
+            {gamesErrorPresentation.codeToken}
           </code>
         ) : null}
         <button

@@ -492,6 +492,20 @@ test('fetchGamesData는 kbo schedule wire 응답을 home Game으로 정규화한
   assert.match(requestUrl, /\/api\/kbo\/schedule\?date=2026-04-02$/);
 });
 
+test('fetchGamesData는 일정 요청 실패를 빈 경기 목록으로 숨기지 않는다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    code: 'BASEBALL_DATA_SYNC_PENDING',
+    message: 'sync pending',
+  }, 503));
+
+  await assert.rejects(
+    () => fetchGamesData(new Date('2026-03-13T12:00:00')),
+    (error: unknown) => error instanceof PublicApiError
+      && error.status === 503
+      && error.data?.code === 'BASEBALL_DATA_SYNC_PENDING',
+  );
+});
+
 test('fetchGamesRangeData는 경기 월 범위를 matches/range 단일 요청으로 조회한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;

@@ -10,6 +10,15 @@ export {
 
 export type ErrorType = 'AUTH' | 'PERMISSION' | 'NOT_FOUND' | 'RATE_LIMIT' | 'CONFLICT' | 'SERVER' | 'NETWORK' | 'UNKNOWN';
 
+export const BASEBALL_DATA_SYNC_PENDING_CODE = 'BASEBALL_DATA_SYNC_PENDING';
+export const BASEBALL_DATA_SYNC_PENDING_MESSAGE = '야구 데이터 동기화가 진행 중입니다.';
+export const BASEBALL_SCHEDULE_GENERIC_ERROR_MESSAGE = '라이브 경기 정보를 불러오지 못했습니다.';
+
+export interface BaseballScheduleErrorPresentation {
+    message: string;
+    codeToken: string | null;
+}
+
 export interface ParsedError {
     type: ErrorType;
     responseCode?: string;
@@ -72,6 +81,33 @@ const normalizeErrorText = (value: unknown): string | null => {
 export const isManualBaseballDataRequiredCode = (value?: string | null): boolean => (
     value === MANUAL_BASEBALL_DATA_REQUIRED_CODE
 );
+
+export const isBaseballDataSyncPendingCode = (value?: string | null): boolean => (
+    value === BASEBALL_DATA_SYNC_PENDING_CODE
+);
+
+export const getBaseballScheduleErrorPresentation = (
+    responseCode?: string | null,
+): BaseballScheduleErrorPresentation => {
+    if (isManualBaseballDataRequiredCode(responseCode)) {
+        return {
+            message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+            codeToken: MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+        };
+    }
+
+    if (isBaseballDataSyncPendingCode(responseCode)) {
+        return {
+            message: BASEBALL_DATA_SYNC_PENDING_MESSAGE,
+            codeToken: null,
+        };
+    }
+
+    return {
+        message: BASEBALL_SCHEDULE_GENERIC_ERROR_MESSAGE,
+        codeToken: null,
+    };
+};
 
 export const isPublicApiTimeoutError = (error: unknown): boolean => (
     error instanceof Error && /^Request timed out after \d+ms$/i.test(error.message)
