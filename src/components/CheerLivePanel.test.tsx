@@ -3,6 +3,36 @@ import test from 'node:test';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import CheerLiveEventSummary from './CheerLiveEventSummary';
+import {
+  BASEBALL_DATA_SYNC_PENDING_CODE,
+  getBaseballScheduleErrorPresentation,
+  MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+  MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+} from '../utils/errorUtils';
+
+test('CheerLivePanel 오류 상태는 수동 데이터, 동기화 중, 일반 실패 문구를 구분한다', () => {
+  assert.deepEqual(
+    getBaseballScheduleErrorPresentation(MANUAL_BASEBALL_DATA_REQUIRED_CODE),
+    {
+      message: MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE,
+      codeToken: MANUAL_BASEBALL_DATA_REQUIRED_CODE,
+    },
+  );
+  assert.deepEqual(
+    getBaseballScheduleErrorPresentation(BASEBALL_DATA_SYNC_PENDING_CODE),
+    {
+      message: '야구 데이터 동기화가 진행 중입니다.',
+      codeToken: null,
+    },
+  );
+  assert.deepEqual(
+    getBaseballScheduleErrorPresentation('INTERNAL_SERVER_ERROR'),
+    {
+      message: '라이브 경기 정보를 불러오지 못했습니다.',
+      codeToken: null,
+    },
+  );
+});
 
 test('CheerLiveEventSummary는 내부 라이브 스냅샷의 최신 이벤트를 표시한다', () => {
   const html = renderToStaticMarkup(

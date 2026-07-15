@@ -80,16 +80,10 @@ const isWidgetsResponse = (value: unknown): value is ValidHomeWidgetsWireRespons
  */
 export const fetchGamesData = async (date: Date): Promise<Game[]> => {
     const apiDate = formatDateForAPI(date);
-
-    try {
-        const data = await publicGet<ScheduleWireResponse>('/kbo/schedule', {
-            params: { date: apiDate },
-        });
-        return toHomeGames(data);
-
-    } catch (error) {
-        return [];
-    }
+    const data = await publicGet<ScheduleWireResponse>('/kbo/schedule', {
+        params: { date: apiDate },
+    });
+    return toHomeGames(data);
 };
 
 export const fetchGamesRangeData = async (startDate: string, endDate: string): Promise<Game[]> => {
