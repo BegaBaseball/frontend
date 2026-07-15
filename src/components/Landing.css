@@ -779,7 +779,7 @@
 }
 
 .landing-phone-tabs span {
-  color: #94a3b8;
+  color: #475569;
   font-size: 10px;
   font-weight: 700;
 }
@@ -862,6 +862,10 @@
   .landing-page [data-reveal] {
     opacity: 1 !important;
     transform: none !important;
+    transition: none !important;
+  }
+
+  .landing-page [data-bar] {
     transition: none !important;
   }
 }

@@ -24,6 +24,9 @@ export default function useLandingMotion(): void {
       document.querySelectorAll<HTMLElement>('[data-motion-loop], [data-anim]').forEach((node) => {
         node.style.animation = 'none';
       });
+      document.querySelectorAll<HTMLElement>('[data-bar]').forEach((node) => {
+        node.style.transition = 'none';
+      });
     }
 
     if (reduced || typeof IntersectionObserver !== 'function') {

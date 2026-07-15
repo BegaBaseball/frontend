@@ -1,11 +1,17 @@
 import { BEGA_LOGO_ASSET, TEAM_ASSETS } from './landingAssets';
 import { TEAM_LABELS, TEAM_ORDER } from './landingShowcaseData';
 
-const HERO_STATS = [
+interface HeroStat {
+  readonly value: number;
+  readonly label: string;
+  readonly accent?: boolean;
+}
+
+const HERO_STATS: readonly HeroStat[] = [
   { value: 10, label: '구단' },
   { value: 720, label: '시즌 경기', accent: true },
   { value: 9, label: '구장 가이드' },
-] as const;
+];
 
 export default function LandingHero() {
   return (
