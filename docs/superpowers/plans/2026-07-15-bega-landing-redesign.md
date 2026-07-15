@@ -479,6 +479,9 @@ git commit -m "feat: finish landing introduction flow"
 **Files:**
 
 - Modify: `scripts/landing-qa.mjs`
+- Modify: `scripts/bundle-guard.mjs` only for obsolete landing chunk expectations proven by a failing production build
+- Modify: `scripts/vite-manual-chunks.test.ts` to replace deleted screenshot/runtime source contracts with the redesigned landing contract
+- Modify: `scripts/landing-first-load-audit.mjs` only if its own focused run proves that deleted `LandingFeaturesRuntime` assumptions make the audit stale
 - Modify: `cypress/e2e/landing-visual.cy.ts` only if the runtime reveals a missing regression assertion
 - Modify: landing production files only when a new failing regression test proves a defect
 
@@ -486,6 +489,10 @@ git commit -m "feat: finish landing introduction flow"
 
 - `npm run qa:landing` continues to write `output/landing-qa/landing-report.json`, `landing-summary.md`, and desktop/tablet/mobile PNGs.
 - Replace old report fields `navigation` and `interaction` with `structure`, `theme`, and `reducedMotion`.
+
+- [ ] **Step 0: Record the stale build/static-audit failures before changing guards**
+
+Run the production build and the focused static landing/bundle contract test first. Treat missing obsolete `ThemeToggleButton`, `LandingFeaturesRuntime`, or screenshot-era contracts as valid RED only when the current manifest/source proves those chunks or elements no longer belong to the redesigned landing. Replace them with current `Landing` manifest, CTA-free, local-asset, and lazy closing-image protections; do not weaken unrelated bundle budgets.
 
 - [ ] **Step 1: Change the QA script selectors and metrics**
 
@@ -535,6 +542,7 @@ From `bega_frontend`:
 ```bash
 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
 npm run qa:landing
+npx tsx --test scripts/vite-manual-chunks.test.ts
 npm run build
 ```
 
@@ -544,7 +552,7 @@ From `/Users/mac/project/KBO_platform`:
 python3 scripts/validate_baseball_data_policy.py
 ```
 
-Expected: every command exits `0`; Cypress has zero failures; landing QA reports `pass: true`; build completes; baseball policy validation passes.
+Expected: every command exits `0`; Cypress has zero failures; landing QA reports `pass: true`; focused static bundle contracts pass; build completes with the redesigned landing manifest guard; baseball policy validation passes.
 
 - [ ] **Step 5: Inspect generated desktop and mobile screenshots**
 
@@ -562,14 +570,14 @@ Ask `frontend-code-reviewer` to inspect only the landing files for React structu
 
 - [ ] **Step 7: Re-run verification after accepted review fixes**
 
-Repeat all four commands from Step 4 and re-inspect the two screenshots. Fresh successful output is required before any completion claim.
+Repeat all five commands from Step 4 and re-inspect the two screenshots. Fresh successful output is required before any completion claim.
 
 - [ ] **Step 8: Commit QA and verified fixes**
 
-Stage only `scripts/landing-qa.mjs`, the landing spec, and landing production files actually changed by verified fixes:
+Stage only `scripts/landing-qa.mjs`, verified landing/bundle guard files, the landing spec, and landing production files actually changed by verified fixes:
 
 ```bash
-git add scripts/landing-qa.mjs cypress/e2e/landing-visual.cy.ts src/components/Landing.tsx src/components/Landing.css src/components/landing
+git add scripts/landing-qa.mjs scripts/bundle-guard.mjs scripts/vite-manual-chunks.test.ts scripts/landing-first-load-audit.mjs cypress/e2e/landing-visual.cy.ts src/components/Landing.tsx src/components/Landing.css src/components/landing
 git diff --cached --check
 git commit -m "test: verify redesigned landing experience"
 ```
