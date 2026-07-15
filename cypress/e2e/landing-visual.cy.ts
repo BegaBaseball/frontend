@@ -70,19 +70,83 @@ const assertNoHorizontalOverflow = () => {
   });
 };
 
-const contrastAgainstWhite = (color: string) => {
-  const channels = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
-  if (!channels || channels.length !== 3) throw new Error(`Unsupported color: ${color}`);
+interface RgbaColor {
+  red: number;
+  green: number;
+  blue: number;
+  alpha: number;
+}
 
-  const luminance = channels
+const parseCssColor = (color: string): RgbaColor => {
+  const channels = color.match(/[\d.]+/g)?.map(Number);
+  if (!channels || channels.length < 3) throw new Error(`Unsupported color: ${color}`);
+
+  return {
+    red: channels[0],
+    green: channels[1],
+    blue: channels[2],
+    alpha: channels[3] ?? 1,
+  };
+};
+
+const compositeColor = (foreground: RgbaColor, background: RgbaColor): RgbaColor => {
+  const alpha = foreground.alpha + background.alpha * (1 - foreground.alpha);
+  if (alpha === 0) return { red: 0, green: 0, blue: 0, alpha: 0 };
+
+  const channel = (front: number, back: number) => (
+    (front * foreground.alpha + back * background.alpha * (1 - foreground.alpha)) / alpha
+  );
+
+  return {
+    red: channel(foreground.red, background.red),
+    green: channel(foreground.green, background.green),
+    blue: channel(foreground.blue, background.blue),
+    alpha,
+  };
+};
+
+const effectiveBackgroundColor = (element: HTMLElement): RgbaColor => {
+  const layers: RgbaColor[] = [];
+  let current: HTMLElement | null = element;
+
+  while (current) {
+    const layer = parseCssColor(getComputedStyle(current).backgroundColor);
+    if (layer.alpha > 0) layers.push(layer);
+    if (layer.alpha >= 1) break;
+    current = current.parentElement;
+  }
+
+  return layers.reduceRight(
+    (background, foreground) => compositeColor(foreground, background),
+    { red: 255, green: 255, blue: 255, alpha: 1 },
+  );
+};
+
+const relativeLuminance = (color: RgbaColor) => (
+  [color.red, color.green, color.blue]
     .map((channel) => channel / 255)
     .map((channel) => channel <= 0.04045
       ? channel / 12.92
       : ((channel + 0.055) / 1.055) ** 2.4)
-    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+    .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0)
+);
 
-  return 1.05 / (luminance + 0.05);
+const contrastRatio = (foreground: RgbaColor, background: RgbaColor) => {
+  const foregroundLuminance = relativeLuminance(foreground);
+  const backgroundLuminance = relativeLuminance(background);
+  const lighter = Math.max(foregroundLuminance, backgroundLuminance);
+  const darker = Math.min(foregroundLuminance, backgroundLuminance);
+  return (lighter + 0.05) / (darker + 0.05);
 };
+
+const contrastAgainstWhite = (color: string) => {
+  return contrastRatio(
+    parseCssColor(color),
+    { red: 255, green: 255, blue: 255, alpha: 1 },
+  );
+};
+
+const normalizedText = (element: Element) => element.textContent?.replace(/\s+/g, ' ').trim();
 
 describe('Landing hero and ticker foundation', () => {
   beforeEach(() => {
@@ -264,13 +328,52 @@ describe('Landing hero and ticker foundation', () => {
     cy.viewport(1280, 900);
     visitLanding();
 
+    cy.getBySel('landing-page').children('[data-testid]').then(($sections) => (
+      [...$sections].slice(-4).map((section) => section.getAttribute('data-testid'))
+    )).should('deep.equal', [
+      'landing-feature-06',
+      'landing-offseason',
+      'landing-start-guide',
+      'landing-closing',
+    ]);
+
     cy.getBySel('landing-offseason').scrollIntoView().within(() => {
       cy.contains('야구는 겨울에도 계속됩니다').should('be.visible');
+      cy.get('.landing-final-description').should(
+        'have.text',
+        '오프시즌엔 스토브리그 인사이트로, 그리고 시즌 기록을 겨루는 복고풍 리더보드로.',
+      );
       cy.contains('RETRO MODE').should('be.visible');
       cy.get('[data-testid="landing-offseason-chip"]')
         .then(($chips) => [...$chips].map((chip) => chip.textContent?.trim()))
         .should('deep.equal', ['FA 트래커', '캠프 리포트']);
-      cy.get('[data-testid="landing-retro-leaderboard"] li').should('have.length', 3);
+      cy.get('.landing-offseason-insight').within(() => {
+        cy.get('h3').should(($heading) => {
+          expect(normalizedText($heading[0])).to.equal('스토브리그의 모든 소식, 데이터로 정리해드립니다');
+        });
+        cy.get('h3 + p').should(
+          'have.text',
+          'FA 이적 · 신인 드래프트 · 스프링캠프 리포트까지, 겨울에도 팬심이 식지 않도록.',
+        );
+      });
+      cy.getBySel('landing-retro-card').within(() => {
+        cy.get('h3').should(($heading) => {
+          expect(normalizedText($heading[0])).to.equal('8-bit 리더보드에서 시즌 기록을 겨루세요');
+        });
+        cy.get('h3 + p').should('have.text', '직관 승률 · 예측 적중률 랭킹. 픽셀 야구장에서 만나요.');
+        cy.getBySel('landing-retro-leaderboard').should(($leaderboard) => {
+          expect($leaderboard[0].tagName).to.equal('OL');
+        });
+        cy.get('[data-testid="landing-retro-leaderboard"] > li').should('have.length', 3)
+          .then(($rows) => [...$rows].map((row) => (
+            [...row.children].map((cell) => normalizedText(cell)).join(' ')
+          )))
+          .should('deep.equal', [
+            '1. TIGERS_V12 .712',
+            '2. JIKGWAN_LOVER .700',
+            '3. BEGA_FAN_01 .685',
+          ]);
+      });
     });
 
     cy.getBySel('landing-start-guide').scrollIntoView().within(() => {
@@ -284,11 +387,25 @@ describe('Landing hero and ticker foundation', () => {
           '오늘 경기를 확인하세요',
           '직관을 기록하세요',
         ]);
+      cy.get('article p')
+        .then(($descriptions) => [...$descriptions].map((description) => normalizedText(description)))
+        .should('deep.equal', [
+          '10개 구단 중 내 팀을 선택하면 피드와 일정이 우리 팀 중심으로 정렬됩니다.',
+          '실시간 스코어와 AI 승리 확률을 보고, 경기 전 예측에 참여해보세요.',
+          '같이가요로 메이트를 만나고, 다녀온 경기는 직관일기에 남기세요.',
+        ]);
     });
 
     cy.getBySel('landing-closing').scrollIntoView().within(() => {
       cy.get('img[alt="BEGA 마스코트"]').should('be.visible');
-      cy.contains('야구팬의 하루가').should('be.visible');
+      cy.get('h2').should(($heading) => {
+        expect(normalizedText($heading[0])).to.equal('야구팬의 하루가 전부 BEGA 안에 있습니다');
+      });
+      cy.get('h2 + p').should(($description) => {
+        expect(normalizedText($description[0])).to.equal(
+          '실시간 경기 정보부터 함께 갈 메이트까지, 시즌의 모든 순간을 함께하세요.',
+        );
+      });
       cy.getBySel('landing-closing-logo-chip').should(($chip) => {
         expect($chip[0].tagName).to.equal('DIV');
         expect($chip).not.to.have.attr('role');
@@ -299,6 +416,15 @@ describe('Landing hero and ticker foundation', () => {
 
     cy.getBySel('landing-page').find('[data-testid*="cta"], a').should('not.exist');
     cy.getBySel('landing-ticker-toggle').should('exist').and('be.visible').focus().should('have.focus');
+  });
+
+  it('lazy-loads and asynchronously decodes the below-fold closing mascot', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-closing-mascot')
+      .should('have.attr', 'loading', 'lazy')
+      .and('have.attr', 'decoding', 'async');
   });
 
   it('maps light sections to dark surfaces without changing fixed palettes', () => {
@@ -313,6 +439,49 @@ describe('Landing hero and ticker foundation', () => {
       .should('have.css', 'background-color', 'rgb(242, 242, 247)');
     cy.getBySel('landing-retro-card')
       .should('have.css', 'background-color', 'rgb(10, 10, 10)');
+    cy.getBySel('landing-feature-01').within(() => {
+      cy.get('h2').should('have.css', 'color', 'rgb(240, 243, 245)');
+      cy.get('.landing-feature-description').should('have.css', 'color', 'rgb(154, 167, 177)');
+      cy.get('.landing-vignette-card').first().should(($card) => {
+        const style = getComputedStyle($card[0]);
+        expect(style.backgroundColor).to.equal('rgb(22, 24, 28)');
+        expect(style.borderColor).to.equal('rgba(255, 255, 255, 0.12)');
+      });
+    });
+    cy.getBySel('landing-start-guide').find('article').first().should(($article) => {
+      const style = getComputedStyle($article[0]);
+      expect(style.backgroundColor).to.equal('rgb(22, 24, 28)');
+      expect(style.borderColor).to.equal('rgba(255, 255, 255, 0.12)');
+    });
+    cy.get('.landing-offseason-insight').should('have.attr', 'data-fixed-theme');
+    cy.getBySel('landing-retro-card').should('have.attr', 'data-fixed-theme');
+    cy.getBySel('landing-closing').should('have.attr', 'data-fixed-theme');
+  });
+
+  it('keeps dark diary result text at WCAG AA contrast after background compositing', () => {
+    cy.viewport(1280, 900);
+    visitLanding({ theme: 'dark' });
+
+    cy.getBySel('landing-feature-06').scrollIntoView();
+    cy.getBySel('landing-feature-06').should(($section) => {
+      const ratios = [
+        ['win', '.landing-diary-result-win'],
+        ['draw', '.landing-diary-result-draw'],
+        ['loss', '.landing-diary-result-loss'],
+      ].map(([label, selector]) => {
+        const element = $section[0].querySelector<HTMLElement>(selector);
+        if (!element) throw new Error(`Missing diary result tone: ${label}`);
+        const background = effectiveBackgroundColor(element);
+        const foreground = compositeColor(parseCssColor(getComputedStyle(element).color), background);
+        return { label, ratio: contrastRatio(foreground, background) };
+      });
+
+      const summary = ratios.map(({ label, ratio }) => `${label} ${ratio.toFixed(2)}:1`).join(', ');
+      expect(
+        ratios.filter(({ ratio }) => ratio < 4.5).map(({ label }) => label),
+        `composited contrast: ${summary}`,
+      ).to.deep.equal([]);
+    });
   });
 
   it('fits the complete landing and phone at 375 by 812 without horizontal overflow', () => {
