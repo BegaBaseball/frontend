@@ -119,3 +119,90 @@ feat: finish landing introduction flow
 ## Concerns
 
 No Task 5 blocker or failing verification remains. Scripted multi-viewport landing QA, bundle-guard work, final screenshots, and release review remain intentionally reserved for Task 6.
+
+---
+
+## Review Fix: Dark Result Contrast, Image Hints, and Final Contract Precision
+
+### What Changed
+
+- Added Cypress color parsing, alpha compositing, effective ancestor-background resolution, relative-luminance, and contrast helpers so dark result contrast is calculated from live computed styles rather than hard-coded ratios.
+- Added a focused WCAG AA contract for representative win, draw, and loss diary tiles after their translucent dark backgrounds are composited over the dark card.
+- Changed only the dark win and loss foregrounds to lighter status colors; the already-compliant draw color remains unchanged.
+- Added `loading="lazy"` and `decoding="async"` to the below-the-fold closing mascot.
+- Replaced the generically labelled offseason insight-chip `<div>` with a labelled semantic `<ul>` containing `<li>` items, retaining the same visual chip spans.
+- Added an accessible label to the existing semantic retro `<ol>` and retained its three `<li>` leaderboard rows.
+- Strengthened the final Cypress contract for exact DOM order after feature `06`, exact approved section descriptions, three guide descriptions, leaderboard row values, closing copy, semantic leaderboard elements, representative dark text/card/border mappings, and fixed-theme markers.
+
+### Review RED
+
+The contrast and image-loading assertions were added before the production fixes.
+
+Command:
+
+```bash
+env CYPRESS_ALLOW_GLOBAL_FALLBACK=1 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
+```
+
+Aggregated valid RED:
+
+```text
+15 tests
+13 passing
+2 failing
+
+closing mascot: expected loading="lazy", attribute was absent
+composited contrast: win 4.27:1, draw 4.63:1, loss 3.20:1
+failing tones: win, loss
+```
+
+The exact final order, approved copy, semantic retro `ol > li` rows, representative dark text/card/border mappings, fixed-theme attributes, and pre-existing Task 1–5 contracts all passed during RED. Those additions document already-correct output and therefore have no separate manufactured product RED.
+
+### Review GREEN
+
+Fresh focused result after the minimal production changes:
+
+```text
+15 passing (9s)
+0 failing
+All specs passed!
+```
+
+The passing contrast assertion continues to calculate all three ratios from computed foregrounds and recursively composited computed backgrounds, and fails with the tone names and measured ratios if any drops below `4.5:1`.
+
+### Review Verification
+
+```text
+npx tsc --noEmit --pretty false
+exit 0, no TypeScript diagnostics
+
+node --import tsx --test src/components/design-slop-guard.test.ts
+15 tests, 15 pass, 0 fail
+
+python3 scripts/validate_baseball_data_policy.py
+External baseball data policy OK
+
+git diff --check
+exit 0, no output
+```
+
+### Review Self-Check
+
+- Confirmed only Task 5 Cypress, CSS, final-section components, and this Task 5 report changed.
+- Confirmed light-mode result colors and the dark draw color are unchanged; only failing dark win/loss foregrounds were lightened.
+- Confirmed the contrast helper includes translucent result backgrounds and their nearest opaque ancestor instead of comparing text against a detached constant.
+- Confirmed the mascot retains its approved asset, dimensions, alt text, reduced-motion behavior, and visual placement while gaining browser loading/decoding hints.
+- Confirmed the insight-chip list and retro leaderboard now expose named semantic list structures without adding interaction or changing displayed copy/order.
+- Confirmed no CTA, anchor, page navigation/header/footer, screenshot, inline SVG, auth contract, external baseball access, Task 6 script, or bundle-guard file was added or changed.
+
+### Review-Fix Commit
+
+Planned message:
+
+```text
+fix: address landing final accessibility review
+```
+
+### Review-Fix Concerns
+
+No review-fix blocker remains. Task 6 work remains untouched.

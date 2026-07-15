@@ -18,6 +18,8 @@ export default function LandingClosing() {
           alt="BEGA 마스코트"
           width={104}
           height={109}
+          loading="lazy"
+          decoding="async"
         />
         <h2>{LANDING_CLOSING_COPY.title}</h2>
         <p>{LANDING_CLOSING_COPY.description}</p>

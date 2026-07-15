@@ -42,11 +42,13 @@ export default function LandingOffseason() {
               <p className="landing-offseason-card-label">{insight.label}</p>
               <h3>{insight.title}</h3>
               <p>{insight.description}</p>
-              <div className="landing-offseason-chips" aria-label="오프시즌 인사이트 종류">
+              <ul className="landing-offseason-chips" aria-label="오프시즌 인사이트 종류">
                 {insight.chips.map((chip) => (
-                  <span data-testid="landing-offseason-chip" key={chip}>{chip}</span>
+                  <li key={chip}>
+                    <span data-testid="landing-offseason-chip">{chip}</span>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           </article>
 
@@ -59,7 +61,11 @@ export default function LandingOffseason() {
             <p className="landing-retro-label">{retro.label}</p>
             <h3>{retro.title}</h3>
             <p>{retro.description}</p>
-            <ol className="landing-retro-leaderboard" data-testid="landing-retro-leaderboard">
+            <ol
+              className="landing-retro-leaderboard"
+              aria-label="레트로 시즌 리더보드"
+              data-testid="landing-retro-leaderboard"
+            >
               {retro.leaderboard.map((entry) => (
                 <li className={`landing-retro-entry-${entry.tone}`} key={entry.rank}>
                   <span>{entry.rank}. {entry.handle}</span>
