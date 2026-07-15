@@ -5,6 +5,7 @@ import net from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { getPhoneWidthFailure } from './lib/landing-audit-contracts.mjs';
 
 const projectRoot = process.cwd();
 const viewportCases = [
@@ -569,9 +570,13 @@ const assertLandingMetrics = (metrics) => {
       failures.push(`${testCase.label}: expected 0 CTA/link elements, received ${value.ctaCount}.`);
     }
 
-    const maxPhoneWidth = Math.min(372, value.viewport.width - 28);
-    if (value.phoneWidth > maxPhoneWidth) {
-      failures.push(`${testCase.label}: phone width ${value.phoneWidth}px exceeds ${maxPhoneWidth}px.`);
+    const phoneWidthFailure = getPhoneWidthFailure({
+      label: testCase.label,
+      phoneWidth: value.phoneWidth,
+      viewportWidth: value.viewport.width,
+    });
+    if (phoneWidthFailure) {
+      failures.push(phoneWidthFailure);
     }
   }
 

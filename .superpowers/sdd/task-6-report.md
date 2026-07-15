@@ -175,3 +175,117 @@ test: verify redesigned landing experience
 ## Concerns
 
 No landing-specific blocker remains. The full static suite retains one known, unchanged, out-of-scope cheer assertion; the focused landing contracts, production build, responsive QA, first-load audit, Cypress spec, type check, design-slop guard, and baseball-data policy all pass.
+
+---
+
+## Review Fix: Strict Metrics, Visibility, Requests, and Screenshot Re-entry Guards
+
+### Findings addressed
+
+- A missing or non-finite phone width could bypass the previous `>` comparison because JavaScript comparisons with `undefined` or `NaN` are false.
+- First-load visibility checked vertical intersection but not horizontal intersection or computed opacity.
+- The lazy mascot audit counted request-start records and accepted any positive after-scroll count instead of unique successful completions with an exact `0 -> 1` contract.
+- The Landing bundle guard checked only direct manifest imports, so a screenshot-era asset could return through a nested static import wrapper.
+- The static source contract scanned only `Landing.tsx`, not the recursively nested `src/components/landing` tree.
+
+### Review RED
+
+The executable helper and recursive source contracts were added before script changes.
+
+```bash
+node --import tsx --test --test-name-pattern='landing|first-load|Landing' \
+  scripts/landing-audit-contracts.test.mjs scripts/vite-manual-chunks.test.ts
+```
+
+Valid RED result:
+
+```text
+10 tests
+5 passing
+5 failing
+```
+
+Each new contract failed at its intended missing-helper boundary (`actual: undefined`, `expected: function`):
+
+1. Missing/non-finite phone width rejection and explicit failure text.
+2. Two-axis viewport intersection plus positive computed opacity.
+3. Unique successful deferred completions plus exact `0 -> 1` and pre/post visibility assertions.
+4. Transitive Landing manifest closure inspection of emitted files/assets while allowing current local logo/team/stadium/mascot assets.
+5. Recursive landing component-tree scanning that detects a nested screenshot-era identifier without banning a normal PNG import.
+
+The five pre-existing focused landing/static cases remained green during RED.
+
+### Review implementation
+
+- Added `scripts/lib/landing-audit-contracts.mjs` with pure, executable helpers for phone metrics, viewport visibility, successful request completion collection, closing audit failures, static manifest closure traversal, emitted-reference violations, and source-reference violations.
+- Added `scripts/landing-audit-contracts.test.mjs` with behavior-level fixtures for each finding.
+- Wired `landing-qa.mjs` to reject `undefined`, `null`, `NaN`, and infinite phone widths before calculating the maximum, with `missing phone width metric` in the failure.
+- Wired all first-load visibility decisions to the shared predicate requiring positive size, vertical and horizontal viewport overlap, visible display/visibility, and computed opacity greater than zero.
+- Marked request failure/completion timestamps, de-duplicated successful deferred requests by request ID, required status `200`–`399`, and asserted the closing section and mascot are both invisible before scroll and visible after scroll.
+- Required exactly zero successful mascot completions before scroll and exactly one after scroll.
+- Reused the existing bundle guard's static-closure algorithm through the shared helper and added a Landing-only emitted file/asset guard for `landing-showcase-`. It traverses `imports` recursively and leaves the approved current local assets unrestricted.
+- Expanded the source contract to `Landing.tsx` plus every recursive `.ts`/`.tsx` file under `src/components/landing`, with precise screenshot-era identifiers rather than a generic `.png` ban.
+- Kept the new Landing closure guard skipped for Module Federation-only builds, matching the unrelated client-guard behavior.
+
+### Review GREEN
+
+Fresh focused result:
+
+```text
+10 tests
+10 passing
+0 failing
+```
+
+Fresh runtime evidence:
+
+```text
+npm run qa:landing
+exit 0; landing-report.json pass=true
+
+env VITE_SITE_URL=http://localhost:5176 VITE_API_BASE_URL=http://localhost:8080 npm run build
+exit 0; 1171 client modules; 153 bundle budgets
+
+npm run qa:landing:first-load
+exit 0; zero failures; zero warnings
+```
+
+The new bundle result traversed eight Landing static-closure entries with no missing entrypoint/import and no forbidden emitted reference. Both desktop and mobile first-load entries recorded:
+
+- closing section and mascot invisible before scroll;
+- zero successful deferred mascot completions before scroll;
+- closing section and mascot visible after scroll;
+- one unique completed HTTP `200` mascot request after scroll.
+
+Additional fresh verification:
+
+```text
+env CYPRESS_ALLOW_GLOBAL_FALLBACK=1 npm run cy:run -- --spec cypress/e2e/landing-visual.cy.ts
+15 passing, 0 failing, 8 seconds
+
+npx tsc --noEmit --pretty false
+exit 0, no diagnostics
+
+node --import tsx --test src/components/design-slop-guard.test.ts
+15 passing, 0 failing
+
+python3 scripts/validate_baseball_data_policy.py
+External baseball data policy OK
+```
+
+The fresh full static run remains 49/50 with the same unchanged, unrelated `/cheer` exact-class assertion and no new failure.
+
+### Review-fix scope
+
+- No production React/CSS, Cypress, authentication, or baseball-data file changed.
+- No external baseball source, crawler, scraper, web search, API request, or repair fallback was added.
+- All unrelated bundle budgets and guards remain intact.
+- Generated bundle/dist report JSON remains excluded from the commit.
+
+### Review-fix commit
+
+Planned message:
+
+```text
+test: harden landing audit contracts
+```

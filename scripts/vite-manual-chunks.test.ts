@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 
 const packageJsonSource = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
@@ -12,7 +12,24 @@ const mainEntrySource = readFileSync(new URL('../src/main.tsx', import.meta.url)
 const landingSource = readFileSync(new URL('../src/components/Landing.tsx', import.meta.url), 'utf8');
 const landingAssetsSource = readFileSync(new URL('../src/components/landing/landingAssets.ts', import.meta.url), 'utf8');
 const landingClosingSource = readFileSync(new URL('../src/components/landing/LandingClosing.tsx', import.meta.url), 'utf8');
+const landingQaSource = readFileSync(new URL('./landing-qa.mjs', import.meta.url), 'utf8');
 const landingFirstLoadAuditSource = readFileSync(new URL('./landing-first-load-audit.mjs', import.meta.url), 'utf8');
+const readLandingComponentTree = (directoryUrl: URL): Array<{ file: string; source: string }> => (
+  readdirSync(directoryUrl, { withFileTypes: true }).flatMap((entry) => {
+    const entryUrl = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, directoryUrl);
+    if (entry.isDirectory()) {
+      return readLandingComponentTree(entryUrl);
+    }
+    if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) {
+      return [];
+    }
+    return [{ file: entryUrl.pathname, source: readFileSync(entryUrl, 'utf8') }];
+  })
+);
+const landingComponentTreeSources = [
+  { file: new URL('../src/components/Landing.tsx', import.meta.url).pathname, source: landingSource },
+  ...readLandingComponentTree(new URL('../src/components/landing/', import.meta.url)),
+];
 const coreWebVitalsTelemetrySource = readFileSync(new URL('../src/utils/coreWebVitalsTelemetry.ts', import.meta.url), 'utf8');
 const seoHeadSource = readFileSync(new URL('../src/seo/SeoHead.tsx', import.meta.url), 'utf8');
 const predictionMatchScheduleDataRuntimeSource = readFileSync(
@@ -120,9 +137,24 @@ test('keeps the redesigned landing CTA-free, local-asset-only, and lazy below th
 
   assert.ok(landingSource.includes('<LandingTicker />'));
   assert.ok(landingSource.includes('<LandingClosing />'));
-  assert.equal(landingSource.includes('LandingFeaturesRuntime'), false);
-  assert.equal(landingSource.includes('ThemeToggleButton'), false);
-  assert.equal(landingSource.includes('landing-showcase-'), false);
+  const screenshotEraIdentifiers = [
+    'LandingFeaturesRuntime',
+    'ThemeToggleButton',
+    'landing-showcase-',
+    'homeScreenshot',
+    'predictionScreenshot',
+    'mateScreenshot',
+    'landingShowcaseHome',
+    'landingShowcasePrediction',
+    'landingShowcaseMate',
+    'landing-capability-showcase',
+    'landing-laptop-mockup',
+  ];
+  for (const { file, source } of landingComponentTreeSources) {
+    for (const identifier of screenshotEraIdentifiers) {
+      assert.equal(source.includes(identifier), false, `${file} contains obsolete ${identifier}`);
+    }
+  }
   assert.equal(landingSource.includes('data-testid="landing-cta'), false);
   assert.equal(landingSource.includes('<a '), false);
 
@@ -140,6 +172,9 @@ test('keeps the redesigned landing CTA-free, local-asset-only, and lazy below th
   for (const forbiddenImport of ['ThemeToggleButton-', 'LandingFeaturesRuntime-', 'landing-showcase-']) {
     assert.ok(bundleGuardSource.includes(`'${forbiddenImport}'`));
   }
+  assert.ok(bundleGuardSource.includes("label: 'Landing static closure avoids screenshot-era assets'"));
+  assert.ok(bundleGuardSource.includes("entrypoints: ['src/components/Landing.tsx']"));
+  assert.ok(bundleGuardSource.includes('findForbiddenManifestClosureReferences('));
 });
 
 test('audits the redesigned landing first load with current assets and lazy closing media', () => {
@@ -156,6 +191,10 @@ test('audits the redesigned landing first load with current assets and lazy clos
   }
 
   assert.ok(landingFirstLoadAuditSource.includes('deferredClosingAssetNames'));
+  assert.ok(landingQaSource.includes('getPhoneWidthFailure({'));
+  assert.ok(landingFirstLoadAuditSource.includes('isViewportIntersectionVisible.toString()'));
+  assert.ok(landingFirstLoadAuditSource.includes('collectSuccessfulDeferredRequests(network.requests'));
+  assert.ok(landingFirstLoadAuditSource.includes('getClosingAuditFailures({'));
   assert.ok(landingFirstLoadAuditSource.includes("page.locator('[data-testid=\"landing-closing\"]')"));
   assert.ok(landingFirstLoadAuditSource.includes("waitForVisibleTestId(page, 'landing-closing-mascot'"));
   assert.ok(landingFirstLoadAuditSource.includes('afterClosingDeferredRequests'));
