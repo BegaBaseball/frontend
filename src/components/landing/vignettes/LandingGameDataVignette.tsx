@@ -3,6 +3,8 @@ import { LANDING_GAME_DATA } from '../landingShowcaseData';
 
 export default function LandingGameDataVignette() {
   const finalHomeScore = LANDING_GAME_DATA.scoreRoll.at(-1);
+  const completedInningCount = LANDING_GAME_DATA.inningStates.filter(Boolean).length;
+  const inningProgressLabel = `${LANDING_GAME_DATA.inningStates.length}이닝 중 ${completedInningCount}이닝 진행`;
 
   return (
     <div className="landing-game-vignette">
@@ -40,7 +42,7 @@ export default function LandingGameDataVignette() {
           </span>
         </div>
 
-        <div className="landing-game-innings" aria-label="9이닝 중 6이닝 진행">
+        <div className="landing-game-innings" aria-label={inningProgressLabel}>
           {LANDING_GAME_DATA.inningStates.map((completed, index) => (
             <i className={completed ? 'landing-game-inning-complete' : undefined} key={index} />
           ))}
