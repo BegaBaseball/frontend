@@ -61,6 +61,42 @@ export const collectSuccessfulDeferredRequests = (
   return [...uniqueRequests.values()];
 };
 
+export const partitionSuccessfulDeferredRequestsByStart = (requests, boundaryAt) => {
+  const successfulRequests = collectSuccessfulDeferredRequests(requests);
+  return {
+    before: successfulRequests.filter((request) => (
+      Number.isFinite(request.at) && request.at < boundaryAt
+    )),
+    after: successfulRequests.filter((request) => (
+      Number.isFinite(request.at) && request.at >= boundaryAt
+    )),
+  };
+};
+
+export const getLandingInteractiveSetFailures = (interactiveElements) => {
+  const elements = Array.isArray(interactiveElements) ? interactiveElements : [];
+  const failures = [];
+  const tickerToggles = elements.filter((element) => (
+    element?.tagName?.toLowerCase() === 'button'
+    && element?.testId === 'landing-ticker-toggle'
+  ));
+  const unexpected = elements.filter((element) => !tickerToggles.includes(element));
+
+  if (elements.length !== 1) {
+    failures.push(`expected exactly 1 interactive element, received ${elements.length}`);
+  }
+  if (tickerToggles.length !== 1) {
+    failures.push(`expected exactly 1 landing-ticker-toggle button, received ${tickerToggles.length}`);
+  } else if (!String(tickerToggles[0].label || '').trim()) {
+    failures.push('landing-ticker-toggle button is missing an accessible label');
+  }
+  if (unexpected.length > 0) {
+    failures.push(`unexpected interactive elements: ${unexpected.map((element) => element.descriptor).join(', ')}`);
+  }
+
+  return failures;
+};
+
 export const getClosingAuditFailures = ({
   initialSnapshot,
   afterSnapshot,

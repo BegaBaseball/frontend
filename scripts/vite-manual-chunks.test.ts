@@ -12,6 +12,8 @@ const mainEntrySource = readFileSync(new URL('../src/main.tsx', import.meta.url)
 const landingSource = readFileSync(new URL('../src/components/Landing.tsx', import.meta.url), 'utf8');
 const landingAssetsSource = readFileSync(new URL('../src/components/landing/landingAssets.ts', import.meta.url), 'utf8');
 const landingClosingSource = readFileSync(new URL('../src/components/landing/LandingClosing.tsx', import.meta.url), 'utf8');
+const landingPhonePreviewSource = readFileSync(new URL('../src/components/landing/LandingPhonePreview.tsx', import.meta.url), 'utf8');
+const landingShowcaseDataSource = readFileSync(new URL('../src/components/landing/landingShowcaseData.ts', import.meta.url), 'utf8');
 const landingQaSource = readFileSync(new URL('./landing-qa.mjs', import.meta.url), 'utf8');
 const landingFirstLoadAuditSource = readFileSync(new URL('./landing-first-load-audit.mjs', import.meta.url), 'utf8');
 const readLandingComponentTree = (directoryUrl: URL): Array<{ file: string; source: string }> => (
@@ -175,6 +177,15 @@ test('keeps the redesigned landing CTA-free, local-asset-only, and lazy below th
   assert.ok(bundleGuardSource.includes("label: 'Landing static closure avoids screenshot-era assets'"));
   assert.ok(bundleGuardSource.includes("entrypoints: ['src/components/Landing.tsx']"));
   assert.ok(bundleGuardSource.includes('findForbiddenManifestClosureReferences('));
+});
+
+test('keeps every phone preview baseball example in the typed landing showcase dataset', () => {
+  assert.match(landingShowcaseDataSource, /export interface LandingPhonePreviewData/);
+  assert.match(landingShowcaseDataSource, /export const LANDING_PHONE_PREVIEW/);
+  assert.match(landingPhonePreviewSource, /import \{ LANDING_PHONE_PREVIEW \} from '\.\/landingShowcaseData'/);
+  assert.equal(landingPhonePreviewSource.includes("const PHONE_TABS = ['홈'"), false);
+  assert.equal(landingPhonePreviewSource.includes('LIVE · 7회말 · 잠실'), false);
+  assert.equal(landingPhonePreviewSource.includes('9회말 끝내기라니'), false);
 });
 
 test('audits the redesigned landing first load with current assets and lazy closing media', () => {

@@ -44,6 +44,86 @@ export const LANDING_FEATURE_LABELS: Record<LandingFeatureNumber, string> = {
   '06': '직관일기',
 };
 
+export interface LandingPhonePreviewData {
+  tabs: readonly string[];
+  liveLabel: string;
+  game: {
+    status: string;
+    homeTeam: TeamKey;
+    homeLabel: string;
+    homeScore: number;
+    awayTeam: TeamKey;
+    awayLabel: string;
+    awayScore: number;
+  };
+  prediction: {
+    heading: string;
+    badge: string;
+    probability: number;
+    resultLabel: string;
+  };
+  mate: {
+    team: TeamKey;
+    matchup: string;
+    status: string;
+    details: string;
+  };
+  cheer: {
+    avatarLabel: string;
+    author: string;
+    time: string;
+    body: string;
+  };
+  standings: {
+    heading: string;
+    entries: readonly {
+      rank: number;
+      team: TeamKey;
+      label: string;
+      rate: string;
+    }[];
+  };
+}
+
+export const LANDING_PHONE_PREVIEW = {
+  tabs: ['홈', '경기', '같이가요', '응원', 'MY'],
+  liveLabel: 'LIVE',
+  game: {
+    status: 'LIVE · 7회말 · 잠실',
+    homeTeam: 'lg',
+    homeLabel: 'LG',
+    homeScore: 5,
+    awayTeam: 'doosan',
+    awayLabel: '두산',
+    awayScore: 2,
+  },
+  prediction: {
+    heading: '오늘의 승리 확률',
+    badge: 'AI 코치',
+    probability: 64,
+    resultLabel: 'LG 승리',
+  },
+  mate: {
+    team: 'lg',
+    matchup: 'LG vs 두산 · 잠실',
+    status: '모집 중',
+    details: '10.26(일) 18:30 · 2/4명 · 3루 응원석',
+  },
+  cheer: {
+    avatarLabel: '직',
+    author: '직관러버',
+    time: '21:42',
+    body: '9회말 끝내기라니. 오늘 잠실 온 보람 있다 진짜',
+  },
+  standings: {
+    heading: '팀 순위',
+    entries: [
+      { rank: 1, team: 'lg', label: 'LG', rate: '0.618' },
+      { rank: 2, team: 'kia', label: 'KIA', rate: '0.577' },
+    ],
+  },
+} satisfies LandingPhonePreviewData;
+
 export interface LandingFeatureCopy {
   title: string;
   description: string;

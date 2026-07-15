@@ -1135,7 +1135,7 @@
 }
 
 .landing-prediction-team strong {
-  color: #94a3b8;
+  color: #64748b;
   font-size: 30px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
@@ -1147,7 +1147,7 @@
 
 .landing-prediction-matchup > i {
   flex: none;
-  color: #94a3b8;
+  color: #64748b;
   font-family: Georgia, serif;
   font-size: 14px;
   font-weight: 700;
@@ -1562,17 +1562,17 @@
 
 .landing-diary-result-win {
   background: #e9f9ef;
-  color: #16a34a;
+  color: #15803d;
 }
 
 .landing-diary-result-draw {
   background: #fdf7e1;
-  color: #ca8a04;
+  color: #a16207;
 }
 
 .landing-diary-result-loss {
   background: #fdecec;
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 .landing-diary-quote {
@@ -1587,7 +1587,7 @@
 }
 
 .landing-diary-quote strong {
-  color: #16a34a;
+  color: #15803d;
   font-weight: 800;
 }
 
@@ -2092,11 +2092,21 @@
 
 .dark .landing-diary-result-draw {
   background: rgb(234 179 8 / 14%);
+  color: #facc15;
 }
 
 .dark .landing-diary-result-loss {
   background: rgb(239 68 68 / 14%);
   color: #f87171;
+}
+
+.dark .landing-prediction-team-away strong,
+.dark .landing-prediction-matchup > i {
+  color: #9aa7b1;
+}
+
+.dark .landing-diary-quote strong {
+  color: #4ade80;
 }
 
 @media (max-width: 480px) {

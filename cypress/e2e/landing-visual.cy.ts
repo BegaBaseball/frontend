@@ -146,6 +146,45 @@ const contrastAgainstWhite = (color: string) => {
   );
 };
 
+const compositedTextContrast = (element: HTMLElement) => {
+  const background = effectiveBackgroundColor(element);
+  const foreground = compositeColor(parseCssColor(getComputedStyle(element).color), background);
+  return contrastRatio(foreground, background);
+};
+
+const getLandingInteractiveElements = (landing: HTMLElement) => {
+  const candidates = landing.querySelectorAll<HTMLElement>([
+    'a',
+    'button',
+    'input',
+    'select',
+    'textarea',
+    '[contenteditable]',
+    '[role="button"]',
+    '[role="link"]',
+    '[tabindex]',
+  ].join(', '));
+
+  return [...candidates].filter((element) => {
+    if (element.matches('a, button, input, select, textarea, [role="button"], [role="link"]')) {
+      return true;
+    }
+    if (element.hasAttribute('contenteditable')) {
+      return element.getAttribute('contenteditable')?.toLowerCase() !== 'false';
+    }
+    return element.hasAttribute('tabindex') && element.tabIndex >= 0;
+  });
+};
+
+const emulateReducedMotion = (value: 'reduce' | 'no-preference') => (
+  Cypress.automation('remote:debugger:protocol', {
+    command: 'Emulation.setEmulatedMedia',
+    params: {
+      features: [{ name: 'prefers-reduced-motion', value }],
+    },
+  })
+);
+
 const normalizedText = (element: Element) => element.textContent?.replace(/\s+/g, ' ').trim();
 
 describe('Landing hero and ticker foundation', () => {
@@ -284,6 +323,41 @@ describe('Landing hero and ticker foundation', () => {
     });
   });
 
+  it('keeps feature copy before its visual in the DOM while preserving responsive placement', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.get('[data-testid^="landing-feature-0"]').each(($section, index) => {
+      const copy = $section[0].querySelector<HTMLElement>('.landing-feature-copy');
+      const visual = $section[0].querySelector<HTMLElement>('.landing-feature-visual');
+      if (!copy || !visual) throw new Error(`Missing feature blocks for section ${index + 1}`);
+
+      expect(
+        copy.compareDocumentPosition(visual) & Node.DOCUMENT_POSITION_FOLLOWING,
+        `feature ${index + 1} copy precedes visual in document order`,
+      ).not.to.equal(0);
+
+      const copyLeft = copy.getBoundingClientRect().left;
+      const visualLeft = visual.getBoundingClientRect().left;
+      if (index % 2 === 0) {
+        expect(copyLeft, `feature ${index + 1} desktop copy placement`).to.be.lessThan(visualLeft);
+      } else {
+        expect(visualLeft, `feature ${index + 1} desktop visual placement`).to.be.lessThan(copyLeft);
+      }
+    });
+
+    cy.viewport(375, 812);
+    cy.get('[data-testid^="landing-feature-0"]').each(($section, index) => {
+      const copy = $section[0].querySelector<HTMLElement>('.landing-feature-copy');
+      const visual = $section[0].querySelector<HTMLElement>('.landing-feature-visual');
+      if (!copy || !visual) throw new Error(`Missing mobile feature blocks for section ${index + 1}`);
+      expect(
+        copy.getBoundingClientRect().top,
+        `feature ${index + 1} mobile copy-first placement`,
+      ).to.be.lessThan(visual.getBoundingClientRect().top);
+    });
+  });
+
   it('keeps score-card team logos decorative when visible text names each team', () => {
     cy.viewport(1280, 900);
     visitLanding();
@@ -322,6 +396,33 @@ describe('Landing hero and ticker foundation', () => {
       expect(style.transitionDelay).to.equal('0s');
       expect($bar[0].style.width).to.equal('64%');
     });
+  });
+
+  it('finishes landing motion when reduced-motion changes after load', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-feature-02').then(($section) => {
+      const reveal = $section[0].querySelector<HTMLElement>('.landing-feature-visual');
+      const bar = $section[0].querySelector<HTMLElement>('.landing-prediction-track [data-bar]');
+      expect(reveal?.dataset.revealed).not.to.equal('true');
+      expect(bar?.style.width).to.equal('');
+    });
+
+    cy.then(() => emulateReducedMotion('reduce'));
+    cy.window().should((win) => {
+      expect(win.matchMedia('(prefers-reduced-motion: reduce)').matches).to.equal(true);
+    });
+    cy.getBySel('landing-feature-02').should(($section) => {
+      const reveal = $section[0].querySelector<HTMLElement>('.landing-feature-visual');
+      const bar = $section[0].querySelector<HTMLElement>('.landing-prediction-track [data-bar]');
+      expect(reveal?.dataset.revealed).to.equal('true');
+      expect(bar?.style.width).to.equal('64%');
+    });
+    cy.get('[data-motion-loop], [data-anim]').should(($nodes) => {
+      expect([...$nodes].every((node) => getComputedStyle(node).animationName === 'none')).to.equal(true);
+    });
+    cy.then(() => emulateReducedMotion('no-preference'));
   });
 
   it('renders the CTA-free offseason, semantic start guide, and mascot closing', () => {
@@ -414,7 +515,16 @@ describe('Landing hero and ticker foundation', () => {
       cy.getBySel('landing-closing-logo-chip').find('button, a').should('not.exist');
     });
 
-    cy.getBySel('landing-page').find('[data-testid*="cta"], a').should('not.exist');
+    cy.getBySel('landing-page').should(($landing) => {
+      const interactive = getLandingInteractiveElements($landing[0]);
+      const summary = interactive.map((element) => (
+        `${element.tagName.toLowerCase()}[data-testid="${element.dataset.testid ?? ''}"] "${normalizedText(element)}"`
+      )).join(', ');
+      expect(interactive, `landing interactive elements: ${summary}`).to.have.length(1);
+      expect(interactive[0].tagName).to.equal('BUTTON');
+      expect(interactive[0].dataset.testid).to.equal('landing-ticker-toggle');
+      expect(normalizedText(interactive[0])).to.equal('티커 일시정지');
+    });
     cy.getBySel('landing-ticker-toggle').should('exist').and('be.visible').focus().should('have.focus');
   });
 
@@ -480,6 +590,38 @@ describe('Landing hero and ticker foundation', () => {
       expect(
         ratios.filter(({ ratio }) => ratio < 4.5).map(({ label }) => label),
         `composited contrast: ${summary}`,
+      ).to.deep.equal([]);
+    });
+  });
+
+  it('keeps every light prediction and diary foreground at WCAG AA contrast after compositing', () => {
+    cy.viewport(1280, 900);
+    visitLanding({ theme: 'light' });
+
+    const contrastTargets = [
+      ['prediction 36%', '[data-testid="landing-feature-02"] .landing-prediction-team-away strong'],
+      ['prediction VS', '[data-testid="landing-feature-02"] .landing-prediction-matchup > i'],
+      ['diary result', '[data-testid="landing-feature-06"] [data-testid="landing-diary-result"]'],
+      ['diary quote', '[data-testid="landing-feature-06"] .landing-diary-quote'],
+      ['diary quote span', '[data-testid="landing-feature-06"] .landing-diary-quote span'],
+      ['diary quote result', '[data-testid="landing-feature-06"] .landing-diary-quote strong'],
+    ] as const;
+
+    const ratios: Array<{ label: string; ratio: number }> = [];
+    contrastTargets.forEach(([label, selector]) => {
+      cy.get(selector).each(($element, index) => {
+        ratios.push({
+          label: `${label} ${index + 1}`,
+          ratio: compositedTextContrast($element[0]),
+        });
+      });
+    });
+
+    cy.then(() => {
+      const summary = ratios.map(({ label, ratio }) => `${label} ${ratio.toFixed(2)}:1`).join(', ');
+      expect(
+        ratios.filter(({ ratio }) => ratio < 4.5).map(({ label }) => label),
+        `light composited contrast: ${summary}`,
       ).to.deep.equal([]);
     });
   });
