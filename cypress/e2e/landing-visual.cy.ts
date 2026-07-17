@@ -359,6 +359,23 @@ describe('Landing hero and ticker foundation', () => {
     cy.getBySel('landing-feature-05').scrollIntoView();
     cy.get('.landing-stadium-art img').should(assertParallaxIsBounded);
     cy.get('.landing-stadium-art').should(assertArtworkCoversFrame);
+    cy.get('.landing-stadium-art').then(($frame) => {
+      const win = $frame[0].ownerDocument.defaultView;
+      if (!win) throw new Error('Missing stadium artwork window');
+
+      const frameRect = $frame[0].getBoundingClientRect();
+      win.document.documentElement.style.scrollBehavior = 'auto';
+      win.scrollTo(0, win.scrollY + frameRect.top - 100);
+      win.dispatchEvent(new win.Event('scroll'));
+      return new Cypress.Promise<void>((resolve) => {
+        win.requestAnimationFrame(() => win.requestAnimationFrame(() => resolve()));
+      });
+    });
+    cy.get('.landing-stadium-art').should(($frame) => {
+      expect($frame[0].getBoundingClientRect().top, 'stadium frame top edge').to.be.closeTo(100, 1);
+    });
+    cy.get('.landing-stadium-art img').should(assertParallaxIsBounded);
+    cy.get('.landing-stadium-art').should(assertArtworkCoversFrame);
   });
 
   it('keeps feature copy before its visual in the DOM while preserving responsive placement', () => {

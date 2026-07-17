@@ -1457,9 +1457,11 @@
 }
 
 .landing-stadium-art img {
+  position: relative;
+  top: -32px;
   display: block;
   width: 100%;
-  height: 130%;
+  height: calc(100% + 64px);
   object-fit: cover;
 }
 
