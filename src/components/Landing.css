@@ -1421,7 +1421,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin: 0 0 14px;
+  margin: 22px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -2258,7 +2258,7 @@
   }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 892px) {
   .landing-feature-inner,
   .landing-feature-inner[data-visual-first="true"] {
     grid-template-columns: minmax(0, 1fr);
@@ -2266,7 +2266,9 @@
       "copy"
       "visual";
   }
+}
 
+@media (max-width: 767px) {
   .landing-offseason-grid,
   .landing-start-grid {
     grid-template-columns: minmax(0, 1fr);

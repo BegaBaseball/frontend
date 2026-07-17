@@ -294,6 +294,8 @@ describe('Landing hero and ticker foundation', () => {
         .should('have.text', '경기 당일 체크인으로 보증금을 환불받으세요');
     });
     cy.getBySel('landing-feature-05').within(() => {
+      cy.get('.landing-feature-copy .landing-stadium-chips').should('have.length', 1);
+      cy.get('.landing-feature-visual .landing-stadium-chips').should('not.exist');
       cy.get('[data-testid="landing-stadium-chip"]')
         .then(($chips) => [...$chips].map((chip) => chip.textContent?.trim()))
         .should('deep.equal', [
@@ -321,6 +323,42 @@ describe('Landing hero and ticker foundation', () => {
       cy.get('.landing-diary-quote')
         .should('have.text', '10.26(일) 잠실 · 승 — “끝내기 직관. 목이 쉬었지만 후회는 없다”');
     });
+  });
+
+  it('keeps the stadium artwork covering its frame before and after scroll', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    const assertParallaxIsBounded = ($artwork: JQuery<HTMLElement>) => {
+      const view = $artwork[0].ownerDocument.defaultView;
+      if (!view) throw new Error('Missing stadium artwork window');
+
+      const matrix = new view.DOMMatrixReadOnly(view.getComputedStyle($artwork[0]).transform);
+      expect(Math.abs(matrix.m42), 'stadium artwork parallax offset').to.be.at.most(30);
+    };
+
+    const assertArtworkCoversFrame = ($frame: JQuery<HTMLElement>) => {
+      const artwork = $frame[0].querySelector<HTMLImageElement>('img');
+      if (!artwork) throw new Error('Missing stadium artwork');
+
+      const frameRect = $frame[0].getBoundingClientRect();
+      const artworkRect = artwork.getBoundingClientRect();
+      expect(artworkRect.top, 'stadium artwork top edge').to.be.at.most(frameRect.top);
+      expect(artworkRect.bottom, 'stadium artwork bottom edge').to.be.at.least(frameRect.bottom);
+    };
+
+    cy.window().then((win) => {
+      win.scrollTo(0, 0);
+      win.dispatchEvent(new win.Event('scroll'));
+      return new Cypress.Promise<void>((resolve) => {
+        win.requestAnimationFrame(() => win.requestAnimationFrame(() => resolve()));
+      });
+    });
+    cy.get('.landing-stadium-art img').should(assertParallaxIsBounded);
+    cy.get('.landing-stadium-art').should(assertArtworkCoversFrame);
+    cy.getBySel('landing-feature-05').scrollIntoView();
+    cy.get('.landing-stadium-art img').should(assertParallaxIsBounded);
+    cy.get('.landing-stadium-art').should(assertArtworkCoversFrame);
   });
 
   it('keeps feature copy before its visual in the DOM while preserving responsive placement', () => {
@@ -355,6 +393,22 @@ describe('Landing hero and ticker foundation', () => {
         copy.getBoundingClientRect().top,
         `feature ${index + 1} mobile copy-first placement`,
       ).to.be.lessThan(visual.getBoundingClientRect().top);
+    });
+  });
+
+  it('stacks every feature story into one column at the tablet breakpoint', () => {
+    cy.viewport(768, 1024);
+    visitLanding();
+
+    cy.get('.landing-feature-inner').each(($inner, index) => {
+      const columns = getComputedStyle($inner[0]).gridTemplateColumns.trim().split(/\s+/);
+      expect(columns, `feature ${index + 1} tablet grid columns`).to.have.length(1);
+
+      const copy = $inner[0].querySelector<HTMLElement>('.landing-feature-copy');
+      const visual = $inner[0].querySelector<HTMLElement>('.landing-feature-visual');
+      if (!copy || !visual) throw new Error(`Missing tablet feature blocks for section ${index + 1}`);
+      expect(copy.getBoundingClientRect().top, `feature ${index + 1} tablet copy-first placement`)
+        .to.be.lessThan(visual.getBoundingClientRect().top);
     });
   });
 
