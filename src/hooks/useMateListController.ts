@@ -258,6 +258,19 @@ export function useMateListController() {
     updateUrlState((current) => ({ ...current, myTeamOnly: nextValue, queryPage: 0 }));
   }, [updateUrlState]);
 
+  const applyMobileFilters = useCallback((nextMyTeamOnly: boolean, nextSearchQuery: string) => {
+    const normalizedSearchQuery = normalizeMateSearchText(nextSearchQuery);
+    searchInputSourceRef.current = 'external';
+    setInputValue(normalizedSearchQuery);
+    updateUrlState((current) => ({
+      ...current,
+      myTeamOnly: nextMyTeamOnly,
+      searchQuery: normalizedSearchQuery,
+      queryPage: 0,
+    }));
+    setIsMobileFilterOpen(false);
+  }, [updateUrlState]);
+
   const handleSortChange = useCallback((nextSortKey: MateSortOptionKey) => {
     updateUrlState((current) => ({ ...current, activeSortKey: nextSortKey, queryPage: 0 }));
   }, [updateUrlState]);
@@ -335,6 +348,7 @@ export function useMateListController() {
     activeSortOption,
     activeTab,
     applySearchTerm,
+    applyMobileFilters,
     authUserId,
     closeGuide,
     closeMobileFilter,
