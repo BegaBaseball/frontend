@@ -145,6 +145,23 @@ const writePassingPolicyFixture = () => {
     ].join('\n'));
   }
 
+  writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+    scripts: {
+      'test:mate:coverage': "node --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=70 --test-coverage-functions=70 --test src/utils/mateListUrlState.test.ts",
+    },
+  }, null, 2));
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    "mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+    "mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+  ].join('\n'));
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+    'node-version: "22"',
+    '- name: Run mate unit coverage',
+    '  id: coverage',
+    '  run: npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}',
+  ].join('\n'));
+
   return repoRoot;
 };
 
@@ -214,6 +231,17 @@ test('policy blocks monorepo frontend path prefixes', () => {
   )));
 });
 
+test('policy requires Mate URL-state smoke/route coverage and numeric coverage floors', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'package.json', JSON.stringify({ scripts: {} }));
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', 'mateSmoke: []\nmateRoute: []');
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', 'node-version: "22"');
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
 test('policy blocks broad site audit paths and mobile detect jobs', () => {
   const repoRoot = writePassingPolicyFixture();
   writeWorkflowFixture(repoRoot, 'frontend-site-audits.yml', [
