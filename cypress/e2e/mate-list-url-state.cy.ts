@@ -229,4 +229,37 @@ describe('Mate list URL state', () => {
     cy.contains('최신 응답 구장').should('be.visible');
     cy.contains('느린 응답 구장').should('not.exist');
   });
+
+  it('names the mobile filter dialog close control and restores focus after Escape', () => {
+    cy.viewport(390, 844);
+    visitWithAuth('/mate');
+    cy.wait('@getUrlParties');
+    cy.contains('button', '필터').as('filterTrigger').focus().click();
+    cy.get('[role="dialog"][aria-labelledby]').should('be.visible').within(() => {
+      cy.focused().should('have.attr', 'aria-label', '닫기');
+    });
+    cy.get('body').type('{esc}');
+    cy.get('[role="dialog"]').should('not.exist');
+    cy.get('@filterTrigger').should('have.focus');
+  });
+
+  it('maps mobile team and seat controls to the same URL and API parameters as desktop', () => {
+    cy.viewport(390, 844);
+    visitWithAuth('/mate?page=2');
+    cy.wait('@getUrlParties');
+    cy.contains('button', '필터').click();
+    cy.get('[role="dialog"]').within(() => {
+      cy.contains('button', '내 팀 경기만').click();
+      cy.contains('button', '응원석').click();
+      cy.contains('button', '적용').click();
+    });
+    cy.wait('@getUrlParties').then((call) => assertRequest(call, {
+      teamId: 'HH',
+      searchQuery: '응원석',
+      page: '0',
+    }));
+    cy.location('search').should('contain', 'team=mine');
+    cy.location('search').should('contain', 'q=%EC%9D%91%EC%9B%90%EC%84%9D');
+    cy.location('search').should('not.contain', 'page=');
+  });
 });
