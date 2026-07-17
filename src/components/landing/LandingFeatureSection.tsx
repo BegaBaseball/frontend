@@ -6,6 +6,7 @@ export interface LandingFeatureSectionProps {
   number: '01' | '02' | '03' | '04' | '05' | '06';
   title: string;
   description: string;
+  copySupplement?: ReactNode;
   visual: ReactNode;
   visualFirst?: boolean;
   tone: 'muted' | 'plain';
@@ -15,6 +16,7 @@ export default function LandingFeatureSection({
   number,
   title,
   description,
+  copySupplement,
   visual,
   visualFirst = false,
   tone,
@@ -33,6 +35,7 @@ export default function LandingFeatureSection({
           </p>
           <h2 id={`landing-feature-${number}-title`}>{title}</h2>
           <p className="landing-feature-description">{description}</p>
+          {copySupplement}
         </div>
         <div className="landing-feature-visual" data-reveal="120">
           {visual}

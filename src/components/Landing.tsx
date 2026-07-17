@@ -18,7 +18,9 @@ import LandingDiaryVignette from './landing/vignettes/LandingDiaryVignette';
 import LandingGameDataVignette from './landing/vignettes/LandingGameDataVignette';
 import LandingMateVignette from './landing/vignettes/LandingMateVignette';
 import LandingPredictionVignette from './landing/vignettes/LandingPredictionVignette';
-import LandingStadiumVignette from './landing/vignettes/LandingStadiumVignette';
+import LandingStadiumVignette, {
+  LandingStadiumChips,
+} from './landing/vignettes/LandingStadiumVignette';
 import { requestLoadTrace } from '../utils/requestLoadTrace';
 
 export default function Landing() {
@@ -69,6 +71,7 @@ export default function Landing() {
         number="05"
         title={LANDING_SECONDARY_FEATURE_COPY['05'].title}
         description={LANDING_SECONDARY_FEATURE_COPY['05'].description}
+        copySupplement={<LandingStadiumChips />}
         visual={<LandingStadiumVignette />}
         tone="muted"
       />

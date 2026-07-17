@@ -113,7 +113,11 @@ export default function useLandingMotion(): void {
         const speed = Number(node.dataset.parallax);
         if (!Number.isFinite(speed)) return;
 
-        const offset = (rect.top + rect.height / 2 - window.innerHeight / 2) * speed;
+        const rawOffset = (rect.top + rect.height / 2 - window.innerHeight / 2) * speed;
+        const limit = Number(node.dataset.parallaxLimit);
+        const offset = Number.isFinite(limit)
+          ? Math.max(-limit, Math.min(limit, rawOffset))
+          : rawOffset;
         node.style.transform = node.hasAttribute('data-parallax-center')
           ? `translate(-50%, -50%) translateY(${-offset}px)`
           : `translateY(${-offset}px)`;
