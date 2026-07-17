@@ -27,7 +27,7 @@ export const stageConfigs = {
     {
       envKey: 'E2E_SMOKE',
       label: 'Core E2E smoke',
-      scope: 'mate-detail-states.cy.ts, mate-execution-flow.cy.ts',
+      scope: 'mate-detail-states.cy.ts, mate-list-url-state.cy.ts, mate-execution-flow.cy.ts',
       parser: 'cypress',
       logFile: 'reports/mate-ci/e2e-smoke.log',
     },
@@ -57,7 +57,7 @@ export const stageConfigs = {
     {
       envKey: 'ROUTE_REGRESSION',
       label: 'Route regression',
-      scope: 'mate.cy.ts, mate-detail-states.cy.ts, mate-execution-flow.cy.ts, mate-qr-refresh.cy.ts',
+      scope: 'mate.cy.ts, mate-detail-states.cy.ts, mate-list-url-state.cy.ts, mate-execution-flow.cy.ts, mate-qr-refresh.cy.ts',
       parser: 'cypress',
       logFile: 'reports/mate-ci/route-regression.log',
     },
