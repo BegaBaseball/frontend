@@ -202,14 +202,207 @@ const checkFrontendMateWorkflow = (repoRoot, failures) => {
   );
 };
 
+const stripJavaScriptComments = (contents) => {
+  let output = '';
+  let quote = null;
+  let index = 0;
+
+  while (index < contents.length) {
+    const character = contents[index];
+    const nextCharacter = contents[index + 1];
+
+    if (quote) {
+      output += character;
+      if (character === '\\' && index + 1 < contents.length) {
+        output += nextCharacter;
+        index += 2;
+        continue;
+      }
+      if (character === quote) quote = null;
+      index += 1;
+      continue;
+    }
+
+    if (character === "'" || character === '"' || character === '`') {
+      quote = character;
+      output += character;
+      index += 1;
+      continue;
+    }
+
+    if (character === '/' && nextCharacter === '/') {
+      output += '  ';
+      index += 2;
+      while (index < contents.length && contents[index] !== '\n') {
+        output += ' ';
+        index += 1;
+      }
+      continue;
+    }
+
+    if (character === '/' && nextCharacter === '*') {
+      output += '  ';
+      index += 2;
+      while (index < contents.length) {
+        if (contents[index] === '*' && contents[index + 1] === '/') {
+          output += '  ';
+          index += 2;
+          break;
+        }
+        output += contents[index] === '\n' ? '\n' : ' ';
+        index += 1;
+      }
+      continue;
+    }
+
+    output += character;
+    index += 1;
+  }
+
+  return output;
+};
+
 const countPresetSpecOccurrences = (contents, presetName, spec) => {
   const section = contents.match(new RegExp(`\\b${presetName}\\s*:\\s*\\[([\\s\\S]*?)\\]`));
   if (!section) return 0;
-  const uncommentedSection = section[1]
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/^\s*\/\/.*$/gm, '');
-  const entries = [...uncommentedSection.matchAll(/(['"])(.*?)\1/g)];
+  const entries = [...section[1].matchAll(/(['"])(.*?)\1/g)];
   return entries.filter((entry) => entry[2] === spec).length;
+};
+
+const tokenizeShellCommand = (command) => {
+  const tokens = [];
+  let current = '';
+  let quote = null;
+  let tokenStarted = false;
+
+  for (let index = 0; index < command.length; index += 1) {
+    const character = command[index];
+
+    if (quote) {
+      if (character === '\\' && quote !== "'" && index + 1 < command.length) {
+        current += command[index + 1];
+        index += 1;
+        tokenStarted = true;
+        continue;
+      }
+      if (character === quote) {
+        quote = null;
+      } else {
+        current += character;
+      }
+      tokenStarted = true;
+      continue;
+    }
+
+    if (character === "'" || character === '"') {
+      quote = character;
+      tokenStarted = true;
+      continue;
+    }
+    if (/\s/.test(character)) {
+      if (tokenStarted) {
+        tokens.push(current);
+        current = '';
+        tokenStarted = false;
+      }
+      continue;
+    }
+    if (character === '\\' && index + 1 < command.length) {
+      current += command[index + 1];
+      index += 1;
+      tokenStarted = true;
+      continue;
+    }
+
+    current += character;
+    tokenStarted = true;
+  }
+
+  if (quote) return null;
+  if (tokenStarted) tokens.push(current);
+  return tokens;
+};
+
+const stripYamlComments = (contents) => contents.split('\n').map((line) => {
+  let quote = null;
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+    if (quote) {
+      if (character === '\\' && quote === '"') {
+        index += 1;
+        continue;
+      }
+      if (character === quote) {
+        if (quote === "'" && line[index + 1] === "'") {
+          index += 1;
+          continue;
+        }
+        quote = null;
+      }
+      continue;
+    }
+    if (character === "'" || character === '"') {
+      quote = character;
+      continue;
+    }
+    if (character === '#') return line.slice(0, index);
+  }
+  return line;
+}).join('\n');
+
+const extractNamedWorkflowStep = (contents, stepName) => {
+  const lines = contents.split('\n');
+  for (let index = 0; index < lines.length; index += 1) {
+    const match = lines[index].match(/^(\s*)-\s+name:\s*(.*?)\s*$/);
+    if (!match) continue;
+    const rawName = match[2];
+    const normalizedName = (
+      (rawName.startsWith('"') && rawName.endsWith('"'))
+      || (rawName.startsWith("'") && rawName.endsWith("'"))
+    ) ? rawName.slice(1, -1) : rawName;
+    if (normalizedName !== stepName) continue;
+
+    const stepIndent = match[1].length;
+    let endIndex = index + 1;
+    while (endIndex < lines.length) {
+      const peerMatch = lines[endIndex].match(/^(\s*)-\s+/);
+      if (peerMatch && peerMatch[1].length === stepIndent) break;
+      endIndex += 1;
+    }
+    return lines.slice(index, endIndex).join('\n');
+  }
+  return '';
+};
+
+const directStepIndent = (step) => {
+  const firstLine = step.split('\n')[0] || '';
+  const match = firstLine.match(/^(\s*)-/);
+  return match ? match[1].length + 2 : 2;
+};
+
+const hasDirectStepMapping = (step, key, value) => {
+  const indent = ' '.repeat(directStepIndent(step));
+  return step.split('\n').some((line) => line === `${indent}${key}: ${value}`);
+};
+
+const extractDirectStepSection = (step, key) => {
+  const lines = step.split('\n');
+  const indentSize = directStepIndent(step);
+  const indent = ' '.repeat(indentSize);
+  const startIndex = lines.findIndex((line) => (
+    line === `${indent}${key}:`
+    || line === `${indent}${key}: |`
+    || line === `${indent}${key}: >`
+  ));
+  if (startIndex === -1) return '';
+
+  let endIndex = startIndex + 1;
+  while (endIndex < lines.length) {
+    const line = lines[endIndex];
+    if (line.trim() && line.search(/\S/) <= indentSize) break;
+    endIndex += 1;
+  }
+  return lines.slice(startIndex + 1, endIndex).join('\n');
 };
 
 const checkMateQualityGatePolicy = (repoRoot, failures) => {
@@ -233,33 +426,50 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
     );
   }
 
-  const requiredCoverageSnippets = [
-    '--experimental-test-coverage',
-    '--test-coverage-lines=90',
-    '--test-coverage-branches=70',
-    '--test-coverage-functions=70',
-  ];
-  for (const snippet of requiredCoverageSnippets) {
-    requireSnippet(failures, 'package.json', coverageScript, snippet, 'missing-mate-quality-gate');
+  const coverageTokens = tokenizeShellCommand(coverageScript);
+  if (!coverageTokens) {
+    addFailure(
+      failures,
+      'missing-mate-quality-gate',
+      'package.json',
+      'test:mate:coverage must be a valid shell command',
+    );
+  } else {
+    const coverageFlagCount = coverageTokens.filter((token) => (
+      token === '--experimental-test-coverage'
+    )).length;
+    if (coverageFlagCount !== 1) {
+      addFailure(
+        failures,
+        'missing-mate-quality-gate',
+        'package.json',
+        'test:mate:coverage must contain exactly one --experimental-test-coverage flag',
+      );
+    }
+
+    const requiredThresholds = [
+      ['lines', '90'],
+      ['branches', '70'],
+      ['functions', '70'],
+    ];
+    for (const [metric, floor] of requiredThresholds) {
+      const prefix = `--test-coverage-${metric}=`;
+      const options = coverageTokens.filter((token) => token.startsWith(prefix));
+      if (options.length !== 1 || options[0] !== `${prefix}${floor}`) {
+        addFailure(
+          failures,
+          'missing-mate-quality-gate',
+          'package.json',
+          `test:mate:coverage must contain exactly one ${prefix}${floor} option`,
+        );
+      }
+    }
   }
 
-  const required = [
-    ['scripts/qa-presets.mjs', presets, "mateSmoke:"],
-    ['scripts/qa-presets.mjs', presets, "mateRoute:"],
-    ['scripts/qa-presets.mjs', presets, 'cypress/e2e/mate-list-url-state.cy.ts'],
-    [workflowPath('_frontend-mate-ci.yml'), workflow, 'Run mate unit coverage'],
-    [workflowPath('_frontend-mate-ci.yml'), workflow, 'npm run test:mate:coverage'],
-    [workflowPath('_frontend-mate-ci.yml'), workflow, 'reports/mate-ci/coverage.log'],
-    [workflowPath('_frontend-mate-ci.yml'), workflow, 'MATE_CI_STATUS_COVERAGE'],
-  ];
-
-  for (const [file, contents, snippet] of required) {
-    requireSnippet(failures, file, contents, snippet, 'missing-mate-quality-gate');
-  }
-
+  const uncommentedPresets = stripJavaScriptComments(presets);
   const urlStateSpec = 'cypress/e2e/mate-list-url-state.cy.ts';
   for (const presetName of ['mateSmoke', 'mateRoute']) {
-    const occurrences = countPresetSpecOccurrences(presets, presetName, urlStateSpec);
+    const occurrences = countPresetSpecOccurrences(uncommentedPresets, presetName, urlStateSpec);
     if (occurrences !== 1) {
       addFailure(
         failures,
@@ -270,14 +480,46 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
     }
   }
 
-  const coverageStatusOccurrences = workflow.split('MATE_CI_STATUS_COVERAGE').length - 1;
-  if (coverageStatusOccurrences < 2) {
+  const uncommentedWorkflow = stripYamlComments(workflow);
+  const coverageStep = extractNamedWorkflowStep(uncommentedWorkflow, 'Run mate unit coverage');
+  const coverageRun = extractDirectStepSection(coverageStep, 'run');
+  const coverageRunLines = coverageRun.split('\n').map((line) => line.trim());
+  const hasCoverageCommand = coverageRunLines.some((line) => (
+    line.includes('npm run test:mate:coverage')
+    && line.includes('reports/mate-ci/coverage.log')
+  ));
+  if (
+    !hasDirectStepMapping(coverageStep, 'id', 'coverage')
+    || !coverageRunLines.includes('set -o pipefail')
+    || !hasCoverageCommand
+  ) {
     addFailure(
       failures,
       'missing-mate-quality-gate',
       workflowPath('_frontend-mate-ci.yml'),
-      'MATE_CI_STATUS_COVERAGE must be propagated to both summary steps',
+      'Run mate unit coverage must own id coverage, pipefail, the coverage command, and coverage.log',
     );
+  }
+
+  const expectedStatusMapping = 'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}';
+  const summarySteps = [
+    'Generate mate CI machine-readable summary',
+    'Publish mate CI summary',
+  ];
+  for (const stepName of summarySteps) {
+    const step = extractNamedWorkflowStep(uncommentedWorkflow, stepName);
+    const envSection = extractDirectStepSection(step, 'env');
+    const hasExpectedMapping = envSection.split('\n').some((line) => (
+      line.trim() === expectedStatusMapping
+    ));
+    if (!hasExpectedMapping) {
+      addFailure(
+        failures,
+        'missing-mate-quality-gate',
+        workflowPath('_frontend-mate-ci.yml'),
+        `${stepName} must map coverage status from steps.coverage.outcome`,
+      );
+    }
   }
 };
 
