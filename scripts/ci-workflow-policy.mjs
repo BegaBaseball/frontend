@@ -221,33 +221,67 @@ const matePresetSpecOccurrences = (contents, spec) => {
     true,
     ts.ScriptKind.JS,
   );
-  let specsObject = null;
+  const result = { mateSmoke: 0, mateRoute: 0 };
+  const declarations = [];
 
   for (const statement of sourceFile.statements) {
     if (!ts.isVariableStatement(statement)) continue;
     for (const declaration of statement.declarationList.declarations) {
-      if (
-        ts.isIdentifier(declaration.name)
-        && declaration.name.text === 'E2E_SPECS'
-        && declaration.initializer
-        && ts.isObjectLiteralExpression(declaration.initializer)
-      ) {
-        specsObject = declaration.initializer;
-        break;
+      if (ts.isIdentifier(declaration.name) && declaration.name.text === 'E2E_SPECS') {
+        declarations.push(declaration);
       }
     }
-    if (specsObject) break;
   }
 
-  const result = { mateSmoke: 0, mateRoute: 0 };
-  if (!specsObject) return result;
+  if (declarations.length !== 1) return result;
+  const [declaration] = declarations;
+  if (!declaration.initializer || !ts.isObjectLiteralExpression(declaration.initializer)) {
+    return result;
+  }
+  const specsObject = declaration.initializer;
+  if (specsObject.properties.some((property) => ts.isSpreadAssignment(property))) return result;
+
+  let hasTargetAssignment = false;
+  const visit = (node) => {
+    if (ts.isBinaryExpression(node)) {
+      const operator = node.operatorToken.kind;
+      const isAssignment = (
+        operator >= ts.SyntaxKind.FirstAssignment
+        && operator <= ts.SyntaxKind.LastAssignment
+      );
+      let targetName = null;
+      if (
+        ts.isPropertyAccessExpression(node.left)
+        && ts.isIdentifier(node.left.expression)
+        && node.left.expression.text === 'E2E_SPECS'
+      ) targetName = node.left.name.text;
+      if (
+        ts.isElementAccessExpression(node.left)
+        && ts.isIdentifier(node.left.expression)
+        && node.left.expression.text === 'E2E_SPECS'
+        && node.left.argumentExpression
+        && (
+          ts.isStringLiteral(node.left.argumentExpression)
+          || ts.isNoSubstitutionTemplateLiteral(node.left.argumentExpression)
+        )
+      ) targetName = node.left.argumentExpression.text;
+      if (isAssignment && Object.hasOwn(result, targetName)) hasTargetAssignment = true;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  if (hasTargetAssignment) return result;
 
   for (const presetName of Object.keys(result)) {
-    const property = specsObject.properties.find((candidate) => (
-      ts.isPropertyAssignment(candidate)
-      && propertyNameText(candidate.name) === presetName
+    const properties = specsObject.properties.filter((candidate) => (
+      candidate.name && propertyNameText(candidate.name) === presetName
     ));
-    if (!property || !ts.isArrayLiteralExpression(property.initializer)) continue;
+    if (
+      properties.length !== 1
+      || !ts.isPropertyAssignment(properties[0])
+      || !ts.isArrayLiteralExpression(properties[0].initializer)
+    ) return { mateSmoke: 0, mateRoute: 0 };
+    const [property] = properties;
 
     result[presetName] = property.initializer.elements.filter((element) => (
       (ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element))
@@ -289,7 +323,11 @@ const parseSimpleShellCommand = (command) => {
       tokenStarted = true;
       continue;
     }
-    if (character === '#' && !tokenStarted) break;
+    if (character === '#' && !tokenStarted) {
+      const newlineIndex = command.indexOf('\n', index);
+      if (newlineIndex !== -1 && command.slice(newlineIndex + 1).trim()) return null;
+      break;
+    }
     if (
       character === '\n'
       || character === '\r'
@@ -368,7 +406,7 @@ const workflowBlockScalarLines = (lines) => {
       blockIndent = null;
     }
 
-    if (/^\s*[^#][^:]*:\s*[|>][+-]?\s*$/.test(line)) {
+    if (/^\s*[^#][^:]*:\s*[|>](?:[+-]|[1-9][+-]?|[+-][1-9])?\s*$/.test(line)) {
       blockIndent = indentation;
     }
   }
@@ -500,6 +538,18 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
         'missing-mate-quality-gate',
         'package.json',
         'test:mate:coverage must be one simple command whose executable is node',
+      );
+    }
+    const testFlagCount = coverageTokens.filter((token) => token === '--test').length;
+    const urlStateTestCount = coverageTokens.filter((token) => (
+      token === 'src/utils/mateListUrlState.test.ts'
+    )).length;
+    if (testFlagCount !== 1 || urlStateTestCount !== 1) {
+      addFailure(
+        failures,
+        'missing-mate-quality-gate',
+        'package.json',
+        'test:mate:coverage must run src/utils/mateListUrlState.test.ts with exactly one --test flag',
       );
     }
     const coverageFlagCount = coverageTokens.filter((token) => (
