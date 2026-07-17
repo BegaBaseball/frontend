@@ -202,18 +202,48 @@ const checkFrontendMateWorkflow = (repoRoot, failures) => {
   );
 };
 
+const countPresetSpecOccurrences = (contents, presetName, spec) => {
+  const section = contents.match(new RegExp(`\\b${presetName}\\s*:\\s*\\[([\\s\\S]*?)\\]`));
+  if (!section) return 0;
+  const uncommentedSection = section[1]
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '');
+  const entries = [...uncommentedSection.matchAll(/(['"])(.*?)\1/g)];
+  return entries.filter((entry) => entry[2] === spec).length;
+};
+
 const checkMateQualityGatePolicy = (repoRoot, failures) => {
   const packageJson = requireFile(repoRoot, failures, 'package.json');
   const presets = requireFile(repoRoot, failures, 'scripts/qa-presets.mjs');
   const workflow = requireFile(repoRoot, failures, workflowPath('_frontend-mate-ci.yml'));
-  if (!packageJson || !presets || !workflow) return;
+  if (packageJson === null || presets === null || workflow === null) return;
+
+  let coverageScript = '';
+  try {
+    const parsedPackageJson = JSON.parse(packageJson);
+    if (typeof parsedPackageJson?.scripts?.['test:mate:coverage'] === 'string') {
+      coverageScript = parsedPackageJson.scripts['test:mate:coverage'];
+    }
+  } catch {
+    addFailure(
+      failures,
+      'missing-mate-quality-gate',
+      'package.json',
+      'package.json must contain valid JSON',
+    );
+  }
+
+  const requiredCoverageSnippets = [
+    '--experimental-test-coverage',
+    '--test-coverage-lines=90',
+    '--test-coverage-branches=70',
+    '--test-coverage-functions=70',
+  ];
+  for (const snippet of requiredCoverageSnippets) {
+    requireSnippet(failures, 'package.json', coverageScript, snippet, 'missing-mate-quality-gate');
+  }
 
   const required = [
-    ['package.json', packageJson, '"test:mate:coverage"'],
-    ['package.json', packageJson, '--experimental-test-coverage'],
-    ['package.json', packageJson, '--test-coverage-lines=90'],
-    ['package.json', packageJson, '--test-coverage-branches=70'],
-    ['package.json', packageJson, '--test-coverage-functions=70'],
     ['scripts/qa-presets.mjs', presets, "mateSmoke:"],
     ['scripts/qa-presets.mjs', presets, "mateRoute:"],
     ['scripts/qa-presets.mjs', presets, 'cypress/e2e/mate-list-url-state.cy.ts'],
@@ -227,13 +257,26 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
     requireSnippet(failures, file, contents, snippet, 'missing-mate-quality-gate');
   }
 
-  const specOccurrences = presets.split('cypress/e2e/mate-list-url-state.cy.ts').length - 1;
-  if (specOccurrences < 2) {
+  const urlStateSpec = 'cypress/e2e/mate-list-url-state.cy.ts';
+  for (const presetName of ['mateSmoke', 'mateRoute']) {
+    const occurrences = countPresetSpecOccurrences(presets, presetName, urlStateSpec);
+    if (occurrences !== 1) {
+      addFailure(
+        failures,
+        'missing-mate-quality-gate',
+        'scripts/qa-presets.mjs',
+        `${urlStateSpec} must appear exactly once in ${presetName}`,
+      );
+    }
+  }
+
+  const coverageStatusOccurrences = workflow.split('MATE_CI_STATUS_COVERAGE').length - 1;
+  if (coverageStatusOccurrences < 2) {
     addFailure(
       failures,
       'missing-mate-quality-gate',
-      'scripts/qa-presets.mjs',
-      'mate-list-url-state.cy.ts must be present in both mateSmoke and mateRoute',
+      workflowPath('_frontend-mate-ci.yml'),
+      'MATE_CI_STATUS_COVERAGE must be propagated to both summary steps',
     );
   }
 };
