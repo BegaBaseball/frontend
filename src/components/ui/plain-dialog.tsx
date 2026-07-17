@@ -117,6 +117,8 @@ export default function PlainDialog({
               </div>
               {!hideCloseButton && (
                 <Button
+                  type="button"
+                  aria-label="닫기"
                   variant="ghost"
                   size="icon"
                   className="h-10 w-10 p-0 text-gray-400 hover:text-gray-500"
