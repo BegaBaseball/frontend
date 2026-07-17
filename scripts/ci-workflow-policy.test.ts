@@ -160,6 +160,7 @@ const writePassingPolicyFixture = () => {
     '  id: coverage',
     '  run: npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
     'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}',
+    'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}',
   ].join('\n'));
 
   return repoRoot;
@@ -242,6 +243,93 @@ test('policy requires Mate URL-state smoke/route coverage and numeric coverage f
   assert.equal(report.ok, false);
   assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
 });
+
+test('policy binds coverage floors to a non-empty test:mate:coverage script', () => {
+  const coverageCommand = 'node --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=70 --test-coverage-functions=70';
+
+  for (const mateCoverageScript of [undefined, '']) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: {
+        ...(mateCoverageScript === undefined ? {} : { 'test:mate:coverage': mateCoverageScript }),
+        'test:unrelated': coverageCommand,
+      },
+    }));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy reports invalid package JSON as a Mate quality-gate failure', () => {
+  for (const invalidPackageJson of ['{ invalid json', '']) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', invalidPackageJson);
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => (
+      failure.id === 'missing-mate-quality-gate'
+      && failure.message.includes('valid JSON')
+    )));
+  }
+});
+
+test('policy requires exactly one URL-state spec in each Mate preset', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    "mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+    "mateRoute: ['cypress/e2e/mate-execution-flow.cy.ts']",
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy rejects URL-state preset comments and suffixed near-matches', () => {
+  const invalidSmokeEntries = [
+    "'cypress/e2e/mate-list-url-state.cy.ts.disabled'",
+    "// 'cypress/e2e/mate-list-url-state.cy.ts'",
+  ];
+
+  for (const invalidSmokeEntry of invalidSmokeEntries) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+      'mateSmoke: [',
+      `  ${invalidSmokeEntry},`,
+      "  'cypress/e2e/mate-execution-flow.cy.ts',",
+      ']',
+      "mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+    ].join('\n'));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy requires coverage status propagation in both Mate summary steps', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+    'node-version: "22"',
+    '- name: Run mate unit coverage',
+    '  id: coverage',
+    '  run: npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}',
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
 test('policy blocks broad site audit paths and mobile detect jobs', () => {
   const repoRoot = writePassingPolicyFixture();
   writeWorkflowFixture(repoRoot, 'frontend-site-audits.yml', [
