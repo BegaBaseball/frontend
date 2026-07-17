@@ -202,6 +202,42 @@ const checkFrontendMateWorkflow = (repoRoot, failures) => {
   );
 };
 
+const checkMateQualityGatePolicy = (repoRoot, failures) => {
+  const packageJson = requireFile(repoRoot, failures, 'package.json');
+  const presets = requireFile(repoRoot, failures, 'scripts/qa-presets.mjs');
+  const workflow = requireFile(repoRoot, failures, workflowPath('_frontend-mate-ci.yml'));
+  if (!packageJson || !presets || !workflow) return;
+
+  const required = [
+    ['package.json', packageJson, '"test:mate:coverage"'],
+    ['package.json', packageJson, '--experimental-test-coverage'],
+    ['package.json', packageJson, '--test-coverage-lines=90'],
+    ['package.json', packageJson, '--test-coverage-branches=70'],
+    ['package.json', packageJson, '--test-coverage-functions=70'],
+    ['scripts/qa-presets.mjs', presets, "mateSmoke:"],
+    ['scripts/qa-presets.mjs', presets, "mateRoute:"],
+    ['scripts/qa-presets.mjs', presets, 'cypress/e2e/mate-list-url-state.cy.ts'],
+    [workflowPath('_frontend-mate-ci.yml'), workflow, 'Run mate unit coverage'],
+    [workflowPath('_frontend-mate-ci.yml'), workflow, 'npm run test:mate:coverage'],
+    [workflowPath('_frontend-mate-ci.yml'), workflow, 'reports/mate-ci/coverage.log'],
+    [workflowPath('_frontend-mate-ci.yml'), workflow, 'MATE_CI_STATUS_COVERAGE'],
+  ];
+
+  for (const [file, contents, snippet] of required) {
+    requireSnippet(failures, file, contents, snippet, 'missing-mate-quality-gate');
+  }
+
+  const specOccurrences = presets.split('cypress/e2e/mate-list-url-state.cy.ts').length - 1;
+  if (specOccurrences < 2) {
+    addFailure(
+      failures,
+      'missing-mate-quality-gate',
+      'scripts/qa-presets.mjs',
+      'mate-list-url-state.cy.ts must be present in both mateSmoke and mateRoute',
+    );
+  }
+};
+
 const checkFrontendSiteAuditsWorkflow = (repoRoot, failures) => {
   const workflow = workflowPath('frontend-site-audits.yml');
   const contents = requireFile(repoRoot, failures, workflow);
@@ -468,6 +504,7 @@ export const checkCiWorkflowPolicy = (repoRoot = DEFAULT_REPO_ROOT) => {
   checkNoMonorepoFrontendPrefixes(repoRoot, failures);
   checkMateRegressionLabelPolicy(repoRoot, failures);
   checkFrontendMateWorkflow(repoRoot, failures);
+  checkMateQualityGatePolicy(repoRoot, failures);
   checkFrontendSiteAuditsWorkflow(repoRoot, failures);
   checkCoreWebVitalsRunbook(repoRoot, failures);
   checkFrontendMobileQaWorkflow(repoRoot, failures);
