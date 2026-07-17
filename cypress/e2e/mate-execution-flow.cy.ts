@@ -482,4 +482,58 @@ describe('Mate execution flow UI', () => {
     cy.wait('@getDirectCheckInParty');
     cy.contains('Arrival Status').should('be.visible');
   });
+
+  it('recovers approved-participant chat history after the user retries', () => {
+    const party = buildParty({ id: 944, hostId: 999, status: 'MATCHED' });
+    const approvedApplication = buildApplication({
+      id: 744,
+      partyId: 944,
+      applicantId: 123,
+      applicantName: 'TestUser',
+      isApproved: true,
+      isRejected: false,
+      responseDeadline: undefined,
+    });
+    let shouldFailChatHistory = true;
+
+    cy.intercept('GET', '**/api/parties/944*', { statusCode: 200, body: party }).as('getRetryChatParty');
+    cy.intercept('GET', '**/api/applications/party/944/mine', {
+      statusCode: 200,
+      body: approvedApplication,
+    }).as('getRetryChatApplication');
+    cy.intercept('GET', '**/api/chat/party/944*', (req) => {
+      req.alias = shouldFailChatHistory ? 'getChatHistoryFailure' : 'getChatHistorySuccess';
+      if (shouldFailChatHistory) {
+        req.reply({ statusCode: 500, body: { message: 'temporary chat failure' } });
+        return;
+      }
+      req.reply({
+        statusCode: 200,
+        body: [{
+          id: 77,
+          partyId: 944,
+          senderId: 999,
+          senderName: '호스트',
+          message: '복구된 대화입니다',
+          createdAt: '2026-03-20T10:00:00Z',
+        }],
+      });
+    });
+    cy.intercept('POST', '**/api/chat/party/944/read', { statusCode: 200, body: {} });
+
+    visitWithAuth('/mate/944');
+    cy.wait('@getRetryChatParty');
+    cy.wait('@getRetryChatApplication');
+    revealDeferredMateDetailContent();
+    cy.contains('button', '채팅방 입장').click();
+    cy.contains('이전 메시지를 불러오지 못했습니다. 다시 시도해주세요.', { timeout: 15000 })
+      .should('be.visible');
+    cy.then(() => {
+      shouldFailChatHistory = false;
+    });
+    cy.contains('button', '다시 시도').click();
+    cy.wait('@getChatHistorySuccess');
+    cy.contains('복구된 대화입니다').should('be.visible');
+    cy.contains('이전 메시지를 불러오지 못했습니다. 다시 시도해주세요.').should('not.exist');
+  });
 });
