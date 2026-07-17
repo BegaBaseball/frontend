@@ -3,6 +3,8 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import ts from 'typescript';
+
 const SCRIPT_DIR = dirname(fileURLToPath(import.meta.url));
 export const DEFAULT_REPO_ROOT = resolve(SCRIPT_DIR, '..');
 
@@ -202,74 +204,61 @@ const checkFrontendMateWorkflow = (repoRoot, failures) => {
   );
 };
 
-const stripJavaScriptComments = (contents) => {
-  let output = '';
-  let quote = null;
-  let index = 0;
+const propertyNameText = (name) => {
+  if (
+    ts.isIdentifier(name)
+    || ts.isStringLiteral(name)
+    || ts.isNoSubstitutionTemplateLiteral(name)
+  ) return name.text;
+  return null;
+};
 
-  while (index < contents.length) {
-    const character = contents[index];
-    const nextCharacter = contents[index + 1];
+const matePresetSpecOccurrences = (contents, spec) => {
+  const sourceFile = ts.createSourceFile(
+    'qa-presets.mjs',
+    contents,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.JS,
+  );
+  let specsObject = null;
 
-    if (quote) {
-      output += character;
-      if (character === '\\' && index + 1 < contents.length) {
-        output += nextCharacter;
-        index += 2;
-        continue;
+  for (const statement of sourceFile.statements) {
+    if (!ts.isVariableStatement(statement)) continue;
+    for (const declaration of statement.declarationList.declarations) {
+      if (
+        ts.isIdentifier(declaration.name)
+        && declaration.name.text === 'E2E_SPECS'
+        && declaration.initializer
+        && ts.isObjectLiteralExpression(declaration.initializer)
+      ) {
+        specsObject = declaration.initializer;
+        break;
       }
-      if (character === quote) quote = null;
-      index += 1;
-      continue;
     }
-
-    if (character === "'" || character === '"' || character === '`') {
-      quote = character;
-      output += character;
-      index += 1;
-      continue;
-    }
-
-    if (character === '/' && nextCharacter === '/') {
-      output += '  ';
-      index += 2;
-      while (index < contents.length && contents[index] !== '\n') {
-        output += ' ';
-        index += 1;
-      }
-      continue;
-    }
-
-    if (character === '/' && nextCharacter === '*') {
-      output += '  ';
-      index += 2;
-      while (index < contents.length) {
-        if (contents[index] === '*' && contents[index + 1] === '/') {
-          output += '  ';
-          index += 2;
-          break;
-        }
-        output += contents[index] === '\n' ? '\n' : ' ';
-        index += 1;
-      }
-      continue;
-    }
-
-    output += character;
-    index += 1;
+    if (specsObject) break;
   }
 
-  return output;
+  const result = { mateSmoke: 0, mateRoute: 0 };
+  if (!specsObject) return result;
+
+  for (const presetName of Object.keys(result)) {
+    const property = specsObject.properties.find((candidate) => (
+      ts.isPropertyAssignment(candidate)
+      && propertyNameText(candidate.name) === presetName
+    ));
+    if (!property || !ts.isArrayLiteralExpression(property.initializer)) continue;
+
+    result[presetName] = property.initializer.elements.filter((element) => (
+      (ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element))
+      && element.text === spec
+    )).length;
+  }
+
+  return result;
 };
 
-const countPresetSpecOccurrences = (contents, presetName, spec) => {
-  const section = contents.match(new RegExp(`\\b${presetName}\\s*:\\s*\\[([\\s\\S]*?)\\]`));
-  if (!section) return 0;
-  const entries = [...section[1].matchAll(/(['"])(.*?)\1/g)];
-  return entries.filter((entry) => entry[2] === spec).length;
-};
-
-const tokenizeShellCommand = (command) => {
+const parseSimpleShellCommand = (command) => {
   const tokens = [];
   let current = '';
   let quote = null;
@@ -279,6 +268,7 @@ const tokenizeShellCommand = (command) => {
     const character = command[index];
 
     if (quote) {
+      if (quote !== "'" && (character === '`' || character === '$')) return null;
       if (character === '\\' && quote !== "'" && index + 1 < command.length) {
         current += command[index + 1];
         index += 1;
@@ -299,6 +289,18 @@ const tokenizeShellCommand = (command) => {
       tokenStarted = true;
       continue;
     }
+    if (character === '#' && !tokenStarted) break;
+    if (
+      character === '\n'
+      || character === '\r'
+      || character === ';'
+      || character === '&'
+      || character === '|'
+      || character === '<'
+      || character === '>'
+      || character === '`'
+      || character === '$'
+    ) return null;
     if (/\s/.test(character)) {
       if (tokenStarted) {
         tokens.push(current);
@@ -350,28 +352,85 @@ const stripYamlComments = (contents) => contents.split('\n').map((line) => {
   return line;
 }).join('\n');
 
-const extractNamedWorkflowStep = (contents, stepName) => {
-  const lines = contents.split('\n');
-  for (let index = 0; index < lines.length; index += 1) {
-    const match = lines[index].match(/^(\s*)-\s+name:\s*(.*?)\s*$/);
-    if (!match) continue;
-    const rawName = match[2];
-    const normalizedName = (
-      (rawName.startsWith('"') && rawName.endsWith('"'))
-      || (rawName.startsWith("'") && rawName.endsWith("'"))
-    ) ? rawName.slice(1, -1) : rawName;
-    if (normalizedName !== stepName) continue;
+const workflowBlockScalarLines = (lines) => {
+  const blocked = new Set();
+  let blockIndent = null;
 
-    const stepIndent = match[1].length;
-    let endIndex = index + 1;
-    while (endIndex < lines.length) {
-      const peerMatch = lines[endIndex].match(/^(\s*)-\s+/);
-      if (peerMatch && peerMatch[1].length === stepIndent) break;
-      endIndex += 1;
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const indentation = line.search(/\S/);
+
+    if (blockIndent !== null) {
+      if (!line.trim() || indentation > blockIndent) {
+        blocked.add(index);
+        continue;
+      }
+      blockIndent = null;
     }
-    return lines.slice(index, endIndex).join('\n');
+
+    if (/^\s*[^#][^:]*:\s*[|>][+-]?\s*$/.test(line)) {
+      blockIndent = indentation;
+    }
   }
-  return '';
+
+  return blocked;
+};
+
+const normalizeYamlScalar = (value) => {
+  if (
+    (value.startsWith('"') && value.endsWith('"'))
+    || (value.startsWith("'") && value.endsWith("'"))
+  ) return value.slice(1, -1);
+  return value;
+};
+
+const extractWorkflowSteps = (contents) => {
+  const lines = contents.split('\n');
+  const blockedLines = workflowBlockScalarLines(lines);
+  const steps = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    if (blockedLines.has(index)) continue;
+    const stepsMatch = lines[index].match(/^(\s*)steps:\s*$/);
+    if (!stepsMatch) continue;
+
+    const sectionIndent = stepsMatch[1].length;
+    const itemIndent = sectionIndent + 2;
+    let sectionEnd = index + 1;
+    while (sectionEnd < lines.length) {
+      const line = lines[sectionEnd];
+      if (!line.trim()) {
+        sectionEnd += 1;
+        continue;
+      }
+      if (!blockedLines.has(sectionEnd) && line.search(/\S/) <= sectionIndent) break;
+      sectionEnd += 1;
+    }
+
+    for (let stepIndex = index + 1; stepIndex < sectionEnd; stepIndex += 1) {
+      if (blockedLines.has(stepIndex)) continue;
+      const nameMatch = lines[stepIndex].match(/^(\s*)-\s+name:\s*(.*?)\s*$/);
+      if (!nameMatch || nameMatch[1].length !== itemIndent) continue;
+
+      let stepEnd = stepIndex + 1;
+      while (stepEnd < sectionEnd) {
+        const peerMatch = blockedLines.has(stepEnd)
+          ? null
+          : lines[stepEnd].match(/^(\s*)-\s+/);
+        if (peerMatch && peerMatch[1].length === itemIndent) break;
+        stepEnd += 1;
+      }
+      steps.push({
+        name: normalizeYamlScalar(nameMatch[2]),
+        source: lines.slice(stepIndex, stepEnd).join('\n'),
+      });
+      stepIndex = stepEnd - 1;
+    }
+
+    index = sectionEnd - 1;
+  }
+
+  return steps;
 };
 
 const directStepIndent = (step) => {
@@ -426,7 +485,7 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
     );
   }
 
-  const coverageTokens = tokenizeShellCommand(coverageScript);
+  const coverageTokens = parseSimpleShellCommand(coverageScript);
   if (!coverageTokens) {
     addFailure(
       failures,
@@ -435,6 +494,14 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
       'test:mate:coverage must be a valid shell command',
     );
   } else {
+    if (coverageTokens[0] !== 'node') {
+      addFailure(
+        failures,
+        'missing-mate-quality-gate',
+        'package.json',
+        'test:mate:coverage must be one simple command whose executable is node',
+      );
+    }
     const coverageFlagCount = coverageTokens.filter((token) => (
       token === '--experimental-test-coverage'
     )).length;
@@ -466,10 +533,10 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
     }
   }
 
-  const uncommentedPresets = stripJavaScriptComments(presets);
   const urlStateSpec = 'cypress/e2e/mate-list-url-state.cy.ts';
+  const presetOccurrences = matePresetSpecOccurrences(presets, urlStateSpec);
   for (const presetName of ['mateSmoke', 'mateRoute']) {
-    const occurrences = countPresetSpecOccurrences(uncommentedPresets, presetName, urlStateSpec);
+    const occurrences = presetOccurrences[presetName];
     if (occurrences !== 1) {
       addFailure(
         failures,
@@ -481,13 +548,16 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
   }
 
   const uncommentedWorkflow = stripYamlComments(workflow);
-  const coverageStep = extractNamedWorkflowStep(uncommentedWorkflow, 'Run mate unit coverage');
+  const workflowSteps = extractWorkflowSteps(uncommentedWorkflow);
+  const findWorkflowStep = (name) => (
+    workflowSteps.find((step) => step.name === name)?.source || ''
+  );
+  const coverageStep = findWorkflowStep('Run mate unit coverage');
   const coverageRun = extractDirectStepSection(coverageStep, 'run');
   const coverageRunLines = coverageRun.split('\n').map((line) => line.trim());
-  const hasCoverageCommand = coverageRunLines.some((line) => (
-    line.includes('npm run test:mate:coverage')
-    && line.includes('reports/mate-ci/coverage.log')
-  ));
+  const hasCoverageCommand = coverageRunLines.includes(
+    'npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+  );
   if (
     !hasDirectStepMapping(coverageStep, 'id', 'coverage')
     || !coverageRunLines.includes('set -o pipefail')
@@ -507,7 +577,7 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
     'Publish mate CI summary',
   ];
   for (const stepName of summarySteps) {
-    const step = extractNamedWorkflowStep(uncommentedWorkflow, stepName);
+    const step = findWorkflowStep(stepName);
     const envSection = extractDirectStepSection(step, 'env');
     const hasExpectedMapping = envSection.split('\n').some((line) => (
       line.trim() === expectedStatusMapping
