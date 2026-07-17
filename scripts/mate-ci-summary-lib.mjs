@@ -11,6 +11,13 @@ export const stageConfigs = {
       logFile: 'reports/mate-ci/unit-smoke.log',
     },
     {
+      envKey: 'COVERAGE',
+      label: 'Unit coverage',
+      scope: 'executed Mate Node unit surface; floors L90/B70/F70',
+      parser: 'node-coverage',
+      logFile: 'reports/mate-ci/coverage.log',
+    },
+    {
       envKey: 'BUILD_SMOKE',
       label: 'Build smoke',
       scope: 'vite build + seo prerender + sitemap',
@@ -32,6 +39,13 @@ export const stageConfigs = {
       scope: 'mate route barrels, query/cache helpers, mate utils/api',
       parser: 'node-test',
       logFile: 'reports/mate-ci/unit-smoke.log',
+    },
+    {
+      envKey: 'COVERAGE',
+      label: 'Unit coverage',
+      scope: 'executed Mate Node unit surface; floors L90/B70/F70',
+      parser: 'node-coverage',
+      logFile: 'reports/mate-ci/coverage.log',
     },
     {
       envKey: 'BUILD_SMOKE',
@@ -98,6 +112,16 @@ export const parseNodeTestMetrics = (contents) => {
   };
 };
 
+export const parseNodeCoverageMetrics = (contents) => {
+  const match = contents.match(/^# all files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/m);
+  if (!match) return null;
+  return {
+    lines: Number(match[1]),
+    branches: Number(match[2]),
+    functions: Number(match[3]),
+  };
+};
+
 export const parseCypressMetrics = (contents) => {
   const testsMatches = [...contents.matchAll(/[│|]\s*Tests:\s+(\d+)/g)];
   const passingMatches = [...contents.matchAll(/[│|]\s*Passing:\s+(\d+)/g)];
@@ -151,6 +175,10 @@ export const formatCount = (parser, metrics, status) => {
     return 'n/a';
   }
 
+  if (parser === 'node-coverage' && metrics) {
+    return `L ${metrics.lines}% · B ${metrics.branches}% · F ${metrics.functions}%`;
+  }
+
   const failedSuffix = metrics.fail > 0 ? `, ${metrics.fail} failed` : '';
   return `${metrics.pass}/${metrics.total} passed${failedSuffix}`;
 };
@@ -170,9 +198,11 @@ export const buildMateCiSummary = ({
     const contents = readLog(stage.logFile, cwd) || '';
     const metrics = stage.parser === 'node-test'
       ? parseNodeTestMetrics(contents)
-      : stage.parser === 'cypress'
-        ? parseCypressMetrics(contents)
-        : null;
+      : stage.parser === 'node-coverage'
+        ? parseNodeCoverageMetrics(contents)
+        : stage.parser === 'cypress'
+          ? parseCypressMetrics(contents)
+          : null;
 
     return {
       ...stage,
