@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { useAuthStore } from '../store/authStore';
-import { isPartyHostedByUser } from '../utils/mate';
+import { isPartyHostedByUser, normalizeMateListReturnTo } from '../utils/mate';
 import {
   getMatePartyApplicationsQueryOptions,
   getMatePartyMyApplicationQueryOptions,
@@ -23,20 +23,25 @@ export function useMateDetailController({
   onClose,
 }: UseMateDetailControllerParams = {}) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id: routeId } = useParams<{ id: string }>();
   const id = idProp ?? routeId;
   const isPanel = variant === 'panel';
   const [showQrPanel, setShowQrPanel] = useState(false);
   const [showSeatViewGuide, setShowSeatViewGuide] = useState(false);
   const missingPartyRedirectRef = useRef<string | null>(null);
+  const returnTo = useMemo(() => {
+    if (!location.state || typeof location.state !== 'object') return '/mate';
+    return normalizeMateListReturnTo((location.state as { returnTo?: unknown }).returnTo);
+  }, [location.state]);
 
   const handleClose = useCallback(() => {
     if (isPanel && onClose) {
       onClose();
       return;
     }
-    navigate('/mate');
-  }, [isPanel, navigate, onClose]);
+    navigate(returnTo);
+  }, [isPanel, navigate, onClose, returnTo]);
 
   const {
     party,
