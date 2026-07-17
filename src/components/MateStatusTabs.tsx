@@ -1,4 +1,6 @@
-export type MateStatusTabKey = 'all' | 'recruiting' | 'matched' | 'selling';
+import type { MateStatusTabKey } from '../utils/mateListUrlState';
+
+export type { MateStatusTabKey } from '../utils/mateListUrlState';
 
 interface MateStatusTabsProps {
   activeTab: MateStatusTabKey;
