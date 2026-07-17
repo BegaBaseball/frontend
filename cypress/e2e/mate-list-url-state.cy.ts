@@ -189,14 +189,22 @@ describe('Mate list URL state', () => {
   it('does not let a delayed obsolete search response replace the latest result', () => {
     const slowParty = { ...party, id: 811, stadium: '느린 응답 구장' };
     const fastParty = { ...party, id: 812, stadium: '최신 응답 구장' };
+    let slowRequestCount = 0;
     cy.intercept({ method: 'GET', pathname: '/api/parties' }, (req) => {
-      const searchQuery = new URL(req.url).searchParams.get('searchQuery');
-      if (searchQuery === '느림') {
+      const params = new URL(req.url).searchParams;
+      const isMateListRequest = params.get('size') === '9';
+      const searchQuery = params.get('searchQuery');
+      if (isMateListRequest && searchQuery === '느림') {
+        req.alias = 'getSlowSearchParties';
+        slowRequestCount += 1;
         req.reply({
           delay: 900,
           body: { content: [slowParty], totalElements: 1, totalPages: 1, number: 0, size: 9 },
         });
         return;
+      }
+      if (isMateListRequest && searchQuery === '빠름') {
+        req.alias = 'getFastSearchParties';
       }
       req.reply({
         body: {
@@ -211,10 +219,13 @@ describe('Mate list URL state', () => {
 
     visitWithAuth('/mate');
     cy.get('#mate-search').type('느림');
-    cy.wait(350);
+    cy.wrap(null).should(() => {
+      expect(slowRequestCount).to.be.greaterThan(0);
+    });
     cy.get('#mate-search').clear().type('빠름');
+    cy.wait('@getFastSearchParties');
     cy.contains('최신 응답 구장').should('be.visible');
-    cy.wait(900);
+    cy.wait('@getSlowSearchParties');
     cy.contains('최신 응답 구장').should('be.visible');
     cy.contains('느린 응답 구장').should('not.exist');
   });
