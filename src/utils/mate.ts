@@ -201,10 +201,26 @@ export const normalizeMatePartySeed = (
   };
 };
 
+export const normalizeMateListReturnTo = (value: unknown): string => {
+  if (typeof value !== 'string') return '/mate';
+  const candidate = value.trim();
+  if (!candidate.startsWith('/') || candidate.startsWith('//')) return '/mate';
+  try {
+    const base = new URL('https://mate.local');
+    const parsed = new URL(candidate, base);
+    if (parsed.origin !== base.origin || parsed.pathname !== '/mate') return '/mate';
+    return `/mate${parsed.search}`;
+  } catch {
+    return '/mate';
+  }
+};
+
 export const buildMateRouteLocationState = (
   partySeed: MatePartySeed,
+  returnTo = '/mate',
 ): MateRouteLocationState => ({
   partySeed,
+  returnTo: normalizeMateListReturnTo(returnTo),
 });
 
 export const getMateRoutePlaceholderParty = (
