@@ -113,12 +113,16 @@ export const parseNodeTestMetrics = (contents) => {
 };
 
 export const parseNodeCoverageMetrics = (contents) => {
-  const match = contents.match(/^# all files\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)\s+\|\s+([\d.]+)/m);
+  const match = contents.match(/^# all files\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s*$/m);
   if (!match) return null;
+  const [lines, branches, functions] = match.slice(1).map(Number);
+  if ([lines, branches, functions].some((metric) => (
+    !Number.isFinite(metric) || metric < 0 || metric > 100
+  ))) return null;
   return {
-    lines: Number(match[1]),
-    branches: Number(match[2]),
-    functions: Number(match[3]),
+    lines,
+    branches,
+    functions,
   };
 };
 
@@ -194,7 +198,7 @@ export const buildMateCiSummary = ({
 
   const title = workflow === 'smoke' ? 'Frontend Mate Smoke' : 'Frontend Mate Regression';
   const stages = stageConfigs[workflow].map((stage) => {
-    const status = statusMap[env[`MATE_CI_STATUS_${stage.envKey}`] || ''] || 'not_run';
+    const reportedStatus = statusMap[env[`MATE_CI_STATUS_${stage.envKey}`] || ''] || 'not_run';
     const contents = readLog(stage.logFile, cwd) || '';
     const metrics = stage.parser === 'node-test'
       ? parseNodeTestMetrics(contents)
@@ -203,6 +207,9 @@ export const buildMateCiSummary = ({
         : stage.parser === 'cypress'
           ? parseCypressMetrics(contents)
           : null;
+    const status = stage.parser === 'node-coverage' && reportedStatus === 'success' && !metrics
+      ? 'failure'
+      : reportedStatus;
 
     return {
       ...stage,

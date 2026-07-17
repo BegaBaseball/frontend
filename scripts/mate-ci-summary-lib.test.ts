@@ -44,6 +44,23 @@ test('parseNodeCoverageMetrics extracts the Node all-files coverage row', () => 
   });
 });
 
+test('parseNodeCoverageMetrics rejects malformed or out-of-range all-files rows', () => {
+  const invalidRows = [
+    '# all files | 1..2 | 73.33 | 72.65 |',
+    '# all files | 91.37 | 73.33 |',
+    '# all files | 91.37 | 73.33 | 72.65',
+    '# all files | 91.37 | 73.33 | 72.65 | extra |',
+    '# all files | Infinity | 73.33 | 72.65 |',
+    '# all files | 1e309 | 73.33 | 72.65 |',
+    '# all files | 101 | 73.33 | 72.65 |',
+    '# all files | 91.37 | -0.01 | 72.65 |',
+  ];
+
+  invalidRows.forEach((row) => {
+    assert.equal(parseNodeCoverageMetrics(row), null, row);
+  });
+});
+
 test('parseCypressMetrics aggregates sequential spec result blocks', () => {
   const metrics = parseCypressMetrics([
     '│ Tests:        14                                                                               │',
@@ -110,4 +127,54 @@ test('buildMateCiSummary builds smoke markdown from local logs', () => {
   assert.match(markdown, /\| Unit coverage \| success \| L 91\.37% · B 73\.33% · F 72\.65% \|/);
   assert.match(markdown, /\| Core E2E smoke \| success \| 22\/22 passed \|/);
   assert.match(markdown, /- Trigger: manual workflow dispatch/);
+});
+
+test('buildMateCiSummary fails successful coverage with a missing log', () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), 'mate-ci-summary-'));
+  const summary = buildMateCiSummary({
+    workflow: 'smoke',
+    cwd: tempRoot,
+    env: {
+      MATE_CI_STATUS_COVERAGE: 'success',
+    },
+  });
+
+  assert.equal(summary.stages[1].status, 'failure');
+  assert.equal(summary.stages[1].count, 'n/a');
+});
+
+test('buildMateCiSummary fails successful coverage with a malformed log', () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), 'mate-ci-summary-'));
+  const reportsDir = join(tempRoot, 'reports', 'mate-ci');
+  mkdirSync(reportsDir, { recursive: true });
+  writeFileSync(join(reportsDir, 'coverage.log'), '# all files | not-a-number | 73.33 | 72.65 |');
+
+  const summary = buildMateCiSummary({
+    workflow: 'smoke',
+    cwd: tempRoot,
+    env: {
+      MATE_CI_STATUS_COVERAGE: 'success',
+    },
+  });
+
+  assert.equal(summary.stages[1].status, 'failure');
+  assert.equal(summary.stages[1].count, 'n/a');
+});
+
+test('buildMateCiSummary keeps regression coverage at index one with exact metrics', () => {
+  const tempRoot = mkdtempSync(join(tmpdir(), 'mate-ci-summary-'));
+  const reportsDir = join(tempRoot, 'reports', 'mate-ci');
+  mkdirSync(reportsDir, { recursive: true });
+  writeFileSync(join(reportsDir, 'coverage.log'), '# all files | 91.37 | 73.33 | 72.65 |');
+
+  const summary = buildMateCiSummary({
+    workflow: 'regression',
+    cwd: tempRoot,
+    env: {
+      MATE_CI_STATUS_COVERAGE: 'success',
+    },
+  });
+
+  assert.equal(summary.stages[1].label, 'Unit coverage');
+  assert.equal(summary.stages[1].count, 'L 91.37% · B 73.33% · F 72.65%');
 });
