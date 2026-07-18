@@ -438,6 +438,11 @@ docker-compose up -d --build
 5. 배포 후 1차 검증: `npm run seo:smoke:prod -- --base-url https://www.begabaseball.xyz --expected-site-url https://www.begabaseball.xyz`
 6. 배포 후 `https://begabaseball.xyz`가 `https://www.begabaseball.xyz`로 `301` 되는지, `*.pages.dev`가 `404`로 차단되는지, `/api/*`가 SPA로 떨어지지 않는지, `x-vercel-*` 응답 헤더가 사라졌는지, OAuth2 스모크가 통과하는지 확인
 
+GitHub Actions의 `Cloudflare Production Deploy`는 기본적으로 dry-run이며,
+`CLOUDFLARE_DEPLOY_ENABLED=true`일 때만 `main` 변경을 배포한다. production
+environment에 `CLOUDFLARE_API_TOKEN` secret과 `CLOUDFLARE_ACCOUNT_ID` 및 위
+`VITE_*` repository variables를 등록해야 실제 배포가 활성화된다.
+
 핵심 구성:
 
 - canonical redirect / SPA fallback worker: [worker/index.ts](/Users/mac/project/KBO_platform/bega_frontend/worker/index.ts)

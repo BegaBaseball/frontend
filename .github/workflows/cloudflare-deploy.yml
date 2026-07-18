@@ -1,0 +1,208 @@
+name: Cloudflare Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "public/**"
+      - "worker/**"
+      - "scripts/**"
+      - "index.html"
+      - "package.json"
+      - "package-lock.json"
+      - "vite.config.*"
+      - "wrangler.jsonc"
+      - "tsconfig*.json"
+      - ".github/workflows/cloudflare-deploy.yml"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Run strict build and SEO validation without deploying"
+        required: true
+        default: true
+        type: boolean
+
+concurrency:
+  group: cloudflare-production-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  VITE_SITE_URL: ${{ vars.VITE_SITE_URL }}
+  VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+  VITE_MATE_REQUIRE_SOCIAL_VERIFICATION: ${{ vars.VITE_MATE_REQUIRE_SOCIAL_VERIFICATION }}
+  VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}
+  VITE_GOOGLE_SITE_VERIFICATION: ${{ vars.VITE_GOOGLE_SITE_VERIFICATION }}
+  VITE_NAVER_SITE_VERIFICATION: ${{ vars.VITE_NAVER_SITE_VERIFICATION }}
+
+jobs:
+  validate:
+    name: Validate Cloudflare release
+    if: ${{ vars.CLOUDFLARE_DEPLOY_ENABLED == 'true' || (github.event_name == 'workflow_dispatch' && inputs.dry_run == true) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate production environment contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          for var_name in \
+            VITE_SITE_URL \
+            VITE_API_BASE_URL \
+            VITE_MATE_REQUIRE_SOCIAL_VERIFICATION \
+            VITE_GA4_MEASUREMENT_ID \
+            VITE_GOOGLE_SITE_VERIFICATION \
+            VITE_NAVER_SITE_VERIFICATION; do
+            if [[ -z "${!var_name:-}" ]]; then
+              echo "::error::Missing production repository variable: ${var_name}"
+              exit 1
+            fi
+          done
+
+      - name: Run strict SEO gate
+        run: |
+          npm run seo:env:check:strict
+          npm run seo:gate
+
+      - name: Upload validated frontend artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-frontend-release-${{ github.sha }}
+          path: |
+            dist/**
+            reports/seo-audit-report.json
+            reports/dist-assets-report.json
+            reports/bundle-guard-report.json
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    name: Deploy validated artifact to Cloudflare
+    needs: validate
+    if: ${{ needs.validate.result == 'success' && vars.CLOUDFLARE_DEPLOY_ENABLED == 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true && github.ref == 'refs/heads/main')) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID || secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install deployment CLI
+        run: npm ci
+
+      - name: Download validated frontend artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: cloudflare-frontend-release-${{ github.sha }}
+          path: .
+
+      - name: Validate Cloudflare credentials
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "${CLOUDFLARE_API_TOKEN}" ]] || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          [[ -n "${CLOUDFLARE_ACCOUNT_ID}" ]] || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Deploy to Cloudflare
+        run: npx wrangler deploy
+
+      - name: Write deployment summary
+        run: |
+          {
+            echo "### Cloudflare Production Deployment"
+            echo "Release: ${GITHUB_SHA}"
+            echo "Validated artifact: cloudflare-frontend-release-${GITHUB_SHA}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  postdeploy-smoke:
+    name: Verify Cloudflare public SEO surface
+    needs: deploy
+    if: ${{ needs.deploy.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Run public SEO smoke
+        run: |
+          mkdir -p reports
+          node scripts/seo-postdeploy-smoke.mjs --base-url "${VITE_SITE_URL}" --expected-site-url "${VITE_SITE_URL}" --report reports/seo-postdeploy-smoke.json
+
+      - name: Upload postdeploy smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cloudflare-postdeploy-smoke-${{ github.sha }}
+          path: reports/seo-postdeploy-smoke.json
+          if-no-files-found: error
+          retention-days: 7
+
+  dry-run:
+    name: Report Cloudflare dry-run
+    needs: validate
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true && needs.validate.result == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Write dry-run summary
+        run: |
+          {
+            echo "### Cloudflare Production Dry Run"
+            echo "Release: ${GITHUB_SHA}"
+            echo "Strict SEO validation passed. No Cloudflare deployment was performed."
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  manual-ref-check:
+    name: Reject non-main manual deploy
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run != true && github.ref != 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fail closed outside main
+        run: |
+          echo "::error::Manual Cloudflare production deployments must run from main."
+          exit 1
+
+  not-configured:
+    name: Report disabled Cloudflare deployment
+    if: ${{ vars.CLOUDFLARE_DEPLOY_ENABLED != 'true' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.dry_run != true)) }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain deployment configuration
+        run: |
+          {
+            echo "### Cloudflare Deployment Not Configured"
+            echo "Set repository variable CLOUDFLARE_DEPLOY_ENABLED=true to enable deployment."
+            echo "Required production values: VITE_* repository variables, CLOUDFLARE_ACCOUNT_ID, and CLOUDFLARE_API_TOKEN."
+          } >> "${GITHUB_STEP_SUMMARY}"
