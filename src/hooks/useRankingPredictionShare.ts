@@ -36,6 +36,7 @@ export const useRankingPredictionShare = () => {
     shareId,
     seasonYear,
     rankings,
+    result: sharedPredictionQuery.data ?? null,
     isLoading: hasValidParams ? sharedPredictionQuery.isPending : false,
   };
 };

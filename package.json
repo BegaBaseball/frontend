@@ -273,6 +273,7 @@
     "qa:mate:regression:label": "node scripts/mate-regression-label-check.mjs",
     "test:seo": "node --import tsx --test \"src/seo/**/*.test.ts\" scripts/prerender-seo.test.mjs scripts/seo-postdeploy-smoke.test.mjs worker/index.test.ts",
     "test:unit": "node --import tsx --test \"src/**/*.test.ts\"",
+    "test:ranking:unit": "node --import tsx --test src/components/ranking/RankingPredictionResultPanel.test.tsx src/components/prediction/PredictionRuntime.test.ts src/utils/rankingPredictionState.test.ts src/utils/ranking.test.ts src/api/ranking.test.ts",
     "deploy": "npm run build:artifact",
     "deploy:cloudflare:legacy": "npm run build && wrangler deploy",
     "deploy:cloudflare:strict": "npm run seo:env:check:strict && npm run seo:gate && wrangler deploy",

@@ -78,6 +78,8 @@ export default function NotificationPanel() {
         navigate(`/cheer/${notification.relatedId}`, { state: { highlightCheerPost: true } });
       } else if (notification.type === 'NEW_DEVICE_LOGIN') {
         navigate('/mypage?view=accountSettings');
+      } else if (notification.type === 'RANKING_PREDICTION_SETTLED') {
+        navigate('/prediction?tab=ranking');
       }
     } catch (error) {
       console.error('알림 처리 오류:', error);
@@ -125,6 +127,7 @@ export default function NotificationPanel() {
       case 'NEW_FOLLOWER': return <NotificationUserPlusIcon className="w-5 h-5 text-green-500" />;
       case 'FOLLOWING_NEW_POST': return <NotificationFileTextIcon className="w-5 h-5 text-blue-500" />;
       case 'NEW_DEVICE_LOGIN': return <NotificationShieldAlertIcon className="w-5 h-5 text-red-500" />;
+      case 'RANKING_PREDICTION_SETTLED': return <NotificationCheckCheckIcon className="w-5 h-5 text-emerald-500" />;
       default: return <NotificationBellIcon className="w-5 h-5 text-gray-500" />;
     }
   };

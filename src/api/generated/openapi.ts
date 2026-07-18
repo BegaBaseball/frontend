@@ -4375,7 +4375,7 @@ export interface components {
         };
         ApiResponse: {
             code?: string;
-            data?: Record<string, never>;
+            data?: unknown;
             errors?: {
                 [key: string]: string;
             };
@@ -4630,7 +4630,7 @@ export interface components {
         ApiResponseMapStringObject: {
             code?: string;
             data?: {
-                [key: string]: Record<string, never>;
+                [key: string]: unknown;
             };
             errors?: {
                 [key: string]: string;
@@ -4757,7 +4757,7 @@ export interface components {
         };
         ApiResponseVoid: {
             code?: string;
-            data?: Record<string, never>;
+            data?: unknown;
             errors?: {
                 [key: string]: string;
             };
@@ -5236,36 +5236,36 @@ export interface components {
         };
         GameDetailDto: {
             /** Format: int32 */
-            attendance: number;
-            awayPitcher: string;
+            attendance: number | null;
+            awayPitcher: string | null;
             /** Format: int32 */
-            awayScore: number;
+            awayScore: number | null;
             awayTeam: string;
             /** Format: date */
             gameDate: string;
             gameId: string;
-            gameStatus: string;
+            gameStatus: string | null;
             /** Format: int32 */
-            gameTimeMinutes: number;
-            homePitcher: string;
+            gameTimeMinutes: number | null;
+            homePitcher: string | null;
             /** Format: int32 */
-            homeScore: number;
+            homeScore: number | null;
             homeTeam: string;
             inningScores: components["schemas"]["GameInningScoreDto"][];
-            stadium: string;
-            stadiumName: string;
-            startTime: components["schemas"]["LocalTime"];
+            stadium: string | null;
+            stadiumName: string | null;
+            startTime: string | null;
             summary: components["schemas"]["GameSummaryDto"][];
-            weather: string;
+            weather: string | null;
         };
         GameInningScoreDto: {
             /** Format: int32 */
-            inning: number;
-            isExtra: boolean;
+            inning: number | null;
+            isExtra: boolean | null;
             /** Format: int32 */
-            runs: number;
-            teamCode: string;
-            teamSide: string;
+            runs: number | null;
+            teamCode: string | null;
+            teamSide: string | null;
         };
         GameInningScoreRequestDto: {
             /** Format: int32 */
@@ -5428,7 +5428,7 @@ export interface components {
             normalizedRawStatus?: string;
             rawStatus?: string;
             reasons?: string[];
-            startTime?: components["schemas"]["LocalTime"];
+            startTime?: string;
         };
         GameStatusRepairBatchResultDto: {
             dryRun?: boolean;
@@ -5449,11 +5449,11 @@ export interface components {
             totalGames?: number;
         };
         GameSummaryDto: {
-            detail: string;
+            detail: string | null;
             /** Format: int32 */
-            playerId: number;
-            playerName: string;
-            type: string;
+            playerId: number | null;
+            playerName: string | null;
+            type: string | null;
         };
         HomeBootstrapLoadStateDto: {
             failedSections?: string[];
@@ -5511,26 +5511,26 @@ export interface components {
         };
         HomePageTeamRankingDto: {
             /** Format: int32 */
-            draws: number;
+            draws: number | null;
             /** Format: int32 */
-            games: number;
+            games: number | null;
             /** Format: double */
-            gamesBehind: number;
+            gamesBehind: number | null;
             /** Format: int32 */
-            losses: number;
+            losses: number | null;
             /** Format: int32 */
-            rank: number;
-            teamId: string;
-            teamName: string;
-            winRate: string;
+            rank: number | null;
+            teamId: string | null;
+            teamName: string | null;
+            winRate: string | null;
             /** Format: int32 */
-            wins: number;
+            wins: number | null;
         };
         HomeRankingSnapshotDto: {
             isOffSeason: boolean;
             /** Format: int32 */
-            rankingSeasonYear: number;
-            rankingSourceMessage: string;
+            rankingSeasonYear: number | null;
+            rankingSourceMessage: string | null;
             rankings: components["schemas"]["HomePageTeamRankingDto"][];
         };
         HomeScheduleNavigationDto: {
@@ -5575,7 +5575,25 @@ export interface components {
             /** Format: int32 */
             width: number;
         };
-        JsonNode: Record<string, never>;
+        JsonNode: unknown;
+        LeaderboardEntryDto: {
+            /** Format: double */
+            accuracy?: number;
+            handle?: string;
+            /** Format: int32 */
+            level?: number;
+            /** Format: int32 */
+            maxStreak?: number;
+            profileImageUrl?: string;
+            /** Format: int64 */
+            rank?: number;
+            rankTitle?: string;
+            /** Format: int64 */
+            score?: number;
+            /** Format: int32 */
+            streak?: number;
+            userName?: string;
+        };
         LeagueStartDatesDto: {
             koreanSeriesStart?: string;
             postseasonStart?: string;
@@ -5600,18 +5618,9 @@ export interface components {
             postId?: number;
             preview?: components["schemas"]["LinkedContentRes"];
         };
-        LocalTime: {
-            /** Format: int32 */
-            hour?: number;
-            /** Format: int32 */
-            minute?: number;
-            /** Format: int32 */
-            nano?: number;
-            /** Format: int32 */
-            second?: number;
-        };
         LoginDto: {
             captchaToken?: string;
+            /** Format: email */
             email: string;
             password: string;
         };
@@ -5646,30 +5655,30 @@ export interface components {
             prevDate?: string;
         };
         MatchDto: {
-            aiSummary: string;
+            aiSummary: string | null;
             awayPitcher: components["schemas"]["PitcherDto"];
             /** Format: int32 */
-            awayScore: number;
+            awayScore: number | null;
             awayTeam: string;
             /** Format: date */
             gameDate: string;
             gameId: string;
-            gameStatus: string;
+            gameStatus: string | null;
             homePitcher: components["schemas"]["PitcherDto"];
             /** Format: int32 */
-            homeScore: number;
+            homeScore: number | null;
             homeTeam: string;
-            isDummy: boolean;
-            leagueType: string;
-            postSeasonSeries: string;
+            isDummy: boolean | null;
+            leagueType: string | null;
+            postSeasonSeries: string | null;
             /** Format: int32 */
-            seasonId: number;
+            seasonId: number | null;
             /** Format: int32 */
-            seriesGameNo: number;
-            stadium: string;
-            startTime: components["schemas"]["LocalTime"];
+            seriesGameNo: number | null;
+            stadium: string | null;
+            startTime: string | null;
             winProbability: components["schemas"]["WinProbabilityDto"];
-            winner: string;
+            winner: string | null;
         };
         MatchRangePageResponseDto: {
             content: components["schemas"]["MatchDto"][];
@@ -5710,9 +5719,9 @@ export interface components {
             partyId: number;
             /** @enum {string} */
             paymentType?: "DEPOSIT" | "FULL";
-            ticketImageUrl?: string;
+            ticketImageUrl?: string | null;
             ticketVerified?: boolean;
-            verificationToken?: string;
+            verificationToken?: string | null;
         };
         MateApplicationResponse: {
             /** @enum {string} */
@@ -5859,7 +5868,7 @@ export interface components {
             description: string;
             /** Format: date */
             gameDate: string;
-            gameTime: components["schemas"]["LocalTime"];
+            gameTime: string;
             homeTeam: string;
             /** Format: int32 */
             maxParticipants: number;
@@ -5874,6 +5883,32 @@ export interface components {
             /** Format: int32 */
             ticketPrice?: number;
             verificationToken: string;
+        };
+        MatePartyHistoryResponse: {
+            awayTeam?: string;
+            /** @enum {string} */
+            cheeringSide?: "HOME" | "AWAY" | "NEUTRAL";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            currentParticipants?: number;
+            description?: string;
+            /** Format: date */
+            gameDate?: string;
+            gameTime?: string;
+            homeTeam?: string;
+            hostHandle?: string;
+            /** Format: int64 */
+            hostId?: number;
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            maxParticipants?: number;
+            section?: string;
+            stadium?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
+            teamId?: string;
         };
         MatePartyMemberSummary: {
             host?: boolean;
@@ -5893,7 +5928,7 @@ export interface components {
             favorited?: boolean;
             /** Format: date */
             gameDate?: string;
-            gameTime?: components["schemas"]["LocalTime"];
+            gameTime?: string;
             homeTeam?: string;
             /** Format: double */
             hostAverageRating?: number;
@@ -5938,7 +5973,7 @@ export interface components {
             description?: string;
             /** Format: date */
             gameDate?: string;
-            gameTime?: components["schemas"]["LocalTime"];
+            gameTime?: string;
             homeTeam?: string;
             /** Format: double */
             hostAverageRating?: number;
@@ -6185,7 +6220,7 @@ export interface components {
             homeTeam?: string;
             rawStatus?: string;
             reasons?: string[];
-            startTime?: components["schemas"]["LocalTime"];
+            startTime?: string;
         };
         OffseasonMetaDto: {
             awards?: components["schemas"]["AwardDto"][];
@@ -6311,16 +6346,32 @@ export interface components {
             sort?: components["schemas"]["SortObject"];
             unpaged?: boolean;
         };
-        PagedModel: {
-            content?: Record<string, never>[];
-            page?: components["schemas"]["PageMetadata"];
-        };
         PagedModelCommentRes: {
             content?: components["schemas"]["CommentRes"][];
             page?: components["schemas"]["PageMetadata"];
         };
+        PagedModelLeaderboardEntryDto: {
+            content?: components["schemas"]["LeaderboardEntryDto"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PagedModelMatePartyHistoryResponse: {
+            content?: components["schemas"]["MatePartyHistoryResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PagedModelMatePartyPublicResponse: {
+            content?: components["schemas"]["MatePartyPublicResponse"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
         PagedModelPostSummaryRes: {
             content?: components["schemas"]["PostSummaryRes"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PagedModelRecentScoreDto: {
+            content?: components["schemas"]["RecentScoreDto"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PagedModelUserFollowSummaryDto: {
+            content?: components["schemas"]["UserFollowSummaryDto"][];
             page?: components["schemas"]["PageMetadata"];
         };
         PasswordResetConfirmDto: {
@@ -6329,17 +6380,18 @@ export interface components {
             token: string;
         };
         PasswordResetRequestDto: {
+            /** Format: email */
             email: string;
             redirect?: string;
         };
         PitcherDto: {
-            era: string;
-            imgUrl: string;
+            era: string | null;
+            imgUrl: string | null;
             /** Format: int32 */
-            loss: number;
-            name: string;
+            loss: number | null;
+            name: string | null;
             /** Format: int32 */
-            win: number;
+            win: number | null;
         };
         PlaceDto: {
             address?: string;
@@ -6601,10 +6653,14 @@ export interface components {
         RankingPredictionResponseDto: {
             /** Format: date-time */
             createdAt: string;
+            /** Format: int32 */
+            exactMatchCount: number | null;
             /** Format: int64 */
             id: number;
             /** Format: int32 */
             seasonYear: number;
+            /** Format: date-time */
+            settledAt: string | null;
             shareId: string | null;
             teamDetails: components["schemas"]["TeamRankingDetail"][];
             teamIdsInOrder: string[];
@@ -6755,6 +6811,7 @@ export interface components {
         };
         SignupDto: {
             confirmPassword: string;
+            /** Format: email */
             email: string;
             favoriteTeam?: string;
             handle: string;
@@ -6831,7 +6888,7 @@ export interface components {
             updatedAt?: string;
             verified?: boolean;
         };
-        StreamingResponseBody: Record<string, never>;
+        StreamingResponseBody: unknown;
         TeamEntity: {
             activeKboTeam?: boolean;
             aliases?: string;
@@ -6952,6 +7009,15 @@ export interface components {
             sourceTitle?: string;
             sourceUrl?: string;
         };
+        UserFollowSummaryDto: {
+            favoriteTeam?: string;
+            handle?: string;
+            /** Format: int64 */
+            id?: number;
+            isFollowedByMe?: boolean;
+            name?: string;
+            profileImageUrl?: string;
+        };
         UserPredictionStatsDto: {
             /** Format: double */
             accuracy: number;
@@ -6967,6 +7033,7 @@ export interface components {
             /** Format: int32 */
             cheerPoints?: number;
             createdAt?: string;
+            /** Format: email */
             email: string;
             favoriteTeam?: string;
             handle?: string;
@@ -7040,9 +7107,9 @@ export interface components {
         };
         WinProbabilityDto: {
             /** Format: double */
-            away: number;
+            away: number | null;
             /** Format: double */
-            home: number;
+            home: number | null;
         };
     };
     responses: never;
@@ -10778,7 +10845,7 @@ export interface operations {
                 };
                 content: {
                     "*/*": {
-                        [key: string]: Record<string, never>;
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -11201,7 +11268,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelLeaderboardEntryDto"];
                 };
             };
         };
@@ -11331,7 +11398,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelRecentScoreDto"];
                 };
             };
         };
@@ -11392,7 +11459,7 @@ export interface operations {
         requestBody?: {
             content: {
                 "application/json": {
-                    [key: string]: Record<string, never>;
+                    [key: string]: unknown;
                 };
             };
         };
@@ -11490,7 +11557,7 @@ export interface operations {
                 };
                 content: {
                     "*/*": {
-                        [key: string]: Record<string, never>;
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -11512,7 +11579,7 @@ export interface operations {
                 };
                 content: {
                     "*/*": {
-                        [key: string]: Record<string, never>;
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -11900,7 +11967,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelMatePartyPublicResponse"];
                 };
             };
         };
@@ -11968,7 +12035,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelMatePartyHistoryResponse"];
                 };
             };
         };
@@ -13128,7 +13195,7 @@ export interface operations {
                 };
                 content: {
                     "*/*": {
-                        [key: string]: Record<string, never>;
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -13237,7 +13304,7 @@ export interface operations {
                 };
                 content: {
                     "*/*": {
-                        [key: string]: Record<string, never>;
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -13262,7 +13329,7 @@ export interface operations {
                 };
                 content: {
                     "*/*": {
-                        [key: string]: Record<string, never>;
+                        [key: string]: unknown;
                     };
                 };
             };
@@ -13312,7 +13379,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelUserFollowSummaryDto"];
                 };
             };
         };
@@ -13354,7 +13421,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelUserFollowSummaryDto"];
                 };
             };
         };
@@ -13396,7 +13463,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelUserFollowSummaryDto"];
                 };
             };
         };
@@ -13532,7 +13599,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelUserFollowSummaryDto"];
                 };
             };
         };
@@ -13556,7 +13623,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["PagedModelUserFollowSummaryDto"];
                 };
             };
         };

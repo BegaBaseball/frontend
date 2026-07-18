@@ -3,7 +3,7 @@ import { privateDelete, privateGet, privatePatch, privatePost } from './privateC
 import { publicGet } from './publicClient';
 import { uploadMediaFile } from './media';
 import { mapBackendPartyToFrontend } from '../utils/mate';
-import type { components, paths } from './generated/openapi';
+import type { paths } from './generated/openapi';
 import type {
   Application,
   CancelApplicationRequest,
@@ -113,7 +113,7 @@ type PartyListWireResponse = JsonResponse<'/api/parties', 'get'>;
 type MyPartiesWireResponse = JsonResponse<'/api/parties/my', 'get'>;
 type MateMapperPartyDTO = Parameters<typeof mapBackendPartyToFrontend>[0];
 type BackendPartyDTO = Omit<MateMapperPartyDTO, 'gameTime'> & Partial<PartyPublicWireResponse & PartyPrivateWireResponse> & {
-  gameTime: string | components['schemas']['LocalTime'];
+  gameTime: string;
   hostId?: number | null;
   hostHandle?: string | null;
   hostProfileImageUrl?: string | null;
@@ -134,7 +134,7 @@ type BackendMateHistoryDTO = {
   teamId: string;
   cheeringSide?: Party['cheeringSide'];
   gameDate: string;
-  gameTime: string | components['schemas']['LocalTime'];
+  gameTime: string;
   stadium: string;
   homeTeam: string;
   awayTeam: string;
@@ -143,9 +143,6 @@ type BackendMateHistoryDTO = {
   currentParticipants: number;
   description?: string | null;
   status: PartyStatus;
-};
-type CreatePartyRequestWire = Omit<CreatePartyRequest, 'gameTime'> & {
-  gameTime: components['schemas']['LocalTime'];
 };
 type UpdatePartyRequestWire = JsonRequestBody<'/api/parties/{id}', 'patch'> & Pick<UpdatePartyRequest, 'reservationDepositAmount' | 'seatDetail'>;
 type ApplicationWireResponse = JsonResponse<'/api/applications', 'post'> & Application;
@@ -173,27 +170,6 @@ export type KboScheduleItem = JsonResponse<'/api/kbo/schedule', 'get'>[number] &
   awayTeam: string;
 };
 
-const toLocalTimeWire = (value: string): components['schemas']['LocalTime'] => {
-  const [hour = '0', minute = '0', second = '0'] = value.split(':');
-  return {
-    hour: Number(hour) || 0,
-    minute: Number(minute) || 0,
-    second: Number(second) || 0,
-    nano: 0,
-  };
-};
-
-const fromLocalTimeWire = (value: BackendPartyDTO['gameTime']): string => {
-  if (typeof value === 'string') {
-    return value;
-  }
-
-  const hour = `${value.hour ?? 0}`.padStart(2, '0');
-  const minute = `${value.minute ?? 0}`.padStart(2, '0');
-  const second = `${value.second ?? 0}`.padStart(2, '0');
-  return `${hour}:${minute}:${second}`;
-};
-
 const toList = <T>(payload: ListPayload<T> | T[] | null | undefined): T[] => {
   if (Array.isArray(payload)) {
     return payload;
@@ -218,7 +194,6 @@ export const normalizeMateParty = (party: BackendPartyDTO | Party): Party => {
   const wireParty = party as BackendPartyDTO;
   const mapperParty: MateMapperPartyDTO = {
     ...wireParty,
-    gameTime: fromLocalTimeWire(wireParty.gameTime),
     hostId: wireParty.hostId ?? undefined,
     hostHandle: wireParty.hostHandle ?? undefined,
     hostProfileImageUrl: wireParty.hostProfileImageUrl ?? undefined,
@@ -250,7 +225,7 @@ const normalizeMateHistoryParty = (party: BackendMateHistoryDTO): MateParty => (
   teamId: party.teamId,
   cheeringSide: party.cheeringSide ?? null,
   gameDate: party.gameDate,
-  gameTime: fromLocalTimeWire(party.gameTime),
+  gameTime: party.gameTime,
   stadium: party.stadium,
   homeTeam: party.homeTeam,
   awayTeam: party.awayTeam,
@@ -432,11 +407,7 @@ export async function fetchMyPartyHistoryPage(
 }
 
 export async function createParty(data: CreatePartyRequest): Promise<Party> {
-  const request: CreatePartyRequestWire = {
-    ...data,
-    gameTime: toLocalTimeWire(data.gameTime),
-  };
-  const response = await privatePost<BackendPartyDTO, CreatePartyRequestWire>('/parties', request, {
+  const response = await privatePost<BackendPartyDTO, CreatePartyRequest>('/parties', data, {
     skipAuthSessionHandling: true,
   });
   return normalizeMateParty(response);

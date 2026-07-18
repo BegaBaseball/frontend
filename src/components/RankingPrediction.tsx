@@ -6,6 +6,7 @@ import TeamLogo from './TeamLogo';
 import LoadingSpinner from './LoadingSpinner';
 import { RankingLogInIcon, RankingRotateCcwIcon } from './ranking/RankingPredictionIcons';
 import RankingItem from './ranking/RankingItem';
+import RankingPredictionResultPanel from './ranking/RankingPredictionResultPanel';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import {
@@ -39,6 +40,7 @@ export default function RankingPrediction() {
     initErrorMessage,
     isAuthLoading,
     isLoggedIn,
+    previousSeasonResult,
     rankings,
     availableTeams,
     isPredictionSaved,
@@ -196,6 +198,10 @@ export default function RankingPrediction() {
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3" data-testid="ranking-root">
+        {previousSeasonResult ? (
+          <RankingPredictionResultPanel result={previousSeasonResult} />
+        ) : null}
+
         <div className={`${PREDICTION_SURFACE_CARD_CLASS} rounded-2xl p-4 lg:col-span-2`}>
           <div className="flex items-center justify-between mb-4">
             <h2 className={`${PREDICTION_BRAND_TEXT_CLASS} text-lg font-extrabold`}>예상 순위</h2>

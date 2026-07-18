@@ -6,8 +6,10 @@ import { useAuthSession } from '../store/authStore';
 import { usePredictionStore, Team } from '../store/predictionStore';
 import {
   fetchRankingPredictionInit,
+  fetchSavedPrediction,
   saveRankingPrediction,
 } from '../api/ranking';
+import type { SavedPredictionResponse } from '../types/ranking';
 import {
   restoreTeamsFromIds,
   isRankingComplete,
@@ -39,6 +41,7 @@ export const useRankingPrediction = () => {
   const [initState, setInitState] = useState<RankingPredictionInitState>('loading');
   const [initErrorMessage, setInitErrorMessage] = useState<string | null>(null);
   const [shareId, setShareId] = useState<string | null>(null);
+  const [previousSeasonResult, setPreviousSeasonResult] = useState<SavedPredictionResponse | null>(null);
 
   const { rankings, availableTeams, isPredictionSaved, allTeams } = usePredictionStore(
     useShallow((state) => ({
@@ -77,6 +80,16 @@ export const useRankingPrediction = () => {
     }
   }, [isLoggedIn]);
 
+  const loadPreviousSeasonResult = async (previousSeasonYear: number) => {
+    try {
+      const previousPrediction = await fetchSavedPrediction(previousSeasonYear);
+      setPreviousSeasonResult(previousPrediction?.settledAt ? previousPrediction : null);
+    } catch {
+      // 결과 표시는 부가 기능이므로 실패해도 메인 예측 플로우에는 영향 없음
+      setPreviousSeasonResult(null);
+    }
+  };
+
   const initializePage = async () => {
     setInitState('loading');
     setInitErrorMessage(null);
@@ -84,6 +97,7 @@ export const useRankingPrediction = () => {
     try {
       const initData = await fetchRankingPredictionInit();
       setCurrentSeason(initData.seasonYear);
+      void loadPreviousSeasonResult(initData.seasonYear - 1);
 
       if (initData.saved) {
         setAlreadySaved(true);
@@ -279,6 +293,7 @@ export const useRankingPrediction = () => {
     isAuthLoading,
     isLoggedIn,
     shareId,
+    previousSeasonResult,
     rankings,
     availableTeams,
     isPredictionSaved,

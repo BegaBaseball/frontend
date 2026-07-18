@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import {
+  getInitialPredictionTab,
   getPredictionOtherGamesLinkState,
   getPredictionTabActivationState,
   preloadPredictionRankingTabResources,
@@ -89,4 +90,13 @@ test('getPredictionOtherGamesLinkState는 date가 비어 있으면 기본 경기
     date: '',
     path: '/prediction',
   });
+});
+
+test('getInitialPredictionTab은 ?tab=ranking이면 ranking 탭으로 진입한다', () => {
+  assert.equal(getInitialPredictionTab('ranking'), 'ranking');
+});
+
+test('getInitialPredictionTab은 tab 파라미터가 없거나 알 수 없으면 match 탭으로 진입한다', () => {
+  assert.equal(getInitialPredictionTab(null), 'match');
+  assert.equal(getInitialPredictionTab('unknown'), 'match');
 });
