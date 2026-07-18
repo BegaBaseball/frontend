@@ -1,11 +1,21 @@
 /// <reference types="cypress" />
 
-const toUtcDateString = (date: Date): string => date.toISOString().slice(0, 10);
+const padDatePart = (value: number): string => String(value).padStart(2, '0');
+
+const getSoonLocalGameDate = (now: Date = new Date()): string => {
+  const gameDate = new Date(now);
+  if (now.getHours() >= 12) {
+    gameDate.setDate(gameDate.getDate() + 1);
+  }
+
+  return [
+    gameDate.getFullYear(),
+    padDatePart(gameDate.getMonth() + 1),
+    padDatePart(gameDate.getDate()),
+  ].join('-');
+};
 
 const buildParty = (overrides: Record<string, unknown> = {}) => {
-  const nextUtcDay = new Date();
-  nextUtcDay.setUTCDate(nextUtcDay.getUTCDate() + 1);
-
   return {
     id: 777,
     hostHandle: 'testuser',
@@ -14,7 +24,7 @@ const buildParty = (overrides: Record<string, unknown> = {}) => {
     hostAverageRating: 4.9,
     hostReviewCount: 14,
     teamId: 'LG',
-    gameDate: toUtcDateString(nextUtcDay),
+    gameDate: getSoonLocalGameDate(),
     gameTime: '18:30:00',
     stadium: '잠실',
     homeTeam: 'LG',
