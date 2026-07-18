@@ -237,6 +237,7 @@ export async function sendChatMessageStream(
         }
 
         let parsed: AiStreamMetaPayload & {
+          code?: string;
           delta?: string;
           message?: string;
           detail?: string;

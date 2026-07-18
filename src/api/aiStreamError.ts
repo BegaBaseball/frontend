@@ -165,16 +165,17 @@ export const decodeAiStreamHttpError = async (response: Response): Promise<AiStr
 
   if (isRecord(parsed)) {
     if (isCanonicalHttpError(response.status, parsed)) {
+      const canonicalDetails: AiStreamErrorDetails = {
+        code: parsed.code,
+        message: parsed.message,
+        detail: parsed.detail ?? null,
+        retryable: parsed.retryable,
+        retryAfterSeconds: parsed.retry_after_seconds ?? headerRetryAfter,
+        supportedVersions: [...(parsed.supported_versions ?? [])],
+      };
       return new AiStreamRequestError(
         response.status,
-        {
-          code: parsed.code,
-          message: parsed.message,
-          detail: parsed.detail,
-          retryable: parsed.retryable,
-          retryAfterSeconds: parsed.retry_after_seconds ?? headerRetryAfter,
-          supportedVersions: [...parsed.supported_versions],
-        },
+        canonicalDetails,
       );
     }
 
