@@ -24,6 +24,7 @@ test('consumeSseStream returns immediately after DONE without waiting for EOF', 
   const events: string[] = [];
   const result = await consumeSseStream(body, {
     timeoutMs: 50,
+    acceptDoneSentinel: true,
     onEvent: ({ data }) => {
       events.push(data);
     },
@@ -56,6 +57,7 @@ test('consumeSseStream accepts a typed v2 terminal predicate without waiting for
   const events: string[] = [];
   const result = await consumeSseStream(body, {
     timeoutMs: 50,
+    acceptDoneSentinel: false,
     onEvent: ({ data }) => {
       events.push(data);
     },
@@ -65,4 +67,25 @@ test('consumeSseStream accepts a typed v2 terminal predicate without waiting for
   assert.equal(result.sawDone, true);
   assert.equal(cancelled, true);
   assert.equal(events.length, 2);
+});
+
+test('consumeSseStream does not accept the legacy DONE sentinel when disabled', async () => {
+  const body = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode('event: done\ndata: [DONE]\n\n'));
+      controller.close();
+    },
+  });
+  const events: string[] = [];
+
+  const result = await consumeSseStream(body, {
+    timeoutMs: 50,
+    acceptDoneSentinel: false,
+    onEvent: ({ data }) => {
+      events.push(data);
+    },
+  });
+
+  assert.equal(result.sawDone, false);
+  assert.deepEqual(events, ['[DONE]']);
 });

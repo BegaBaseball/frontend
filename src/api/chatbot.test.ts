@@ -69,9 +69,9 @@ test('sendChatMessageStream defaults to v2 and consumes negotiated chat events',
   t.after(() => {
     if (previousVersion === undefined) {
       delete process.env.VITE_AI_EVENT_VERSION;
-      return;
+    } else {
+      process.env.VITE_AI_EVENT_VERSION = previousVersion;
     }
-    process.env.VITE_AI_EVENT_VERSION = previousVersion;
   });
 
   let requestHeaders: Headers | null = null;
@@ -153,7 +153,8 @@ test('sendChatMessageStream preserves canonical pre-stream version error fields'
       assert.equal(error.eventCode, 'AI_EVENT_VERSION_UNSUPPORTED');
       assert.deepEqual(error.supportedVersions, ['1', '2']);
       assert.equal(error.retryable, false);
-      assert.equal(error.detail, '지원하지 않는 AI 이벤트 버전입니다.');
+      assert.equal(error.upstreamMessage, '지원하지 않는 AI 이벤트 버전입니다.');
+      assert.equal(error.detail, null);
       return true;
     },
   );
@@ -181,6 +182,27 @@ test('sendChatMessageStream sends explicit v1 header in rollback mode', async (t
   assert.equal(capturedHeaders.get('X-AI-Event-Version'), '1');
 });
 
+test('sendChatMessageStream rejects the legacy DONE sentinel in v2 mode', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    if (previousVersion === undefined) {
+      delete process.env.VITE_AI_EVENT_VERSION;
+    } else {
+      process.env.VITE_AI_EVENT_VERSION = previousVersion;
+    }
+  });
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: done\n',
+    'data: [DONE]\n\n',
+  ], { 'X-AI-Event-Version': '2' }));
+
+  await assert.rejects(
+    () => sendChatMessageStream({ question: '버전 경계', history: null }, () => undefined),
+    /AI stream|incomplete|JSON/i,
+  );
+});
+
 test('sendChatMessageStream rejects when SSE error event is received', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
     'event: status\n',
@@ -200,6 +222,7 @@ test('sendChatMessageStream rejects when SSE error event is received', async (t)
       assert.ok(error instanceof ChatStreamEventError);
       assert.equal(error.message, 'TEMPORARY_STREAM_ERROR');
       assert.equal(error.eventCode, 'temporary_issue');
+      assert.equal(error.upstreamMessage, 'temporary_issue');
       assert.equal(error.detail, '지금은 응답 템포가 잠깐 흔들리고 있어요. 같은 질문을 다시 보내주세요.');
       return true;
     },
@@ -224,10 +247,37 @@ test('sendChatMessageStream preserves normalized v2 stream.error details', async
     (error) => {
       assert.ok(error instanceof ChatStreamEventError);
       assert.equal(error.eventCode, 'AI_UPSTREAM_UNAVAILABLE');
+      assert.equal(error.upstreamMessage, 'AI 서비스가 현재 사용할 수 없습니다.');
       assert.equal(error.detail, '잠시 후 다시 시도해주세요.');
       assert.equal(error.retryable, true);
       assert.equal(error.retryAfterSeconds, null);
       assert.deepEqual(error.supportedVersions, []);
+      return true;
+    },
+  );
+});
+
+test('sendChatMessageStream keeps null detail separate from the v2 upstream message', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    if (previousVersion === undefined) {
+      delete process.env.VITE_AI_EVENT_VERSION;
+      return;
+    }
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  });
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: stream.error\n',
+    'data: {"version":2,"type":"stream.error","data":{"code":"AI_UPSTREAM_UNAVAILABLE","message":"AI 서비스가 현재 사용할 수 없습니다.","detail":null,"retryable":true}}\n\n',
+  ], { 'X-AI-Event-Version': '2' }));
+
+  await assert.rejects(
+    () => sendChatMessageStream({ question: '오류', history: null }, () => undefined),
+    (error) => {
+      assert.ok(error instanceof ChatStreamEventError);
+      assert.equal(error.upstreamMessage, 'AI 서비스가 현재 사용할 수 없습니다.');
+      assert.equal(error.detail, null);
       return true;
     },
   );

@@ -41,18 +41,15 @@ const nonEmptyString = (value: unknown): string | null => (
   typeof value === 'string' && value.length > 0 ? value : null
 );
 
-const nullableString = (value: unknown): string | null => (
-  typeof value === 'string' ? value : null
-);
-
 const nonNegativeInteger = (value: unknown): number | null => (
   typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : null
 );
 
-const supportedVersions = (value: unknown): AiEventVersion[] => (
+const hasExactSupportedVersions = (value: unknown): value is ['1', '2'] => (
   Array.isArray(value)
-    ? value.filter((item): item is AiEventVersion => item === '1' || item === '2')
-    : []
+  && value.length === 2
+  && value[0] === '1'
+  && value[1] === '2'
 );
 
 const retryAfterFromHeader = (value: string | null): number | null => {
@@ -73,23 +70,78 @@ const fallbackForStatus = (status: number): AiStreamErrorDetails => ({
   supportedVersions: [],
 });
 
-const isCanonicalHttpError = (value: Record<string, unknown>): value is AiStreamHttpError => (
-  nonEmptyString(value.code) !== null
-  && nonEmptyString(value.message) !== null
-  && typeof value.retryable === 'boolean'
+const CANONICAL_HTTP_ERROR_KEYS = [
+  'code',
+  'message',
+  'detail',
+  'retryable',
+  'retry_after_seconds',
+  'supported_versions',
+] as const;
+
+const hasExactKeys = (value: Record<string, unknown>, expected: readonly string[]): boolean => {
+  const keys = Object.keys(value);
+  return keys.length === expected.length && expected.every((key) => keys.includes(key));
+};
+
+const hasCanonicalOnlyField = (value: Record<string, unknown>): boolean => (
+  'retryable' in value
+  || 'retry_after_seconds' in value
+  || 'supported_versions' in value
 );
 
-const detailsFromRecord = (
+const isCanonicalHttpError = (value: Record<string, unknown>): value is AiStreamHttpError => (
+  hasExactKeys(value, CANONICAL_HTTP_ERROR_KEYS)
+  && nonEmptyString(value.code) !== null
+  && nonEmptyString(value.message) !== null
+  && (value.detail === null || typeof value.detail === 'string')
+  && typeof value.retryable === 'boolean'
+  && (value.retry_after_seconds === null || nonNegativeInteger(value.retry_after_seconds) !== null)
+  && (
+    value.code === 'AI_EVENT_VERSION_UNSUPPORTED'
+      ? hasExactSupportedVersions(value.supported_versions)
+      : Array.isArray(value.supported_versions) && value.supported_versions.length === 0
+  )
+);
+
+const isLegacyUnsupportedVersionError = (
+  status: number,
   value: Record<string, unknown>,
+): boolean => (
+  status === 406
+  && isRecord(value.detail)
+  && value.detail.code === 'AI_EVENT_VERSION_UNSUPPORTED'
+  && hasExactSupportedVersions(value.detail.supported_versions)
+);
+
+const unsupportedVersionDetails = (): AiStreamErrorDetails => ({
+  code: 'AI_EVENT_VERSION_UNSUPPORTED',
+  message: '지원하지 않는 AI 이벤트 버전입니다.',
+  detail: null,
+  retryable: false,
+  retryAfterSeconds: null,
+  supportedVersions: ['1', '2'],
+});
+
+const isLegacySpringApiError = (
+  value: Record<string, unknown>,
+): value is Record<string, unknown> & { success: false; code: string; message: string } => (
+  value.success === false
+  && nonEmptyString(value.code) !== null
+  && nonEmptyString(value.message) !== null
+);
+
+const detailsFromLegacySpring = (
+  value: Record<string, unknown> & { success: false; code: string; message: string },
   fallback: AiStreamErrorDetails,
   retryAfterSeconds: number | null,
 ): AiStreamErrorDetails => ({
-  code: nonEmptyString(value.code) ?? fallback.code,
-  message: nonEmptyString(value.message) ?? fallback.message,
-  detail: nullableString(value.detail),
-  retryable: typeof value.retryable === 'boolean' ? value.retryable : fallback.retryable,
+  code: value.code,
+  message: value.message,
+  detail: null,
+  retryable: fallback.retryable,
   retryAfterSeconds,
-  supportedVersions: supportedVersions(value.supported_versions),
+  supportedVersions: [],
 });
 
 const parseBody = (body: string): unknown => {
@@ -109,21 +161,32 @@ export const decodeAiStreamHttpError = async (response: Response): Promise<AiStr
     if (isCanonicalHttpError(parsed)) {
       return new AiStreamRequestError(
         response.status,
-        detailsFromRecord(parsed, fallback, nonNegativeInteger(parsed.retry_after_seconds) ?? headerRetryAfter),
+        {
+          code: parsed.code,
+          message: parsed.message,
+          detail: parsed.detail,
+          retryable: parsed.retryable,
+          retryAfterSeconds: parsed.retry_after_seconds ?? headerRetryAfter,
+          supportedVersions: [...parsed.supported_versions],
+        },
       );
     }
 
-    if (isRecord(parsed.detail)) {
-      return new AiStreamRequestError(
-        response.status,
-        detailsFromRecord(parsed.detail, fallback, nonNegativeInteger(parsed.detail.retry_after_seconds) ?? headerRetryAfter),
-      );
+    if (isLegacyUnsupportedVersionError(response.status, parsed)) {
+      return new AiStreamRequestError(response.status, unsupportedVersionDetails());
     }
 
-    if (parsed.success === false) {
+    if (hasCanonicalOnlyField(parsed)) {
+      return new AiStreamRequestError(response.status, {
+        ...fallback,
+        retryAfterSeconds: headerRetryAfter,
+      });
+    }
+
+    if (isLegacySpringApiError(parsed)) {
       return new AiStreamRequestError(
         response.status,
-        detailsFromRecord(parsed, fallback, nonNegativeInteger(parsed.retry_after_seconds) ?? headerRetryAfter),
+        detailsFromLegacySpring(parsed, fallback, headerRetryAfter),
       );
     }
   }
@@ -170,3 +233,17 @@ export class RateLimitError extends Error {
     this.supportedVersions = [...details.supportedVersions];
   }
 }
+
+export interface RateLimitErrorDetails {
+  message: string;
+  retryAfterSeconds: number;
+}
+
+export const resolveRateLimitErrorDetails = (error: unknown): RateLimitErrorDetails | null => (
+  error instanceof RateLimitError
+    ? {
+        message: error.message,
+        retryAfterSeconds: error.retryAfterSeconds,
+      }
+    : null
+);

@@ -20,9 +20,9 @@ test('analyzeTeam은 기본 v2 협상 coach 이벤트를 타입으로 소비한�
   t.after(() => {
     if (previousVersion === undefined) {
       delete process.env.VITE_AI_EVENT_VERSION;
-      return;
+    } else {
+      process.env.VITE_AI_EVENT_VERSION = previousVersion;
     }
-    process.env.VITE_AI_EVENT_VERSION = previousVersion;
   });
   let requestHeaders: Headers | null = null;
   let requestBody: Record<string, unknown> | null = null;
@@ -127,6 +127,23 @@ test('analyzeTeam은 rollback 모드에서 v1 헤더를 명시한다', async (t)
   assert.equal(capturedHeaders.get('X-AI-Event-Version'), '1');
 });
 
+test('analyzeTeam rejects the legacy DONE sentinel in v2 mode', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    if (previousVersion === undefined) {
+      delete process.env.VITE_AI_EVENT_VERSION;
+      return;
+    }
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  });
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: done\ndata: [DONE]\n\n',
+  ], { 'X-AI-Event-Version': '2' }));
+
+  await assert.rejects(() => analyzeTeam(baseRequest));
+});
+
 test('analyzeTeam preserves canonical 504 stream error details', async (t) => {
   t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
     code: 'AI_UPSTREAM_TIMEOUT',
@@ -142,7 +159,9 @@ test('analyzeTeam preserves canonical 504 stream error details', async (t) => {
     (error) => {
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'STREAM_TIMEOUT');
+      assert.equal(error.statusCode, 504);
       assert.equal(error.upstreamCode, 'AI_UPSTREAM_TIMEOUT');
+      assert.equal(error.upstreamMessage, 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
       assert.equal(error.retryable, true);
       assert.equal(error.detail, null);
       return true;
@@ -167,6 +186,8 @@ test('analyzeTeam preserves canonical 406 supported versions', async (t) => {
       assert.equal(error.code, 'REQUEST_FAILED');
       assert.deepEqual(error.supportedVersions, ['1', '2']);
       assert.equal(error.upstreamCode, 'AI_EVENT_VERSION_UNSUPPORTED');
+      assert.equal(error.upstreamMessage, '지원하지 않는 AI 이벤트 버전입니다.');
+      assert.equal(error.detail, null);
       return true;
     },
   );
@@ -274,8 +295,10 @@ test('analyzeTeam은 AI upstream 401을 auth 만료로 오인하지 않는다', 
     (error) => {
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'REQUEST_FAILED');
-      assert.equal(error.statusCode, null);
+      assert.equal(error.statusCode, 401);
       assert.equal(error.message, '분석 중 오류가 발생했습니다.');
+      assert.equal(error.upstreamMessage, 'AI 서비스 인증에 실패했습니다.');
+      assert.equal(error.detail, null);
       return true;
     },
   );
@@ -352,7 +375,7 @@ test('analyzeTeam은 504 timeout 응답을 stream timeout 전용 메시지로 �
     (error) => {
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'STREAM_TIMEOUT');
-      assert.equal(error.statusCode, null);
+      assert.equal(error.statusCode, 504);
       assert.equal(error.message, 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.');
       return true;
     },
@@ -494,7 +517,7 @@ test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', asyn
     'data: {"request_mode":"manual_detail"}\n',
     '\n',
     'event: error\n',
-    'data: {"code":"coach_data_insufficient","message":"분석에 필요한 데이터가 충분하지 않습니다."}\n',
+    'data: {"code":"coach_data_insufficient","message":"분석에 필요한 데이터가 충분하지 않습니다.","detail":"확인 가능한 내부 기록이 부족합니다."}\n',
     '\n',
     'event: done\n',
     'data: [DONE]\n',
@@ -507,6 +530,8 @@ test('analyzeTeam은 SSE error 이벤트를 분석 실패로 승격한다', asyn
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'REQUEST_FAILED');
       assert.equal(error.message, '분석에 필요한 데이터가 충분하지 않습니다.');
+      assert.equal(error.upstreamMessage, '분석에 필요한 데이터가 충분하지 않습니다.');
+      assert.equal(error.detail, '확인 가능한 내부 기록이 부족합니다.');
       return true;
     },
   );
@@ -529,6 +554,8 @@ test('analyzeTeam은 SSE payload limit error 이벤트를 전용 에러로 승�
       assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
       assert.equal(error.statusCode, null);
       assert.equal(error.message, COACH_PAYLOAD_TOO_LARGE_MESSAGE);
+      assert.equal(error.upstreamMessage, 'AI 요청 본문이 너무 큽니다.');
+      assert.equal(error.detail, null);
       return true;
     },
   );

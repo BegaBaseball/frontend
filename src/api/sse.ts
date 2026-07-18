@@ -7,6 +7,7 @@ export interface SseEvent {
 
 export interface ConsumeSseStreamOptions {
   timeoutMs: number;
+  acceptDoneSentinel: boolean;
   signal?: AbortSignal;
   onEvent: (event: SseEvent) => void | Promise<void>;
   isTerminalEvent?: (event: SseEvent) => boolean;
@@ -48,7 +49,7 @@ export async function consumeSseStream(
     }
 
     const data = trimmedLine.slice(5).trim();
-    if (data === '[DONE]') {
+    if (data === '[DONE]' && options.acceptDoneSentinel) {
       sawDone = true;
       return;
     }

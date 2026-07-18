@@ -39,6 +39,7 @@ export { RateLimitError } from './aiStreamError';
 
 export class ChatStreamEventError extends Error {
   readonly eventCode: string;
+  readonly upstreamMessage: string;
   readonly detail: string | null;
   readonly retryable: boolean;
   readonly retryAfterSeconds: number | null;
@@ -48,7 +49,8 @@ export class ChatStreamEventError extends Error {
     super(CHATBOT_STREAM_TEMPORARY_ERROR);
     this.name = 'ChatStreamEventError';
     this.eventCode = details.code;
-    this.detail = details.detail ?? details.message;
+    this.upstreamMessage = details.message;
+    this.detail = details.detail;
     this.retryable = details.retryable;
     this.retryAfterSeconds = details.retryAfterSeconds;
     this.supportedVersions = [...details.supportedVersions];
@@ -192,6 +194,7 @@ export async function sendChatMessageStream(
   try {
     const { sawDone } = await consumeSseStream(response.body, {
       timeoutMs: READ_TIMEOUT_MS,
+      acceptDoneSentinel: eventVersion === '1',
       signal: options?.signal,
       onEvent: ({ event, data }) => {
         if (eventVersion === '2') {

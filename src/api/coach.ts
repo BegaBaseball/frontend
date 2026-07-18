@@ -309,6 +309,7 @@ export class CoachAnalyzeError extends Error {
     readonly code: CoachAnalyzeErrorCode;
     readonly statusCode: number | null;
     readonly upstreamCode: string | null;
+    readonly upstreamMessage: string;
     readonly detail: string | null;
     readonly retryable: boolean;
     readonly retryAfterSeconds: number | null;
@@ -325,6 +326,7 @@ export class CoachAnalyzeError extends Error {
         this.code = code;
         this.statusCode = statusCode;
         this.upstreamCode = details?.code ?? null;
+        this.upstreamMessage = details?.message ?? message;
         this.detail = details?.detail ?? null;
         this.retryable = details?.retryable ?? false;
         this.retryAfterSeconds = details?.retryAfterSeconds ?? null;
@@ -371,7 +373,7 @@ const createCoachRequestError = (
         return createCoachPayloadTooLargeError(statusCode, details);
     }
     if (statusCode === 504 || details.code === 'AI_UPSTREAM_TIMEOUT') {
-        return createCoachStreamTimeoutError(details.message, null, details);
+        return createCoachStreamTimeoutError(details.message, statusCode, details);
     }
     return createCoachRequestFailedError(
         details.code === 'AI_STREAM_REQUEST_FAILED'
@@ -572,7 +574,7 @@ export async function analyzeTeam(
             if (lastUnauthorizedError?.code === 'AI_UPSTREAM_UNAUTHORIZED') {
                 throw createCoachRequestFailedError(
                     '분석 중 오류가 발생했습니다.',
-                    null,
+                    response.status,
                     lastUnauthorizedError,
                 );
             }
@@ -800,6 +802,7 @@ export async function analyzeTeam(
 
             const { sawDone } = await consumeSseStream(responseBody, {
                 timeoutMs: getCoachStreamReadTimeoutMs(requestMode),
+                acceptDoneSentinel: eventVersion === '1',
                 signal: options?.signal,
                 onEvent: ({ event, data: dataStr }) => {
                     if (eventVersion === '2') {

@@ -229,7 +229,11 @@ test('getAiEventVersion reads the Node test environment fallback', async () => {
     const { getAiEventVersion } = await import('./aiStreamContract');
     assert.equal(getAiEventVersion(), '1');
   } finally {
-    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+    if (previousVersion === undefined) {
+      delete process.env.VITE_AI_EVENT_VERSION;
+    } else {
+      process.env.VITE_AI_EVENT_VERSION = previousVersion;
+    }
   }
 });
 
