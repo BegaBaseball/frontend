@@ -1,9 +1,10 @@
 import RankingItem from './ranking/RankingItem';
+import RankingPredictionResultPanel from './ranking/RankingPredictionResultPanel';
 import { useRankingPredictionShare } from '../hooks/useRankingPredictionShare';
 import LoadingSpinner from './LoadingSpinner';
 
 export default function RankingPredictionShare() {
-  const { seasonYear, rankings, isLoading } = useRankingPredictionShare();
+  const { seasonYear, rankings, result, isLoading } = useRankingPredictionShare();
 
   if (isLoading) {
     return (
@@ -18,19 +19,23 @@ export default function RankingPredictionShare() {
           {seasonYear} KBO 시즌 순위 예측
         </h1>
 
-        <div className="space-y-2">
-          {rankings.map((team, index) => (
-            <RankingItem
-              key={index}
-              team={team}
-              index={index}
-              alreadySaved={true} // 공유된 예측은 수정 불가
-              onRemove={() => {}} // 동작 안함
-              onMoveTeamToIndex={() => {}} // 동작 안함
-              onMoveTeamByStep={() => {}} // 동작 안함
-            />
-          ))}
-        </div>
+        {result?.settledAt ? (
+          <RankingPredictionResultPanel result={result} />
+        ) : (
+          <div className="space-y-2">
+            {rankings.map((team, index) => (
+              <RankingItem
+                key={index}
+                team={team}
+                index={index}
+                alreadySaved={true} // 공유된 예측은 수정 불가
+                onRemove={() => {}} // 동작 안함
+                onMoveTeamToIndex={() => {}} // 동작 안함
+                onMoveTeamByStep={() => {}} // 동작 안함
+              />
+            ))}
+          </div>
+        )}
 
         <div className="mt-8 text-center">
           <a 

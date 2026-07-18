@@ -50,6 +50,10 @@ export function getPredictionTabActivationState(
   };
 }
 
+export function getInitialPredictionTab(tabParam: string | null): 'match' | 'ranking' {
+  return tabParam === 'ranking' ? 'ranking' : 'match';
+}
+
 export function getPredictionOtherGamesLinkState(dateParam: string | null) {
   const date = dateParam?.trim() || '';
   return {
@@ -59,13 +63,15 @@ export function getPredictionOtherGamesLinkState(dateParam: string | null) {
 }
 
 export default function PredictionRuntime() {
-  const [activeTab, setActiveTab] = useState<'match' | 'ranking'>('match');
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState<'match' | 'ranking'>(
+    () => getInitialPredictionTab(searchParams.get('tab'))
+  );
   const [contentTab, setContentTab] = useState<'match' | 'ranking'>('match');
   const [hasVisitedRankingTab, setHasVisitedRankingTab] = useState(false);
   const [rankingFeatureReady, setRankingFeatureReady] = useState(false);
   const { isLoggedIn } = useAuthSession();
   const { userCheerPoints = 0 } = useAuthProfileSnapshot();
-  const [searchParams] = useSearchParams();
   const { date: otherGamesDate, path: otherGamesPath } = getPredictionOtherGamesLinkState(
     searchParams.get('date')
   );

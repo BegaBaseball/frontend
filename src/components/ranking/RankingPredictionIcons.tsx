@@ -84,3 +84,11 @@ export function RankingCloseIcon(props: RankingPredictionIconProps) {
     </RankingPredictionSvgIcon>
   );
 }
+
+export function RankingCheckIcon(props: RankingPredictionIconProps) {
+  return (
+    <RankingPredictionSvgIcon {...props}>
+      <path d="M20 6 9 17l-5-5" />
+    </RankingPredictionSvgIcon>
+  );
+}

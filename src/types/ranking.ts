@@ -19,6 +19,8 @@ export interface SavedPredictionResponse {
     lastSeasonRank: number | null;
   }>;
   createdAt: string;
+  exactMatchCount: number | null;
+  settledAt: string | null;
 }
 
 export interface RankingPredictionInitResponse {
