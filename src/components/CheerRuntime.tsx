@@ -30,7 +30,6 @@ import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
 import { scheduleAfterNextPaint } from '../utils/afterNextPaint';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import { useDebounce } from '../hooks/useDebounce';
-import CheerMobileBottomNav from './CheerMobileBottomNav';
 import {
     getAccessibleCheerTextColor,
     normalizeCheerSearchQuery,
@@ -45,6 +44,7 @@ const LazyCheerComposerRuntime = lazy(() => import('./CheerComposerRuntime'));
 const LazyCheerSidebarPanels = lazy(() => import('./CheerSidebarPanels'));
 const LazyCheerFeedRuntimeContent = lazy(() => import('./CheerFeedRuntimeContent'));
 const LazyCheerLivePanel = lazy(() => import('./CheerLivePanel'));
+const LazyCheerMobileBottomNav = lazy(() => import('./CheerMobileBottomNav'));
 type FeedTabConfig = {
     key: CheerTabKey;
     label: string;
@@ -669,12 +669,14 @@ export default function CheerRuntime({ openComposerOnMount = false }: CheerProps
                 </div>
             </div>
 
-            <CheerMobileBottomNav
-                activeItem="team"
-                userProfilePath={userProfilePath}
-                onWriteClick={handleWriteClick}
-                teamAccent={teamAccent}
-            />
+            <Suspense fallback={null}>
+                <LazyCheerMobileBottomNav
+                    activeItem="team"
+                    userProfilePath={userProfilePath}
+                    onWriteClick={handleWriteClick}
+                    teamAccent={teamAccent}
+                />
+            </Suspense>
 
             {/* 태블릿 세로(768-1023): 우하단 FAB 56px — 이 구간에서만 게시 진입점 노출 */}
             <button
