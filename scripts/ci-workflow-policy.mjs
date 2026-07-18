@@ -283,6 +283,10 @@ const matePresetSpecOccurrences = (contents, spec) => {
     ) return { mateSmoke: 0, mateRoute: 0 };
     const [property] = properties;
 
+    if (!property.initializer.elements.every((element) => (
+      ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element)
+    ))) return { mateSmoke: 0, mateRoute: 0 };
+
     result[presetName] = property.initializer.elements.filter((element) => (
       (ts.isStringLiteral(element) || ts.isNoSubstitutionTemplateLiteral(element))
       && element.text === spec

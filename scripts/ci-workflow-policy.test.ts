@@ -510,6 +510,34 @@ test('policy rejects duplicate declarations, duplicate target properties, and sp
   }
 });
 
+test('policy rejects spread and dynamic entries inside target Mate preset arrays', () => {
+  const invalidPresetSources = [
+    [
+      'const E2E_SPECS = {',
+      "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', ...['cypress/e2e/mate-list-url-state.cy.ts']],",
+      "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '};',
+    ].join('\n'),
+    [
+      "const runtimeSpec = 'cypress/e2e/mate-execution-flow.cy.ts';",
+      'const E2E_SPECS = {',
+      "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', runtimeSpec],",
+      "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '};',
+    ].join('\n'),
+  ];
+
+  for (const presets of invalidPresetSources) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', presets);
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
 test('policy rejects direct runtime assignments to target Mate presets', () => {
   const repoRoot = writePassingPolicyFixture();
   writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
