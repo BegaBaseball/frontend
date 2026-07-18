@@ -5,11 +5,18 @@ import { toast } from 'sonner';
 
 import { setPartyFavorite } from '../api/mate';
 import { useAuthProfileSnapshot } from '../store/authStore';
-import { useMateStore } from '../store/mateStore';
 import type { Party, PartyStatus } from '../types/mate';
-import type { MateStatusTabKey } from '../components/MateStatusTabs';
 import { MATE_SEARCH_DEBOUNCE_MS } from '../utils/constants';
 import { buildMateRouteLocationState } from '../utils/mate';
+import {
+  buildMateListReturnPath,
+  canonicalizeMateListSearchParams,
+  mateListDateToLocalDate,
+  parseMateListUrlState,
+  serializeMateListUrlState,
+  type MateListUrlState,
+  type MateStatusTabKey,
+} from '../utils/mateListUrlState';
 import { normalizeMateSearchText } from '../utils/mateSearchTerms';
 import { countActiveMateSeatFilters } from '../utils/mateSeatFilterCount';
 import { MATE_SORT_OPTIONS, type MateSortOptionKey } from '../utils/mateSortOptions';
@@ -43,37 +50,60 @@ export function useMateListController() {
   const isDesktopListLayout = useMediaQuery('(min-width: 1280px)');
   const rawLegacyPartyId = searchParams.get('party');
   const legacyPartyId = normalizeLegacyPartyId(rawLegacyPartyId);
-  const searchQuery = useMateStore((state) => state.searchQuery);
-  const setSearchQuery = useMateStore((state) => state.setSearchQuery);
   const { userFavoriteTeam: favoriteTeam, userId: authUserId } = useAuthProfileSnapshot();
   const favoriteTeamId = favoriteTeam && favoriteTeam !== '없음' ? favoriteTeam : null;
-  const [myTeamOnly, setMyTeamOnly] = useState(false);
-  const [inputValue, setInputValue] = useState(searchQuery || '');
-  const [currentPage, setCurrentPage] = useState(0);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const urlState = useMemo(
+    () => parseMateListUrlState(searchParams, { favoriteTeamId }),
+    [favoriteTeamId, searchParams],
+  );
+  const {
+    activeSortKey,
+    activeTab,
+    myTeamOnly,
+    queryPage,
+    searchQuery: committedSearchQuery,
+  } = urlState;
+  const selectedDate = useMemo(() => mateListDateToLocalDate(urlState.date), [urlState.date]);
+  const [inputValue, setInputValue] = useState(committedSearchQuery);
   const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<MateStatusTabKey>('all');
-  const [activeSortKey, setActiveSortKey] = useState<MateSortOptionKey>('latest');
   const [favoriteUpdatingPartyId, setFavoriteUpdatingPartyId] = useState<number | null>(null);
-  const filterSignatureRef = useRef<string | null>(null);
   const searchInputSourceRef = useRef<'local' | 'external'>('local');
   const debouncedInput = useDebounce(inputValue, MATE_SEARCH_DEBOUNCE_MS);
 
-  useEffect(() => {
-    searchInputSourceRef.current = 'external';
-    setInputValue(normalizeMateSearchText(searchQuery || ''));
-  }, [searchQuery]);
+  const updateUrlState = useCallback((
+    update: (current: MateListUrlState) => MateListUrlState,
+  ) => {
+    setSearchParams((currentParams) => {
+      const current = parseMateListUrlState(currentParams, { favoriteTeamId });
+      return serializeMateListUrlState(update(current), currentParams);
+    }, { replace: true });
+  }, [favoriteTeamId, setSearchParams]);
 
   useEffect(() => {
-    if (debouncedInput !== inputValue) {
+    const canonical = canonicalizeMateListSearchParams(searchParams, { favoriteTeamId });
+    if (canonical.toString() === searchParams.toString()) return;
+    setSearchParams(canonical, { replace: true });
+  }, [favoriteTeamId, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (normalizeMateSearchText(inputValue) === committedSearchQuery) {
+      searchInputSourceRef.current = 'external';
       return;
     }
-    if (searchInputSourceRef.current !== 'local') {
-      return;
-    }
-    setSearchQuery(normalizeMateSearchText(debouncedInput));
-  }, [debouncedInput, inputValue, setSearchQuery]);
+    searchInputSourceRef.current = 'external';
+    setInputValue(committedSearchQuery);
+  // This effect intentionally keys only on committed URL state. Including inputValue
+  // would overwrite each local keystroke before the debounce can commit it.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [committedSearchQuery]);
+
+  useEffect(() => {
+    if (debouncedInput !== inputValue || searchInputSourceRef.current !== 'local') return;
+    const normalized = normalizeMateSearchText(debouncedInput);
+    if (normalized === committedSearchQuery) return;
+    updateUrlState((current) => ({ ...current, searchQuery: normalized, queryPage: 0 }));
+  }, [committedSearchQuery, debouncedInput, inputValue, updateUrlState]);
 
   const activeSortOption = useMemo(
     () => MATE_SORT_OPTIONS.find((option) => option.key === activeSortKey) ?? MATE_SORT_OPTIONS[0]!,
@@ -87,33 +117,9 @@ export function useMateListController() {
     selling: 'SELLING',
   };
   const selectedStatus = tabToStatusMap[activeTab];
-  const dateKey = selectedDate ? toDateString(selectedDate) : '';
+  const dateKey = urlState.date ?? '';
   const teamIdFilter = myTeamOnly && favoriteTeamId ? favoriteTeamId : undefined;
-  const normalizedSearchQuery = normalizeMateSearchText(debouncedInput);
-  const filterSignature = [
-    normalizedSearchQuery,
-    dateKey,
-    selectedStatus ?? '',
-    teamIdFilter ?? '',
-    activeSortOption.sortBy,
-    activeSortOption.sortDir,
-  ].join('|');
-  const shouldResetPage =
-    filterSignatureRef.current !== null
-    && filterSignatureRef.current !== filterSignature
-    && currentPage !== 0;
-  const queryPage = shouldResetPage ? 0 : currentPage;
-
-  useEffect(() => {
-    if (filterSignatureRef.current === filterSignature) {
-      return;
-    }
-
-    filterSignatureRef.current = filterSignature;
-    if (currentPage !== 0) {
-      setCurrentPage(0);
-    }
-  }, [currentPage, filterSignature]);
+  const normalizedSearchQuery = committedSearchQuery;
 
   const partyListQuery = useQuery({
     ...getMatePartyListQueryOptions({
@@ -141,12 +147,22 @@ export function useMateListController() {
     || myTeamOnly,
   );
 
+  useEffect(() => {
+    if (!partyListQuery.isSuccess) return;
+    const lastValidPage = Math.max(0, (partyListQuery.data?.totalPages ?? 0) - 1);
+    if (queryPage <= lastValidPage) return;
+    updateUrlState((current) => ({ ...current, queryPage: lastValidPage }));
+  }, [partyListQuery.data?.totalPages, partyListQuery.isSuccess, queryPage, updateUrlState]);
+
   const handlePartyClick = useCallback((party: Party) => {
     seedMatePartyQueryData(queryClient, party);
+    const returnTo = buildMateListReturnPath(
+      canonicalizeMateListSearchParams(searchParams, { favoriteTeamId }),
+    );
     navigate(`/mate/${party.id}`, {
-      state: buildMateRouteLocationState(party),
+      state: buildMateRouteLocationState(party, returnTo),
     });
-  }, [navigate, queryClient]);
+  }, [favoriteTeamId, navigate, queryClient, searchParams]);
 
   const handleFavoriteToggle = useCallback(async (party: Party) => {
     if (favoriteUpdatingPartyId !== null) {
@@ -218,57 +234,64 @@ export function useMateListController() {
 
   const toggleSearchQuery = useCallback((keyword: string) => {
     const normalizedKeyword = normalizeMateSearchText(keyword);
-    if (!normalizedKeyword) {
-      return;
-    }
-
-    searchInputSourceRef.current = 'local';
-    setInputValue((prevInput) => {
-      const normalizedInput = normalizeMateSearchText(prevInput);
-      return normalizedInput.includes(normalizedKeyword)
-        ? normalizeMateSearchText(normalizedInput.replace(normalizedKeyword, ' '))
-        : normalizeMateSearchText(`${normalizedInput} ${normalizedKeyword}`);
-    });
-    setCurrentPage(0);
-  }, []);
+    if (!normalizedKeyword) return;
+    const normalizedInput = normalizeMateSearchText(inputValue);
+    const nextInput = normalizedInput.includes(normalizedKeyword)
+      ? normalizeMateSearchText(normalizedInput.replace(normalizedKeyword, ' '))
+      : normalizeMateSearchText(`${normalizedInput} ${normalizedKeyword}`);
+    searchInputSourceRef.current = 'external';
+    setInputValue(nextInput);
+    updateUrlState((current) => ({ ...current, searchQuery: nextInput, queryPage: 0 }));
+  }, [inputValue, updateUrlState]);
 
   const handleDateSelect = useCallback((date: Date | null) => {
-    if (date === null) {
-      setSelectedDate(null);
-      setCurrentPage(0);
-      return;
-    }
-
-    const isSelected = selectedDate && toDateString(selectedDate) === toDateString(date);
-    setSelectedDate(isSelected ? null : date);
-    setCurrentPage(0);
-  }, [selectedDate]);
+    const nextDate = date ? toDateString(date) : null;
+    updateUrlState((current) => ({
+      ...current,
+      date: current.date === nextDate ? null : nextDate,
+      queryPage: 0,
+    }));
+  }, [updateUrlState]);
 
   const handleMyTeamOnlyChange = useCallback((nextValue: boolean) => {
-    setMyTeamOnly(nextValue);
-    setCurrentPage(0);
-  }, []);
+    updateUrlState((current) => ({ ...current, myTeamOnly: nextValue, queryPage: 0 }));
+  }, [updateUrlState]);
+
+  const applyMobileFilters = useCallback((nextMyTeamOnly: boolean, nextSearchQuery: string) => {
+    const normalizedSearchQuery = normalizeMateSearchText(nextSearchQuery);
+    searchInputSourceRef.current = 'external';
+    setInputValue(normalizedSearchQuery);
+    updateUrlState((current) => ({
+      ...current,
+      myTeamOnly: nextMyTeamOnly,
+      searchQuery: normalizedSearchQuery,
+      queryPage: 0,
+    }));
+    setIsMobileFilterOpen(false);
+  }, [updateUrlState]);
 
   const handleSortChange = useCallback((nextSortKey: MateSortOptionKey) => {
-    setActiveSortKey(nextSortKey);
-    setCurrentPage(0);
-  }, []);
+    updateUrlState((current) => ({ ...current, activeSortKey: nextSortKey, queryPage: 0 }));
+  }, [updateUrlState]);
 
   const handleResetFilters = useCallback(() => {
-    setSelectedDate(null);
-    searchInputSourceRef.current = 'local';
+    searchInputSourceRef.current = 'external';
     setInputValue('');
-    setSearchQuery('');
-    setMyTeamOnly(false);
-    setActiveTab('all');
-    setCurrentPage(0);
+    updateUrlState((current) => ({
+      ...current,
+      searchQuery: '',
+      date: null,
+      activeTab: 'all',
+      myTeamOnly: false,
+      activeSortKey: 'latest',
+      queryPage: 0,
+    }));
     setIsMobileFilterOpen(false);
-  }, [setSearchQuery]);
+  }, [updateUrlState]);
 
   const handleSearchInputChange = useCallback((event: ChangeEvent<HTMLInputElement>) => {
     searchInputSourceRef.current = 'local';
     setInputValue(event.target.value);
-    setCurrentPage(0);
   }, []);
 
   const applySearchTerm = useCallback((term: string) => {
@@ -279,14 +302,16 @@ export function useMateListController() {
 
     searchInputSourceRef.current = 'external';
     setInputValue(normalizedTerm);
-    setSearchQuery(normalizedTerm);
-    setCurrentPage(0);
-  }, [setSearchQuery]);
+    updateUrlState((current) => ({ ...current, searchQuery: normalizedTerm, queryPage: 0 }));
+  }, [updateUrlState]);
 
   const handleTabChange = useCallback((nextTab: MateStatusTabKey) => {
-    setActiveTab(nextTab);
-    setCurrentPage(0);
-  }, []);
+    updateUrlState((current) => ({ ...current, activeTab: nextTab, queryPage: 0 }));
+  }, [updateUrlState]);
+
+  const setCurrentPage = useCallback((nextPage: number) => {
+    updateUrlState((current) => ({ ...current, queryPage: Math.max(0, nextPage) }));
+  }, [updateUrlState]);
 
   const handleRetry = useCallback(() => {
     void partyListQuery.refetch();
@@ -322,6 +347,7 @@ export function useMateListController() {
     activeSortOption,
     activeTab,
     applySearchTerm,
+    applyMobileFilters,
     authUserId,
     closeGuide,
     closeMobileFilter,

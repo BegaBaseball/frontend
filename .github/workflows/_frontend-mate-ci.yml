@@ -68,6 +68,13 @@ jobs:
           set -o pipefail
           npm run test:mate:smoke 2>&1 | tee reports/mate-ci/unit-smoke.log
 
+      - name: Run mate unit coverage
+        id: coverage
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log
+
       - name: Run mate build smoke
         id: build_smoke
         env:
@@ -118,6 +125,7 @@ jobs:
         shell: bash
         env:
           MATE_CI_STATUS_UNIT_SMOKE: ${{ steps.unit_smoke.outcome }}
+          MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}
           MATE_CI_STATUS_BUILD_SMOKE: ${{ steps.build_smoke.outcome }}
           MATE_CI_STATUS_E2E_SMOKE: ${{ steps.e2e_smoke.outcome || 'skipped' }}
           MATE_CI_STATUS_ROUTE_REGRESSION: ${{ steps.route_regression.outcome || 'skipped' }}
@@ -163,6 +171,7 @@ jobs:
         shell: bash
         env:
           MATE_CI_STATUS_UNIT_SMOKE: ${{ steps.unit_smoke.outcome }}
+          MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}
           MATE_CI_STATUS_BUILD_SMOKE: ${{ steps.build_smoke.outcome }}
           MATE_CI_STATUS_E2E_SMOKE: ${{ steps.e2e_smoke.outcome || 'skipped' }}
           MATE_CI_STATUS_ROUTE_REGRESSION: ${{ steps.route_regression.outcome || 'skipped' }}

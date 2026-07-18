@@ -11,6 +11,13 @@ export const stageConfigs = {
       logFile: 'reports/mate-ci/unit-smoke.log',
     },
     {
+      envKey: 'COVERAGE',
+      label: 'Unit coverage',
+      scope: 'executed Mate Node unit surface; floors L90/B70/F70',
+      parser: 'node-coverage',
+      logFile: 'reports/mate-ci/coverage.log',
+    },
+    {
       envKey: 'BUILD_SMOKE',
       label: 'Build smoke',
       scope: 'vite build + seo prerender + sitemap',
@@ -20,7 +27,7 @@ export const stageConfigs = {
     {
       envKey: 'E2E_SMOKE',
       label: 'Core E2E smoke',
-      scope: 'mate-detail-states.cy.ts, mate-execution-flow.cy.ts',
+      scope: 'mate-detail-states.cy.ts, mate-list-url-state.cy.ts, mate-execution-flow.cy.ts',
       parser: 'cypress',
       logFile: 'reports/mate-ci/e2e-smoke.log',
     },
@@ -34,6 +41,13 @@ export const stageConfigs = {
       logFile: 'reports/mate-ci/unit-smoke.log',
     },
     {
+      envKey: 'COVERAGE',
+      label: 'Unit coverage',
+      scope: 'executed Mate Node unit surface; floors L90/B70/F70',
+      parser: 'node-coverage',
+      logFile: 'reports/mate-ci/coverage.log',
+    },
+    {
       envKey: 'BUILD_SMOKE',
       label: 'Build smoke',
       scope: 'vite build + seo prerender + sitemap',
@@ -43,7 +57,7 @@ export const stageConfigs = {
     {
       envKey: 'ROUTE_REGRESSION',
       label: 'Route regression',
-      scope: 'mate.cy.ts, mate-detail-states.cy.ts, mate-execution-flow.cy.ts, mate-qr-refresh.cy.ts',
+      scope: 'mate.cy.ts, mate-detail-states.cy.ts, mate-list-url-state.cy.ts, mate-execution-flow.cy.ts, mate-qr-refresh.cy.ts',
       parser: 'cypress',
       logFile: 'reports/mate-ci/route-regression.log',
     },
@@ -95,6 +109,20 @@ export const parseNodeTestMetrics = (contents) => {
     pass: Number(passMatch[1]),
     fail: failMatch ? Number(failMatch[1]) : 0,
     skipped: skipMatch ? Number(skipMatch[1]) : 0,
+  };
+};
+
+export const parseNodeCoverageMetrics = (contents) => {
+  const match = contents.match(/^# all files\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s+(\d+(?:\.\d+)?)\s+\|\s*$/m);
+  if (!match) return null;
+  const [lines, branches, functions] = match.slice(1).map(Number);
+  if ([lines, branches, functions].some((metric) => (
+    !Number.isFinite(metric) || metric < 0 || metric > 100
+  ))) return null;
+  return {
+    lines,
+    branches,
+    functions,
   };
 };
 
@@ -151,6 +179,10 @@ export const formatCount = (parser, metrics, status) => {
     return 'n/a';
   }
 
+  if (parser === 'node-coverage' && metrics) {
+    return `L ${metrics.lines}% · B ${metrics.branches}% · F ${metrics.functions}%`;
+  }
+
   const failedSuffix = metrics.fail > 0 ? `, ${metrics.fail} failed` : '';
   return `${metrics.pass}/${metrics.total} passed${failedSuffix}`;
 };
@@ -166,13 +198,18 @@ export const buildMateCiSummary = ({
 
   const title = workflow === 'smoke' ? 'Frontend Mate Smoke' : 'Frontend Mate Regression';
   const stages = stageConfigs[workflow].map((stage) => {
-    const status = statusMap[env[`MATE_CI_STATUS_${stage.envKey}`] || ''] || 'not_run';
+    const reportedStatus = statusMap[env[`MATE_CI_STATUS_${stage.envKey}`] || ''] || 'not_run';
     const contents = readLog(stage.logFile, cwd) || '';
     const metrics = stage.parser === 'node-test'
       ? parseNodeTestMetrics(contents)
-      : stage.parser === 'cypress'
-        ? parseCypressMetrics(contents)
-        : null;
+      : stage.parser === 'node-coverage'
+        ? parseNodeCoverageMetrics(contents)
+        : stage.parser === 'cypress'
+          ? parseCypressMetrics(contents)
+          : null;
+    const status = stage.parser === 'node-coverage' && reportedStatus === 'success' && !metrics
+      ? 'failure'
+      : reportedStatus;
 
     return {
       ...stage,

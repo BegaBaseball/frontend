@@ -29,6 +29,81 @@ const writeWorkflowFixture = (repoRoot: string, fileName: string, contents: stri
   writeFixtureFile(repoRoot, `.github/workflows/${fileName}`, contents);
 };
 
+const MATE_COVERAGE_COMMAND = 'node --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=70 --test-coverage-functions=70';
+const MATE_COVERAGE_EXCLUDES = [
+  '**/*.test.ts',
+  '**/*.test.tsx',
+];
+const MATE_COVERAGE_INCLUDES = [
+  'src/api/mate.ts',
+  'src/components/MatePartyCard.tsx',
+  'src/components/MateResultsRuntime.tsx',
+  'src/hooks/mate*.ts',
+  'src/hooks/internal/mate*.ts',
+  'src/store/mateRecentSearchStore.ts',
+  'src/utils/mate.ts',
+  'src/utils/mateApplyDraft.ts',
+  'src/utils/mateCreateDraft.ts',
+  'src/utils/mateListUrlState.ts',
+  'src/utils/mateSearchTerms.ts',
+  'src/utils/mateValidation.ts',
+];
+const MATE_COVERAGE_TEST_TARGETS = [
+  'src/hooks/mateRouteBarrels.test.ts',
+  'src/hooks/mateQueryOptions.test.ts',
+  'src/hooks/mateQueryCache.test.ts',
+  'src/hooks/internal/mateQueryCacheUtils.test.ts',
+  'src/utils/mateIdentity.test.ts',
+  'src/utils/mateApplyDraft.test.ts',
+  'src/utils/mateRouteState.test.ts',
+  'src/utils/mateListUrlState.test.ts',
+  'src/utils/mateValidation.test.ts',
+  'src/utils/mateCreateDraft.test.ts',
+  'src/store/mateRecentSearchStore.test.ts',
+  'src/api/mate.test.ts',
+  'src/components/MatePartyCard.test.tsx',
+  'src/components/MateResultsRuntime.test.tsx',
+  'scripts/mate-ci-summary-lib.test.ts',
+  'scripts/mate-regression-label-policy.test.ts',
+  'scripts/ci-workflow-policy.test.ts',
+  'scripts/mate-ci-pr-comment-lib.test.ts',
+];
+const FULL_MATE_COVERAGE_TOKENS = [
+  'node',
+  '--import',
+  'tsx',
+  '--experimental-test-coverage',
+  ...MATE_COVERAGE_EXCLUDES.map((path) => `--test-coverage-exclude=${path}`),
+  ...MATE_COVERAGE_INCLUDES.map((path) => `--test-coverage-include=${path}`),
+  '--test-coverage-lines=90',
+  '--test-coverage-branches=70',
+  '--test-coverage-functions=70',
+  '--test',
+  ...MATE_COVERAGE_TEST_TARGETS,
+];
+const FULL_MATE_COVERAGE_COMMAND = FULL_MATE_COVERAGE_TOKENS.join(' ');
+const MATE_COVERAGE_STATUS_MAPPING = 'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}';
+
+const passingMateQualityGateWorkflow = () => [
+  'jobs:',
+  '  mate-ci:',
+  '    steps:',
+  '      - name: Run mate unit coverage',
+  '        id: coverage',
+  '        shell: bash',
+  '        run: |',
+  '          set -o pipefail',
+  '          npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+  '      - name: Generate mate CI machine-readable summary',
+  '        env:',
+  `          ${MATE_COVERAGE_STATUS_MAPPING}`,
+  '        run: node scripts/mate-ci-summary.mjs smoke',
+  '      - name: Publish mate CI summary',
+  '        env:',
+  `          ${MATE_COVERAGE_STATUS_MAPPING}`,
+  '        run: node scripts/mate-ci-summary.mjs smoke',
+].join('\n');
+
 const writePassingPolicyFixture = () => {
   const repoRoot = mkdtempSync(join(tmpdir(), 'ci-workflow-policy-'));
 
@@ -145,6 +220,19 @@ const writePassingPolicyFixture = () => {
     ].join('\n'));
   }
 
+  writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+    scripts: {
+      'test:mate:coverage': FULL_MATE_COVERAGE_COMMAND,
+    },
+  }, null, 2));
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    'const E2E_SPECS = {',
+    "  mateSmoke: ['cypress/e2e/literal//path.cy.ts', 'cypress/e2e/literal/*path*/.cy.ts', 'cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts'],",
+    "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts'],",
+    '};',
+  ].join('\n'));
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', passingMateQualityGateWorkflow());
+
   return repoRoot;
 };
 
@@ -212,6 +300,649 @@ test('policy blocks monorepo frontend path prefixes', () => {
   assert.ok(report.failures.some((failure) => (
     failure.id === 'forbidden-monorepo-frontend-prefix'
   )));
+});
+
+test('policy requires Mate URL-state smoke/route coverage and numeric coverage floors', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'package.json', JSON.stringify({ scripts: {} }));
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', 'mateSmoke: []\nmateRoute: []');
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', 'node-version: "22"');
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy binds coverage floors to a non-empty test:mate:coverage script', () => {
+  for (const mateCoverageScript of [undefined, '']) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: {
+        ...(mateCoverageScript === undefined ? {} : { 'test:mate:coverage': mateCoverageScript }),
+        'test:unrelated': MATE_COVERAGE_COMMAND,
+      },
+    }));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy rejects duplicate coverage thresholds that override required floors', () => {
+  const invalidCommands = [
+    `${MATE_COVERAGE_COMMAND} --test-coverage-lines=0 --test-coverage-branches=0 --test-coverage-functions=0`,
+    `${MATE_COVERAGE_COMMAND} --test-coverage-lines=90 --test-coverage-branches=70 --test-coverage-functions=70`,
+  ];
+
+  for (const coverageCommand of invalidCommands) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': coverageCommand },
+    }));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy rejects coverage-disabling and whitespace-form threshold options', () => {
+  const invalidCommands = [
+    `${MATE_COVERAGE_COMMAND} --no-experimental-test-coverage --test src/utils/mateListUrlState.test.ts`,
+    `${MATE_COVERAGE_COMMAND} --test-coverage-lines 0 --test src/utils/mateListUrlState.test.ts`,
+  ];
+  const acceptedCommands = invalidCommands.filter((coverageCommand) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': coverageCommand },
+    }));
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedCommands, []);
+});
+
+test('policy requires the exact coverage include, exclude, and test target multisets', () => {
+  const firstInclude = `--test-coverage-include=${MATE_COVERAGE_INCLUDES[0]}`;
+  const firstExclude = `--test-coverage-exclude=${MATE_COVERAGE_EXCLUDES[0]}`;
+  const firstTestTarget = MATE_COVERAGE_TEST_TARGETS[0];
+  const withoutFirst = (tokens: string[], target: string) => {
+    const index = tokens.indexOf(target);
+    return [...tokens.slice(0, index), ...tokens.slice(index + 1)];
+  };
+  const replaceFirst = (tokens: string[], target: string, replacement: string) => (
+    tokens.map((token) => (token === target ? replacement : token))
+  );
+  const duplicateBeforeTest = (tokens: string[], target: string) => {
+    const testIndex = tokens.indexOf('--test');
+    return [...tokens.slice(0, testIndex), target, ...tokens.slice(testIndex)];
+  };
+  const invalidTokenSets = {
+    missingInclude: withoutFirst(FULL_MATE_COVERAGE_TOKENS, firstInclude),
+    replacedInclude: replaceFirst(
+      FULL_MATE_COVERAGE_TOKENS,
+      firstInclude,
+      '--test-coverage-include=src/nonexistent.ts',
+    ),
+    duplicateInclude: duplicateBeforeTest(FULL_MATE_COVERAGE_TOKENS, firstInclude),
+    missingExclude: withoutFirst(FULL_MATE_COVERAGE_TOKENS, firstExclude),
+    replacedExclude: replaceFirst(
+      FULL_MATE_COVERAGE_TOKENS,
+      firstExclude,
+      '--test-coverage-exclude=**/*.spec.ts',
+    ),
+    duplicateExclude: duplicateBeforeTest(FULL_MATE_COVERAGE_TOKENS, firstExclude),
+    missingTestTarget: withoutFirst(FULL_MATE_COVERAGE_TOKENS, firstTestTarget),
+    replacedTestTarget: replaceFirst(
+      FULL_MATE_COVERAGE_TOKENS,
+      firstTestTarget,
+      'src/hooks/nonexistent.test.ts',
+    ),
+    duplicateTestTarget: [...FULL_MATE_COVERAGE_TOKENS, firstTestTarget],
+  };
+  const acceptedMutations = Object.entries(invalidTokenSets).flatMap(([name, tokens]) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': tokens.join(' ') },
+    }));
+
+    return checkCiWorkflowPolicy(repoRoot).ok ? [name] : [];
+  });
+
+  assert.deepEqual(acceptedMutations, []);
+});
+
+test('policy rejects near-match coverage flags and threshold tokens', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+    scripts: {
+      'test:mate:coverage': 'node --experimental-test-coverage-extra --test-coverage-lines=900 --test-coverage-branches=700 --test-coverage-functions=700',
+    },
+  }));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy rejects coverage flags hidden in comments, echo, or control commands', () => {
+  const invalidCommands = [
+    `node --test src/example.test.ts # ${MATE_COVERAGE_COMMAND.slice('node '.length)}`,
+    `echo ${MATE_COVERAGE_COMMAND.slice('node '.length)}`,
+    `node --test src/example.test.ts && echo ${MATE_COVERAGE_COMMAND.slice('node '.length)}`,
+    `node $(echo ${MATE_COVERAGE_COMMAND.slice('node '.length)})`,
+  ];
+
+  for (const coverageCommand of invalidCommands) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': coverageCommand },
+    }));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy rejects multiline commands after a shell comment', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+    scripts: {
+      'test:mate:coverage': `${MATE_COVERAGE_COMMAND} --test src/utils/mateListUrlState.test.ts # comment\nnode --test src/example.test.ts`,
+    },
+  }));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy requires the URL-state test target in the coverage command', () => {
+  const invalidCommands = [
+    MATE_COVERAGE_COMMAND,
+    `${MATE_COVERAGE_COMMAND} --test src/utils/other.test.ts`,
+  ];
+
+  for (const coverageCommand of invalidCommands) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': coverageCommand },
+    }));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy reports invalid package JSON as a Mate quality-gate failure', () => {
+  for (const invalidPackageJson of ['{ invalid json', '']) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', invalidPackageJson);
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => (
+      failure.id === 'missing-mate-quality-gate'
+      && failure.message.includes('valid JSON')
+    )));
+  }
+});
+
+test('policy requires exactly one URL-state spec in each Mate preset', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    "mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+    "mateRoute: ['cypress/e2e/mate-execution-flow.cy.ts']",
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy rejects URL-state preset comments and suffixed near-matches', () => {
+  const invalidSmokeEntries = [
+    "'cypress/e2e/mate-list-url-state.cy.ts.disabled'",
+    "// 'cypress/e2e/mate-list-url-state.cy.ts'",
+  ];
+
+  for (const invalidSmokeEntry of invalidSmokeEntries) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+      'mateSmoke: [',
+      `  ${invalidSmokeEntry},`,
+      "  'cypress/e2e/mate-execution-flow.cy.ts',",
+      ']',
+      "mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+    ].join('\n'));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy ignores entirely commented Mate preset declarations', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    "// mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts']",
+    "mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy ignores trailing inline comments that mention the URL-state spec', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    'mateSmoke: [',
+    "  'cypress/e2e/mate-execution-flow.cy.ts', // 'cypress/e2e/mate-list-url-state.cy.ts'",
+    ']',
+    "mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts', 'cypress/e2e/mate-execution-flow.cy.ts']",
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy parses escaped preset strings before the valid URL-state spec', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    'const E2E_SPECS = {',
+    "  mateSmoke: ['cypress/e2e/escaped\\'quote.cy.ts', 'cypress/e2e/mate-list-url-state.cy.ts'],",
+    '  mateRoute: [`cypress/e2e/mate-list-url-state.cy.ts`],',
+    '};',
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, true);
+});
+
+test('policy ignores preset-shaped decoy strings outside the E2E_SPECS declaration', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    'const decoy = "mateSmoke: [\'cypress/e2e/mate-list-url-state.cy.ts\']; mateRoute: [\'cypress/e2e/mate-list-url-state.cy.ts\']";',
+    'const E2E_SPECS = {',
+    "  mateSmoke: ['cypress/e2e/mate-execution-flow.cy.ts'],",
+    "  mateRoute: ['cypress/e2e/mate-execution-flow.cy.ts'],",
+    '};',
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy rejects duplicate declarations, duplicate target properties, and spreads', () => {
+  const invalidPresetSources = [
+    [
+      'const E2E_SPECS = {',
+      "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '  mateSmoke: [],',
+      "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '  mateRoute: [],',
+      '};',
+    ].join('\n'),
+    [
+      'const overrides = { mateSmoke: [], mateRoute: [] };',
+      'const E2E_SPECS = {',
+      "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '  ...overrides,',
+      '};',
+    ].join('\n'),
+    [
+      "const E2E_SPECS = { mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts'], mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'] };",
+      'const E2E_SPECS = { mateSmoke: [], mateRoute: [] };',
+    ].join('\n'),
+  ];
+
+  for (const presets of invalidPresetSources) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', presets);
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy rejects spread and dynamic entries inside target Mate preset arrays', () => {
+  const invalidPresetSources = [
+    [
+      'const E2E_SPECS = {',
+      "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', ...['cypress/e2e/mate-list-url-state.cy.ts']],",
+      "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '};',
+    ].join('\n'),
+    [
+      "const runtimeSpec = 'cypress/e2e/mate-execution-flow.cy.ts';",
+      'const E2E_SPECS = {',
+      "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts', runtimeSpec],",
+      "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+      '};',
+    ].join('\n'),
+  ];
+
+  for (const presets of invalidPresetSources) {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', presets);
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
+});
+
+test('policy rejects direct runtime assignments to target Mate presets', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+    'const E2E_SPECS = {',
+    "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+    "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+    '};',
+    'E2E_SPECS.mateSmoke = [];',
+    "E2E_SPECS['mateRoute'] = [];",
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy rejects nested and alias-based mutations of target Mate preset arrays', () => {
+  const presetDeclaration = [
+    'const E2E_SPECS = {',
+    "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+    "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+    '};',
+  ];
+  const mutations = [
+    'E2E_SPECS.mateSmoke.length = 0;',
+    "E2E_SPECS.mateSmoke[0] = 'cypress/e2e/other.cy.ts';",
+    ...[
+      'splice',
+      'push',
+      'pop',
+      'shift',
+      'unshift',
+      'sort',
+      'reverse',
+      'copyWithin',
+      'fill',
+    ].map((method) => `E2E_SPECS.mateSmoke.${method}('cypress/e2e/other.cy.ts');`),
+    "const smokeAlias = E2E_SPECS.mateSmoke; smokeAlias.push('cypress/e2e/other.cy.ts');",
+    'const specsAlias = E2E_SPECS; specsAlias.mateRoute.length = 0;',
+  ];
+  const acceptedMutations = mutations.filter((mutation) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+      ...presetDeclaration,
+      mutation,
+    ].join('\n'));
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedMutations, []);
+});
+
+test('policy requires coverage status propagation in both Mate summary steps', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+    'node-version: "22"',
+    '- name: Run mate unit coverage',
+    '  id: coverage',
+    '  run: npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}',
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy requires the exact coverage outcome mapping in each named summary step', () => {
+  const repoRoot = writePassingPolicyFixture();
+  const workflow = passingMateQualityGateWorkflow()
+    .replace(MATE_COVERAGE_STATUS_MAPPING, 'MATE_CI_STATUS_COVERAGE: ${{ steps.unit_smoke.outcome }}');
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy ignores commented coverage status mappings', () => {
+  const repoRoot = writePassingPolicyFixture();
+  const workflow = passingMateQualityGateWorkflow()
+    .replaceAll(MATE_COVERAGE_STATUS_MAPPING, `# ${MATE_COVERAGE_STATUS_MAPPING}`);
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy requires coverage status in both summary steps instead of twice in one', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+    'node-version: "22"',
+    '- name: Run mate unit coverage',
+    '  id: coverage',
+    '  run: |',
+    '    set -o pipefail',
+    '    npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    '- name: Generate mate CI machine-readable summary',
+    '  env:',
+    `    ${MATE_COVERAGE_STATUS_MAPPING}`,
+    `    ${MATE_COVERAGE_STATUS_MAPPING}`,
+    '- name: Publish mate CI summary',
+    '  env:',
+    '    MATE_CI_STATUS_UNIT_SMOKE: success',
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy requires core coverage wiring inside the named coverage step', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+    'node-version: "22"',
+    '- name: Run mate unit coverage',
+    '  run: echo coverage',
+    '- name: Unrelated step',
+    '  id: coverage',
+    '  run: |',
+    '    set -o pipefail',
+    '    npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    '- name: Generate mate CI machine-readable summary',
+    '  env:',
+    `    ${MATE_COVERAGE_STATUS_MAPPING}`,
+    '- name: Publish mate CI summary',
+    '  env:',
+    `    ${MATE_COVERAGE_STATUS_MAPPING}`,
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy ignores step-shaped fragments inside another step run block', () => {
+  const repoRoot = writePassingPolicyFixture();
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+    'jobs:',
+    '  mate-ci:',
+    '    steps:',
+    '      - name: Wrapper',
+    '        run: |',
+    '          - name: Run mate unit coverage',
+    '            id: coverage',
+    '            run: |',
+    '              set -o pipefail',
+    '              npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    '          - name: Generate mate CI machine-readable summary',
+    '            env:',
+    `              ${MATE_COVERAGE_STATUS_MAPPING}`,
+    '          - name: Publish mate CI summary',
+    '            env:',
+    `              ${MATE_COVERAGE_STATUS_MAPPING}`,
+  ].join('\n'));
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy rejects echo-only coverage commands in the named coverage step', () => {
+  const repoRoot = writePassingPolicyFixture();
+  const workflow = passingMateQualityGateWorkflow().replace(
+    'npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+    'echo npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+  );
+  writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+  const report = checkCiWorkflowPolicy(repoRoot);
+
+  assert.equal(report.ok, false);
+  assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy requires an unconditional exact two-command coverage run step', () => {
+  const invalidWorkflows = [
+    passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      '        id: coverage\n        if: always()',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      '        id: coverage\n        continue-on-error: true',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '          set -o pipefail',
+      '          set -o pipefail\n          set +o pipefail',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '          set -o pipefail',
+      '          exit 0\n          set -o pipefail',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '          npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+      '          npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log\n          echo extra',
+    ),
+  ];
+  const acceptedWorkflows = invalidWorkflows.filter((workflow) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedWorkflows, []);
+});
+
+test('policy recognizes quoted extra keys in the coverage workflow step', () => {
+  const quotedExtraMappings = [
+    '        "if": false',
+    "        'continue-on-error': true",
+    '        "timeout-minutes": 1',
+    "        'unexpected-key': value",
+    '        "\\x69f": false',
+  ];
+  const acceptedMappings = quotedExtraMappings.filter((mapping) => {
+    const repoRoot = writePassingPolicyFixture();
+    const workflow = passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      `        id: coverage\n${mapping}`,
+    );
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedMappings, []);
+});
+
+test('policy rejects explicit mapping keys at the coverage step indentation', () => {
+  const explicitMappings = [
+    '        ? if\n        : false',
+    '        ? "continue-on-error"\n        : true',
+  ];
+  const acceptedMappings = explicitMappings.filter((mapping) => {
+    const repoRoot = writePassingPolicyFixture();
+    const workflow = passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      `        id: coverage\n${mapping}`,
+    );
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedMappings, []);
+});
+
+test('policy ignores fake steps inside explicit-indentation block scalars', () => {
+  const blockIndicators = ['|2', '|2-', '|-2', '>2', '>2-', '>-2'];
+
+  for (const blockIndicator of blockIndicators) {
+    const repoRoot = writePassingPolicyFixture();
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
+      'jobs:',
+      '  mate-ci:',
+      `    decoy: ${blockIndicator}`,
+      '      steps:',
+      '        - name: Run mate unit coverage',
+      '          id: coverage',
+      '          run: |',
+      '            set -o pipefail',
+      '            npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+      '        - name: Generate mate CI machine-readable summary',
+      '          env:',
+      `            ${MATE_COVERAGE_STATUS_MAPPING}`,
+      '        - name: Publish mate CI summary',
+      '          env:',
+      `            ${MATE_COVERAGE_STATUS_MAPPING}`,
+    ].join('\n'));
+
+    const report = checkCiWorkflowPolicy(repoRoot);
+
+    assert.equal(report.ok, false);
+    assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+  }
 });
 
 test('policy blocks broad site audit paths and mobile detect jobs', () => {

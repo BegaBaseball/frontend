@@ -45,6 +45,7 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
     activeSortKey,
     activeTab,
     applySearchTerm,
+    applyMobileFilters,
     closeGuide,
     closeMobileFilter,
     dateItems,
@@ -340,11 +341,9 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
             favoriteTeamId={favoriteTeamId}
             myTeamOnly={myTeamOnly}
             inputValue={inputValue}
-            activeFilterCount={activeMobileFilterCount}
             onClose={closeMobileFilter}
-            onMyTeamOnlyChange={handleMyTeamOnlyChange}
-            onToggleSeat={toggleSearchQuery}
             onSearchTermSelect={handleSearchTermSelect}
+            onApplyFilters={applyMobileFilters}
             onPopularTermSelect={closeMobileFilter}
             onResetFilters={handleResetFilters}
           />

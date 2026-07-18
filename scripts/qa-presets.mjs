@@ -89,11 +89,13 @@ const E2E_SPECS = {
   ],
   mateSmoke: [
     'cypress/e2e/mate-detail-states.cy.ts',
+    'cypress/e2e/mate-list-url-state.cy.ts',
     'cypress/e2e/mate-execution-flow.cy.ts',
   ],
   mateRoute: [
     'cypress/e2e/mate.cy.ts',
     'cypress/e2e/mate-detail-states.cy.ts',
+    'cypress/e2e/mate-list-url-state.cy.ts',
     'cypress/e2e/mate-execution-flow.cy.ts',
     'cypress/e2e/mate-qr-refresh.cy.ts',
   ],

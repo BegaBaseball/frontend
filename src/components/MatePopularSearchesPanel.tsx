@@ -1,13 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { getMatePopularSearchTermsQueryOptions } from '../hooks/mateQueryOptions';
-import { useMateStore } from '../store/mateStore';
 import { normalizeMateSearchText } from '../utils/mateSearchTerms';
 import { FlameIcon } from './icons/PublicShellIcons';
 
 interface MatePopularSearchesPanelProps {
   limit?: number;
-  onTermClick?: (term: string) => void;
+  onTermClick: (term: string) => void;
   onTermSelect?: () => void;
 }
 
@@ -19,7 +18,6 @@ export default function MatePopularSearchesPanel({
   onTermClick,
   onTermSelect,
 }: MatePopularSearchesPanelProps) {
-  const setSearchQuery = useMateStore((state) => state.setSearchQuery);
   const { data: popularTerms = [], isLoading } = useQuery(getMatePopularSearchTermsQueryOptions(limit));
 
   const handleTermClick = (term: string) => {
@@ -28,11 +26,7 @@ export default function MatePopularSearchesPanel({
       return;
     }
 
-    if (onTermClick) {
-      onTermClick(normalizedTerm);
-    } else {
-      setSearchQuery(normalizedTerm);
-    }
+    onTermClick(normalizedTerm);
     onTermSelect?.();
   };
 
