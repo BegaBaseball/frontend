@@ -678,11 +678,14 @@ const hasDirectStepMapping = (step, key, value) => {
 const directStepMappingKeys = (step) => {
   const indent = ' '.repeat(directStepIndent(step));
   return step.split('\n').flatMap((line) => {
-    if (!line.startsWith(indent)) return [];
-    const match = line.slice(indent.length).match(
+    const leadingSpaces = line.match(/^ */)?.[0].length || 0;
+    if (leadingSpaces !== indent.length) return [];
+    const directContent = line.slice(indent.length);
+    if (!directContent.trim()) return [];
+    const match = directContent.match(
       /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[A-Za-z][A-Za-z0-9_-]*)\s*:/,
     );
-    if (!match) return [];
+    if (!match) return ['__unsupported_direct_step_entry__'];
     const rawKey = match[1];
     if (rawKey.startsWith('"')) {
       try {
