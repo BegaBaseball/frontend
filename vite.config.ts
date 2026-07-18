@@ -59,8 +59,19 @@ export const validateProductionPublicEnv = (targetEnv: MutableBuildEnv) => {
   }
 
   const isLoopbackSite = LOOPBACK_HOSTS.has(siteUrl.hostname.toLowerCase());
-  if (isLoopbackSite && !/^https?:\/\//.test(apiBaseUrlValue)) {
-    return targetEnv;
+  if (isLoopbackSite) {
+    if (!/^https?:\/\//.test(apiBaseUrlValue)) {
+      return targetEnv;
+    }
+
+    try {
+      const apiUrl = new URL(apiBaseUrlValue);
+      if (LOOPBACK_HOSTS.has(apiUrl.hostname.toLowerCase())) {
+        return targetEnv;
+      }
+    } catch {
+      // Fall through to the public production URL validation below.
+    }
   }
 
   if (!/^https:\/\//.test(apiBaseUrlValue)) {

@@ -48,3 +48,10 @@ test('loopback production-like builds may use a relative API path', () => {
     VITE_API_BASE_URL: '/api',
   }));
 });
+
+test('loopback production-like builds may use an absolute loopback API origin', () => {
+  assert.doesNotThrow(() => validateProductionPublicEnv({
+    VITE_SITE_URL: 'http://localhost:5176',
+    VITE_API_BASE_URL: 'http://localhost:8080',
+  }));
+});
