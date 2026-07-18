@@ -456,6 +456,57 @@ const parseSimpleShellCommand = (command) => {
   return tokens;
 };
 
+const requiredMateCoverageExclusions = [
+  '**/*.test.ts',
+  '**/*.test.tsx',
+];
+const requiredMateCoverageIncludes = [
+  'src/api/mate.ts',
+  'src/components/MatePartyCard.tsx',
+  'src/components/MateResultsRuntime.tsx',
+  'src/hooks/mate*.ts',
+  'src/hooks/internal/mate*.ts',
+  'src/store/mateRecentSearchStore.ts',
+  'src/utils/mate.ts',
+  'src/utils/mateApplyDraft.ts',
+  'src/utils/mateCreateDraft.ts',
+  'src/utils/mateListUrlState.ts',
+  'src/utils/mateSearchTerms.ts',
+  'src/utils/mateValidation.ts',
+];
+const requiredMateCoverageTestTargets = [
+  'src/hooks/mateRouteBarrels.test.ts',
+  'src/hooks/mateQueryOptions.test.ts',
+  'src/hooks/mateQueryCache.test.ts',
+  'src/hooks/internal/mateQueryCacheUtils.test.ts',
+  'src/utils/mateIdentity.test.ts',
+  'src/utils/mateApplyDraft.test.ts',
+  'src/utils/mateRouteState.test.ts',
+  'src/utils/mateListUrlState.test.ts',
+  'src/utils/mateValidation.test.ts',
+  'src/utils/mateCreateDraft.test.ts',
+  'src/store/mateRecentSearchStore.test.ts',
+  'src/api/mate.test.ts',
+  'src/components/MatePartyCard.test.tsx',
+  'src/components/MateResultsRuntime.test.tsx',
+  'scripts/mate-ci-summary-lib.test.ts',
+  'scripts/mate-regression-label-policy.test.ts',
+  'scripts/ci-workflow-policy.test.ts',
+  'scripts/mate-ci-pr-comment-lib.test.ts',
+];
+
+const hasExactMultiset = (actual, expected) => {
+  if (actual.length !== expected.length) return false;
+  const counts = new Map();
+  for (const value of actual) counts.set(value, (counts.get(value) || 0) + 1);
+  for (const value of expected) {
+    const count = counts.get(value) || 0;
+    if (count === 0) return false;
+    counts.set(value, count - 1);
+  }
+  return [...counts.values()].every((count) => count === 0);
+};
+
 const isSupportedMateCoverageCommand = (tokens) => {
   if (!tokens || tokens[0] !== 'node') return false;
   const testIndex = tokens.indexOf('--test');
@@ -466,12 +517,10 @@ const isSupportedMateCoverageCommand = (tokens) => {
     '--test-coverage-branches=70',
     '--test-coverage-functions=70',
   ]);
-  const supportedExclusions = new Set([
-    '--test-coverage-exclude=**/*.test.ts',
-    '--test-coverage-exclude=**/*.test.tsx',
-  ]);
   let importCount = 0;
   let coverageFlagCount = 0;
+  const exclusions = [];
+  const includes = [];
 
   for (let index = 1; index < testIndex; index += 1) {
     const token = tokens[index];
@@ -485,16 +534,26 @@ const isSupportedMateCoverageCommand = (tokens) => {
       coverageFlagCount += 1;
       continue;
     }
-    if (supportedThresholds.has(token) || supportedExclusions.has(token)) continue;
-    if (/^--test-coverage-include=src\/[A-Za-z0-9_./*-]+\.tsx?$/.test(token)) continue;
+    if (supportedThresholds.has(token)) continue;
+    if (token.startsWith('--test-coverage-exclude=')) {
+      exclusions.push(token.slice('--test-coverage-exclude='.length));
+      continue;
+    }
+    if (token.startsWith('--test-coverage-include=')) {
+      includes.push(token.slice('--test-coverage-include='.length));
+      continue;
+    }
     return false;
   }
 
-  if (coverageFlagCount !== 1) return false;
+  if (
+    importCount !== 1
+    || coverageFlagCount !== 1
+    || !hasExactMultiset(exclusions, requiredMateCoverageExclusions)
+    || !hasExactMultiset(includes, requiredMateCoverageIncludes)
+  ) return false;
   const testFiles = tokens.slice(testIndex + 1);
-  return testFiles.length > 0 && testFiles.every((token) => (
-    /^(?:src|scripts)\/[A-Za-z0-9_./-]+\.test\.tsx?$/.test(token)
-  ));
+  return hasExactMultiset(testFiles, requiredMateCoverageTestTargets);
 };
 
 const stripYamlComments = (contents) => contents.split('\n').map((line) => {
@@ -619,8 +678,21 @@ const hasDirectStepMapping = (step, key, value) => {
 const directStepMappingKeys = (step) => {
   const indent = ' '.repeat(directStepIndent(step));
   return step.split('\n').flatMap((line) => {
-    const match = line.match(new RegExp(`^${indent}([A-Za-z][A-Za-z0-9_-]*):`));
-    return match ? [match[1]] : [];
+    if (!line.startsWith(indent)) return [];
+    const match = line.slice(indent.length).match(
+      /^("(?:[^"\\]|\\.)*"|'(?:[^']|'')*'|[A-Za-z][A-Za-z0-9_-]*)\s*:/,
+    );
+    if (!match) return [];
+    const rawKey = match[1];
+    if (rawKey.startsWith('"')) {
+      try {
+        return [JSON.parse(rawKey)];
+      } catch {
+        return ['__unsupported_quoted_yaml_key__'];
+      }
+    }
+    if (rawKey.startsWith("'")) return [rawKey.slice(1, -1).replaceAll("''", "'")];
+    return [rawKey];
   });
 };
 

@@ -30,6 +30,58 @@ const writeWorkflowFixture = (repoRoot: string, fileName: string, contents: stri
 };
 
 const MATE_COVERAGE_COMMAND = 'node --experimental-test-coverage --test-coverage-lines=90 --test-coverage-branches=70 --test-coverage-functions=70';
+const MATE_COVERAGE_EXCLUDES = [
+  '**/*.test.ts',
+  '**/*.test.tsx',
+];
+const MATE_COVERAGE_INCLUDES = [
+  'src/api/mate.ts',
+  'src/components/MatePartyCard.tsx',
+  'src/components/MateResultsRuntime.tsx',
+  'src/hooks/mate*.ts',
+  'src/hooks/internal/mate*.ts',
+  'src/store/mateRecentSearchStore.ts',
+  'src/utils/mate.ts',
+  'src/utils/mateApplyDraft.ts',
+  'src/utils/mateCreateDraft.ts',
+  'src/utils/mateListUrlState.ts',
+  'src/utils/mateSearchTerms.ts',
+  'src/utils/mateValidation.ts',
+];
+const MATE_COVERAGE_TEST_TARGETS = [
+  'src/hooks/mateRouteBarrels.test.ts',
+  'src/hooks/mateQueryOptions.test.ts',
+  'src/hooks/mateQueryCache.test.ts',
+  'src/hooks/internal/mateQueryCacheUtils.test.ts',
+  'src/utils/mateIdentity.test.ts',
+  'src/utils/mateApplyDraft.test.ts',
+  'src/utils/mateRouteState.test.ts',
+  'src/utils/mateListUrlState.test.ts',
+  'src/utils/mateValidation.test.ts',
+  'src/utils/mateCreateDraft.test.ts',
+  'src/store/mateRecentSearchStore.test.ts',
+  'src/api/mate.test.ts',
+  'src/components/MatePartyCard.test.tsx',
+  'src/components/MateResultsRuntime.test.tsx',
+  'scripts/mate-ci-summary-lib.test.ts',
+  'scripts/mate-regression-label-policy.test.ts',
+  'scripts/ci-workflow-policy.test.ts',
+  'scripts/mate-ci-pr-comment-lib.test.ts',
+];
+const FULL_MATE_COVERAGE_TOKENS = [
+  'node',
+  '--import',
+  'tsx',
+  '--experimental-test-coverage',
+  ...MATE_COVERAGE_EXCLUDES.map((path) => `--test-coverage-exclude=${path}`),
+  ...MATE_COVERAGE_INCLUDES.map((path) => `--test-coverage-include=${path}`),
+  '--test-coverage-lines=90',
+  '--test-coverage-branches=70',
+  '--test-coverage-functions=70',
+  '--test',
+  ...MATE_COVERAGE_TEST_TARGETS,
+];
+const FULL_MATE_COVERAGE_COMMAND = FULL_MATE_COVERAGE_TOKENS.join(' ');
 const MATE_COVERAGE_STATUS_MAPPING = 'MATE_CI_STATUS_COVERAGE: ${{ steps.coverage.outcome }}';
 
 const passingMateQualityGateWorkflow = () => [
@@ -170,7 +222,7 @@ const writePassingPolicyFixture = () => {
 
   writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
     scripts: {
-      'test:mate:coverage': `${MATE_COVERAGE_COMMAND} --test src/utils/mateListUrlState.test.ts`,
+      'test:mate:coverage': FULL_MATE_COVERAGE_COMMAND,
     },
   }, null, 2));
   writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
@@ -313,6 +365,56 @@ test('policy rejects coverage-disabling and whitespace-form threshold options', 
   });
 
   assert.deepEqual(acceptedCommands, []);
+});
+
+test('policy requires the exact coverage include, exclude, and test target multisets', () => {
+  const firstInclude = `--test-coverage-include=${MATE_COVERAGE_INCLUDES[0]}`;
+  const firstExclude = `--test-coverage-exclude=${MATE_COVERAGE_EXCLUDES[0]}`;
+  const firstTestTarget = MATE_COVERAGE_TEST_TARGETS[0];
+  const withoutFirst = (tokens: string[], target: string) => {
+    const index = tokens.indexOf(target);
+    return [...tokens.slice(0, index), ...tokens.slice(index + 1)];
+  };
+  const replaceFirst = (tokens: string[], target: string, replacement: string) => (
+    tokens.map((token) => (token === target ? replacement : token))
+  );
+  const duplicateBeforeTest = (tokens: string[], target: string) => {
+    const testIndex = tokens.indexOf('--test');
+    return [...tokens.slice(0, testIndex), target, ...tokens.slice(testIndex)];
+  };
+  const invalidTokenSets = {
+    missingInclude: withoutFirst(FULL_MATE_COVERAGE_TOKENS, firstInclude),
+    replacedInclude: replaceFirst(
+      FULL_MATE_COVERAGE_TOKENS,
+      firstInclude,
+      '--test-coverage-include=src/nonexistent.ts',
+    ),
+    duplicateInclude: duplicateBeforeTest(FULL_MATE_COVERAGE_TOKENS, firstInclude),
+    missingExclude: withoutFirst(FULL_MATE_COVERAGE_TOKENS, firstExclude),
+    replacedExclude: replaceFirst(
+      FULL_MATE_COVERAGE_TOKENS,
+      firstExclude,
+      '--test-coverage-exclude=**/*.spec.ts',
+    ),
+    duplicateExclude: duplicateBeforeTest(FULL_MATE_COVERAGE_TOKENS, firstExclude),
+    missingTestTarget: withoutFirst(FULL_MATE_COVERAGE_TOKENS, firstTestTarget),
+    replacedTestTarget: replaceFirst(
+      FULL_MATE_COVERAGE_TOKENS,
+      firstTestTarget,
+      'src/hooks/nonexistent.test.ts',
+    ),
+    duplicateTestTarget: [...FULL_MATE_COVERAGE_TOKENS, firstTestTarget],
+  };
+  const acceptedMutations = Object.entries(invalidTokenSets).flatMap(([name, tokens]) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': tokens.join(' ') },
+    }));
+
+    return checkCiWorkflowPolicy(repoRoot).ok ? [name] : [];
+  });
+
+  assert.deepEqual(acceptedMutations, []);
 });
 
 test('policy rejects near-match coverage flags and threshold tokens', () => {
@@ -770,6 +872,28 @@ test('policy requires an unconditional exact two-command coverage run step', () 
   });
 
   assert.deepEqual(acceptedWorkflows, []);
+});
+
+test('policy recognizes quoted extra keys in the coverage workflow step', () => {
+  const quotedExtraMappings = [
+    '        "if": false',
+    "        'continue-on-error': true",
+    '        "timeout-minutes": 1',
+    "        'unexpected-key': value",
+    '        "\\x69f": false',
+  ];
+  const acceptedMappings = quotedExtraMappings.filter((mapping) => {
+    const repoRoot = writePassingPolicyFixture();
+    const workflow = passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      `        id: coverage\n${mapping}`,
+    );
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedMappings, []);
 });
 
 test('policy ignores fake steps inside explicit-indentation block scalars', () => {
