@@ -25,5 +25,8 @@ jobs:
         with:
           node-version: 22
 
+      - name: Install dependencies
+        run: npm ci
+
       - name: Check CI workflow policy
         run: node scripts/ci-workflow-policy.mjs

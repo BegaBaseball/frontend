@@ -312,7 +312,7 @@ test('Mate route regression defaults to local Cypress with Docker opt-in', () =>
       '--browser',
       'electron',
       '--spec',
-      'cypress/e2e/mate.cy.ts,cypress/e2e/mate-detail-states.cy.ts,cypress/e2e/mate-execution-flow.cy.ts,cypress/e2e/mate-qr-refresh.cy.ts',
+      'cypress/e2e/mate.cy.ts,cypress/e2e/mate-detail-states.cy.ts,cypress/e2e/mate-list-url-state.cy.ts,cypress/e2e/mate-execution-flow.cy.ts,cypress/e2e/mate-qr-refresh.cy.ts',
     ],
     envOverrides: {
       CYPRESS_ALLOW_GLOBAL_FALLBACK: '1',
@@ -329,7 +329,7 @@ test('Mate route regression defaults to local Cypress with Docker opt-in', () =>
       '--browser',
       'electron',
       '--spec',
-      'cypress/e2e/mate.cy.ts,cypress/e2e/mate-detail-states.cy.ts,cypress/e2e/mate-execution-flow.cy.ts,cypress/e2e/mate-qr-refresh.cy.ts',
+      'cypress/e2e/mate.cy.ts,cypress/e2e/mate-detail-states.cy.ts,cypress/e2e/mate-list-url-state.cy.ts,cypress/e2e/mate-execution-flow.cy.ts,cypress/e2e/mate-qr-refresh.cy.ts',
     ],
     envOverrides: {},
   });
