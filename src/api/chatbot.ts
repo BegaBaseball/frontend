@@ -6,15 +6,20 @@ import { normalizeAiStreamMeta } from './aiMeta';
 import { privatePost } from './privateClient';
 import { consumeSseStream } from './sse';
 import {
+  AI_EVENT_VERSION_HEADER,
   AiStreamContractError,
   decodeAiStreamV2Event,
   getAiEventVersion,
 } from './aiStreamContract';
 import {
+  decodeAiStreamHttpError,
+  normalizeAiStreamEventError,
+  RateLimitError,
+  type AiStreamErrorDetails,
+} from './aiStreamError';
+import {
   DEFAULT_STREAM_TIMEOUT_MS,
   DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS,
-  CHATBOT_STATUS_RATE_LIMIT,
-  CHATBOT_STATUS_SERVICE_UNAVAILABLE,
   CHATBOT_STREAM_TIMEOUT_ERROR,
   CHATBOT_STREAM_INCOMPLETE_ERROR,
   CHATBOT_STREAM_TEMPORARY_ERROR,
@@ -30,30 +35,32 @@ const buildAiStreamPath = (path: string): string => `/ai${path.startsWith('/') ?
 /**
  * FastAPI SSE 스트리밍 처리
  */
-export class RateLimitError extends Error {
-  retryAfterSeconds: number;
-
-  constructor(retryAfterSeconds: number) {
-    super(CHATBOT_STATUS_RATE_LIMIT);
-    this.name = 'RateLimitError';
-    this.retryAfterSeconds = retryAfterSeconds;
-  }
-}
+export { RateLimitError } from './aiStreamError';
 
 export class ChatStreamEventError extends Error {
-  detail?: string;
-  eventCode?: string;
+  readonly eventCode: string;
+  readonly upstreamMessage: string;
+  readonly upstreamMessageIsPublic: boolean;
+  readonly detail: string | null;
+  readonly retryable: boolean;
+  readonly retryAfterSeconds: number | null;
+  readonly supportedVersions: AiStreamErrorDetails['supportedVersions'];
 
-  constructor(eventCode?: string, detail?: string) {
+  constructor(
+    details: AiStreamErrorDetails,
+    options?: { upstreamMessageIsPublic?: boolean },
+  ) {
     super(CHATBOT_STREAM_TEMPORARY_ERROR);
     this.name = 'ChatStreamEventError';
-    this.detail = detail;
-    this.eventCode = eventCode;
+    this.eventCode = details.code;
+    this.upstreamMessage = details.message;
+    this.upstreamMessageIsPublic = options?.upstreamMessageIsPublic === true;
+    this.detail = details.detail;
+    this.retryable = details.retryable;
+    this.retryAfterSeconds = details.retryAfterSeconds;
+    this.supportedVersions = [...details.supportedVersions];
   }
 }
-
-const DEFAULT_RETRY_AFTER_SECONDS = 10;
-const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
 
 type ChatMetaV2 = AiStreamComponents['schemas']['ChatMetaData'];
 type ChatStreamRequestWire = AiStreamComponents['schemas']['ChatStreamRequest'];
@@ -93,23 +100,6 @@ const toLegacyChatMetaPayload = (data: ChatMetaV2): AiStreamMetaPayload => ({
 
 export type { ChatQueueStatus };
 
-const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null => {
-  if (!retryAfterHeader) return null;
-
-  const numericValue = Number(retryAfterHeader);
-  if (!Number.isNaN(numericValue) && Number.isFinite(numericValue)) {
-    return Math.max(0, Math.floor(numericValue));
-  }
-
-  const parsedDate = Date.parse(retryAfterHeader);
-  if (!Number.isNaN(parsedDate)) {
-    const diffMs = parsedDate - Date.now();
-    return Math.max(0, Math.ceil(diffMs / 1000));
-  }
-
-  return null;
-};
-
 export async function sendChatMessageStream(
   data: ChatStreamRequest,
   onDelta: (delta: string) => void,
@@ -147,34 +137,26 @@ export async function sendChatMessageStream(
       });
 
       if (response.ok) {
-        break; // Success
+        break;
       }
 
+      const requestError = await decodeAiStreamHttpError(response);
       if (response.status === 429) {
-        const retryAfterHeader = response.headers.get('Retry-After');
-        const retryAfterSeconds = parseRetryAfterSeconds(retryAfterHeader) ?? DEFAULT_RETRY_AFTER_SECONDS;
-        throw new RateLimitError(retryAfterSeconds);
+        throw new RateLimitError(requestError);
       }
 
-      // Handle 4xx errors (do not retry unless it's 503)
-      if (response.status !== 503 && response.status >= 400 && response.status < 500) {
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+      if (!requestError.retryable || attempt >= MAX_RETRIES) {
+        throw new ChatStreamEventError(requestError, { upstreamMessageIsPublic: true });
       }
 
-      // If 5xx or 503, retry
-      if (attempt >= MAX_RETRIES) {
-        if (response.status === 503) throw new Error(CHATBOT_STATUS_SERVICE_UNAVAILABLE);
-        const errorText = await response.text();
-        throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-      }
-
-      // Backoff delay: 1s, 2s, 4s...
-      const delay = getStreamRetryDelayMs(attempt);
-      await waitForStreamDelay(delay, options?.signal);
+      await waitForStreamDelay(getStreamRetryDelayMs(attempt), options?.signal);
 
     } catch (error) {
       if (error instanceof RateLimitError) {
+        throw error;
+      }
+
+      if (error instanceof ChatStreamEventError) {
         throw error;
       }
 
@@ -217,6 +199,7 @@ export async function sendChatMessageStream(
   try {
     const { sawDone } = await consumeSseStream(response.body, {
       timeoutMs: READ_TIMEOUT_MS,
+      acceptDoneSentinel: eventVersion === '1',
       signal: options?.signal,
       onEvent: ({ event, data }) => {
         if (eventVersion === '2') {
@@ -244,10 +227,7 @@ export async function sendChatMessageStream(
               }
               return;
             case 'stream.error':
-              throw new ChatStreamEventError(
-                decoded.data.code,
-                decoded.data.detail ?? decoded.data.message,
-              );
+              throw new ChatStreamEventError(normalizeAiStreamEventError(decoded.data));
             case 'stream.done':
               return;
             case 'coach.status':
@@ -262,6 +242,7 @@ export async function sendChatMessageStream(
         }
 
         let parsed: AiStreamMetaPayload & {
+          code?: string;
           delta?: string;
           message?: string;
           detail?: string;
@@ -285,10 +266,22 @@ export async function sendChatMessageStream(
         if (event === 'message' && parsed.delta) {
           onDelta(parsed.delta);
         } else if (event === 'error') {
-          throw new ChatStreamEventError(
-            parsed.message,
-            parsed.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.',
-          );
+          const code = typeof parsed.code === 'string'
+            ? parsed.code
+            : typeof parsed.message === 'string'
+              ? parsed.message
+              : 'AI_STREAM_EVENT_ERROR';
+          const message = typeof parsed.message === 'string' && parsed.message.trim() !== ''
+            ? parsed.message
+            : CHATBOT_STREAM_TEMPORARY_ERROR;
+          throw new ChatStreamEventError({
+            code,
+            message,
+            detail: typeof parsed.detail === 'string' ? parsed.detail : null,
+            retryable: true,
+            retryAfterSeconds: null,
+            supportedVersions: [],
+          });
         } else if (event === 'queue' && options?.onQueueStatus) {
           const state = parsed.state === 'processing' ? 'processing' : 'queued';
           options.onQueueStatus({

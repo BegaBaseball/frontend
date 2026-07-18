@@ -8,6 +8,7 @@ import {
     type CoachDataQuality,
     isCoachAnalyzeError,
 } from '../api/coach';
+import { resolveCoachAnalysisDialogRateLimitResult } from './coachRateLimitPresentation';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import { TEAM_LIST, TEAM_NAME_TO_ID, getRandomTeamName, TEAM_DATA } from '../constants/teams';
 import TeamLogo from './TeamLogo';
@@ -433,10 +434,13 @@ export default function CoachAnalysisDialogRuntime({
             if (!isActiveAnalysisRequest(requestId, controller)) return;
             console.error('Coach analysis failed:', error);
             const message = error instanceof Error ? error.message : String(error ?? '');
+            const rateLimitResult = resolveCoachAnalysisDialogRateLimitResult(error);
             if (isAbortError(error)) {
                 return;
             }
-            if (message.includes('unable_to_resolve_analysis_year')) {
+            if (rateLimitResult) {
+                setResult(rateLimitResult);
+            } else if (message.includes('unable_to_resolve_analysis_year')) {
                 setResult({
                     error: '시즌 연도를 확인하지 못했습니다. 날짜/시즌 정보를 다시 확인해주세요.'
                 });

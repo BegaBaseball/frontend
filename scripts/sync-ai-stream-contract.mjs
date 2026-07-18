@@ -15,6 +15,30 @@ const assertLocalPath = (path) => {
   }
 };
 
+const readSchemaVersion = (contractBytes) => {
+  let document;
+  try {
+    document = JSON.parse(contractBytes.toString('utf8'));
+  } catch {
+    throw new Error('AI stream contract source must be valid JSON with info.version.');
+  }
+
+  if (
+    typeof document !== 'object'
+    || document === null
+    || Array.isArray(document)
+    || typeof document.info !== 'object'
+    || document.info === null
+    || Array.isArray(document.info)
+    || typeof document.info.version !== 'string'
+    || document.info.version.length === 0
+  ) {
+    throw new Error('AI stream contract source must include a non-empty info.version.');
+  }
+
+  return document.info.version;
+};
+
 export const syncAiStreamContract = ({
   sourcePath = DEFAULT_SOURCE_PATH,
   contractPath = DEFAULT_CONTRACT_PATH,
@@ -22,9 +46,10 @@ export const syncAiStreamContract = ({
 } = {}) => {
   assertLocalPath(sourcePath);
   const contractBytes = readFileSync(resolve(sourcePath));
+  const schemaVersion = readSchemaVersion(contractBytes);
   const metadata = {
     source_repository: 'BegaBaseball/AI',
-    schema_version: '2.0.0',
+    schema_version: schemaVersion,
     sha256: computeSha256(contractBytes),
   };
 

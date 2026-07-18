@@ -3,6 +3,7 @@ import type { SseEvent } from './sse';
 
 export type AiStreamV2Event = components['schemas']['AiStreamV2Event'];
 export type AiEventVersion = '1' | '2';
+export const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
 
 const APPROVED_TYPES = new Set<AiStreamV2Event['type']>([
   'chat.status',
@@ -389,8 +390,13 @@ export const decodeAiStreamV2Event = (event: SseEvent): AiStreamV2Event => {
 };
 
 export const resolveAiEventVersion = (value: unknown): AiEventVersion => {
-  if (value === undefined || value === null || value === '') return '1';
-  if (value === '1' || value === '2') return value;
+  if (value === undefined || value === null) return '2';
+  if (typeof value !== 'string') {
+    return fail('VITE_AI_EVENT_VERSION must be 1 or 2');
+  }
+  const normalized = value.trim();
+  if (!normalized) return '2';
+  if (normalized === '1' || normalized === '2') return normalized;
   return fail('VITE_AI_EVENT_VERSION must be 1 or 2');
 };
 

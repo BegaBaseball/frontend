@@ -25,6 +25,27 @@ export interface components {
              */
             url?: string | null;
         };
+        /** AiStreamHttpError */
+        AiStreamHttpError: {
+            /** Code */
+            code: string;
+            /**
+             * Detail
+             * @default null
+             */
+            detail?: string | null;
+            /** Message */
+            message: string;
+            /**
+             * Retry After Seconds
+             * @default null
+             */
+            retry_after_seconds?: number | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Supported Versions */
+            supported_versions?: ("1" | "2")[];
+        };
         AiStreamV2Event: components["schemas"]["ChatStatusEvent"] | components["schemas"]["ChatQueueEvent"] | components["schemas"]["ChatMessageDeltaEvent"] | components["schemas"]["ChatMetaEvent"] | components["schemas"]["CoachStatusEvent"] | components["schemas"]["CoachPreviewChunkEvent"] | components["schemas"]["CoachPreviewResetEvent"] | components["schemas"]["CoachMessageDeltaEvent"] | components["schemas"]["CoachMetaEvent"] | components["schemas"]["StreamErrorEvent"] | components["schemas"]["StreamDoneEvent"];
         /** AiToolCall */
         AiToolCall: {

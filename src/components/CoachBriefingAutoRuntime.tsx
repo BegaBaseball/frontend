@@ -5,6 +5,7 @@ import {
   CoachAnalyzeError,
   isCoachAnalyzeError,
 } from '../api/coach';
+import { resolveCoachBriefingRateLimitFallback } from './coachRateLimitPresentation';
 import type { Game, GameDetail } from '../types/prediction';
 import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
@@ -644,8 +645,21 @@ export default function CoachBriefingAutoRuntime({
         if (!matchesCurrentRequest()) {
           return;
         }
+        const rateLimitFallback = resolveCoachBriefingRateLimitFallback(error);
         if (isCoachAnalyzeError(error) && error.code === 'AUTH_EXPIRED') {
           markAuthExpired();
+          return;
+        }
+        if (rateLimitFallback) {
+          if (canOverrideSuccessfulBriefing()) {
+            applyFallbackBriefing(
+              rateLimitFallback.message,
+              undefined,
+              { neutralMeta: rateLimitFallback.neutralMeta },
+            );
+          }
+          clearRetryTimer();
+          resetRetryState();
           return;
         }
         if (
