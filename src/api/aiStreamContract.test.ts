@@ -212,10 +212,13 @@ test('decodeAiStreamV2Event rejects null required key metric enums', () => {
   );
 });
 
-test('resolveAiEventVersion defaults to legacy v1 and rejects unsupported config', () => {
-  assert.equal(resolveAiEventVersion(undefined), '1');
+test('resolveAiEventVersion defaults to v2 and preserves explicit v1 rollback', () => {
+  assert.equal(resolveAiEventVersion(undefined), '2');
+  assert.equal(resolveAiEventVersion(null), '2');
+  assert.equal(resolveAiEventVersion(''), '2');
+  assert.equal(resolveAiEventVersion('   '), '2');
   assert.equal(resolveAiEventVersion('1'), '1');
-  assert.equal(resolveAiEventVersion('2'), '2');
+  assert.equal(resolveAiEventVersion(' 2 '), '2');
   assert.throws(() => resolveAiEventVersion('3'), /VITE_AI_EVENT_VERSION/);
 });
 

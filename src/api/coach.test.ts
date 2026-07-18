@@ -14,10 +14,14 @@ import { baseRequest, buildStreamResponse } from './coachTestSupport';
 
 process.env.VITE_AI_EVENT_VERSION = '1';
 
-test('analyzeTeam은 협상된 v2 coach 이벤트를 타입으로 소비한다', async (t) => {
+test('analyzeTeam은 기본 v2 협상 coach 이벤트를 타입으로 소비한다', async (t) => {
   const previousVersion = process.env.VITE_AI_EVENT_VERSION;
-  process.env.VITE_AI_EVENT_VERSION = '2';
+  delete process.env.VITE_AI_EVENT_VERSION;
   t.after(() => {
+    if (previousVersion === undefined) {
+      delete process.env.VITE_AI_EVENT_VERSION;
+      return;
+    }
     process.env.VITE_AI_EVENT_VERSION = previousVersion;
   });
   let requestHeaders: Headers | null = null;

@@ -63,10 +63,14 @@ const buildStreamResponse = (
   });
 };
 
-test('sendChatMessageStream consumes negotiated v2 chat events', async (t) => {
+test('sendChatMessageStream defaults to v2 and consumes negotiated chat events', async (t) => {
   const previousVersion = process.env.VITE_AI_EVENT_VERSION;
-  process.env.VITE_AI_EVENT_VERSION = '2';
+  delete process.env.VITE_AI_EVENT_VERSION;
   t.after(() => {
+    if (previousVersion === undefined) {
+      delete process.env.VITE_AI_EVENT_VERSION;
+      return;
+    }
     process.env.VITE_AI_EVENT_VERSION = previousVersion;
   });
 
