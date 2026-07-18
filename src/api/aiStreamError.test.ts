@@ -31,6 +31,45 @@ test('decodes the canonical top-level error without losing fields', async () => 
   assert.equal(error.retryable, false);
 });
 
+const unsupportedVersionCandidate = {
+  code: 'AI_EVENT_VERSION_UNSUPPORTED',
+  message: 'secret-bearing unsupported-version message',
+  detail: 'secret-bearing unsupported-version detail',
+  retryable: false,
+  retry_after_seconds: null,
+  supported_versions: ['1', '2'],
+};
+
+const assertSafeUnsupportedVersionFallback = async (
+  body: Record<string, unknown>,
+  status: number,
+) => {
+  const error = await decodeAiStreamHttpError(new Response(JSON.stringify(body), { status }));
+
+  assert.equal(error.code, 'AI_STREAM_REQUEST_FAILED');
+  assert.equal(error.detail, null);
+  assert.deepEqual(error.supportedVersions, []);
+  assert.doesNotMatch(error.message, /secret-bearing/);
+};
+
+test('rejects canonical unsupported-version body on a non-406 status', async () => {
+  await assertSafeUnsupportedVersionFallback(unsupportedVersionCandidate, 500);
+});
+
+test('rejects canonical unsupported-version body when retryable is not false', async () => {
+  await assertSafeUnsupportedVersionFallback({
+    ...unsupportedVersionCandidate,
+    retryable: true,
+  }, 406);
+});
+
+test('rejects canonical unsupported-version body when retry timing is not null', async () => {
+  await assertSafeUnsupportedVersionFallback({
+    ...unsupportedVersionCandidate,
+    retry_after_seconds: 3,
+  }, 406);
+});
+
 test('prefers canonical retry timing over the Retry-After header', async () => {
   const error = await decodeAiStreamHttpError(new Response(JSON.stringify({
     code: 'AI_RATE_LIMITED',

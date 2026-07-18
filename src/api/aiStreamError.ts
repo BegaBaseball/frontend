@@ -90,7 +90,10 @@ const hasCanonicalOnlyField = (value: Record<string, unknown>): boolean => (
   || 'supported_versions' in value
 );
 
-const isCanonicalHttpError = (value: Record<string, unknown>): value is AiStreamHttpError => (
+const isCanonicalHttpError = (
+  status: number,
+  value: Record<string, unknown>,
+): value is AiStreamHttpError => (
   hasExactKeys(value, CANONICAL_HTTP_ERROR_KEYS)
   && nonEmptyString(value.code) !== null
   && nonEmptyString(value.message) !== null
@@ -99,7 +102,10 @@ const isCanonicalHttpError = (value: Record<string, unknown>): value is AiStream
   && (value.retry_after_seconds === null || nonNegativeInteger(value.retry_after_seconds) !== null)
   && (
     value.code === 'AI_EVENT_VERSION_UNSUPPORTED'
-      ? hasExactSupportedVersions(value.supported_versions)
+      ? status === 406
+        && value.retryable === false
+        && value.retry_after_seconds === null
+        && hasExactSupportedVersions(value.supported_versions)
       : Array.isArray(value.supported_versions) && value.supported_versions.length === 0
   )
 );
@@ -158,7 +164,7 @@ export const decodeAiStreamHttpError = async (response: Response): Promise<AiStr
   const headerRetryAfter = retryAfterFromHeader(response.headers.get('Retry-After'));
 
   if (isRecord(parsed)) {
-    if (isCanonicalHttpError(parsed)) {
+    if (isCanonicalHttpError(response.status, parsed)) {
       return new AiStreamRequestError(
         response.status,
         {
