@@ -241,7 +241,96 @@ const matePresetSpecOccurrences = (contents, spec) => {
   const specsObject = declaration.initializer;
   if (specsObject.properties.some((property) => ts.isSpreadAssignment(property))) return result;
 
-  let hasTargetAssignment = false;
+  const targetNames = new Set(Object.keys(result));
+  const objectAliases = new Set(['E2E_SPECS']);
+  const targetAliases = new Map();
+  const unwrapExpression = (expression) => {
+    let current = expression;
+    while (ts.isParenthesizedExpression(current)) current = current.expression;
+    return current;
+  };
+  const memberName = (expression) => {
+    const current = unwrapExpression(expression);
+    if (ts.isPropertyAccessExpression(current)) return current.name.text;
+    if (
+      ts.isElementAccessExpression(current)
+      && current.argumentExpression
+      && (
+        ts.isStringLiteral(current.argumentExpression)
+        || ts.isNoSubstitutionTemplateLiteral(current.argumentExpression)
+      )
+    ) return current.argumentExpression.text;
+    return null;
+  };
+  const isObjectAlias = (expression) => {
+    const current = unwrapExpression(expression);
+    return ts.isIdentifier(current) && objectAliases.has(current.text);
+  };
+  const targetFromExpression = (expression) => {
+    const current = unwrapExpression(expression);
+    if (ts.isIdentifier(current)) return targetAliases.get(current.text) || null;
+    if (
+      (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current))
+      && isObjectAlias(current.expression)
+    ) {
+      const name = memberName(current);
+      return targetNames.has(name) ? name : null;
+    }
+    return null;
+  };
+
+  let aliasesChanged = true;
+  while (aliasesChanged) {
+    aliasesChanged = false;
+    const collectAliases = (node) => {
+      if (ts.isVariableDeclaration(node) && node.initializer) {
+        if (ts.isIdentifier(node.name)) {
+          if (isObjectAlias(node.initializer) && !objectAliases.has(node.name.text)) {
+            objectAliases.add(node.name.text);
+            aliasesChanged = true;
+          }
+          const targetName = targetFromExpression(node.initializer);
+          if (targetName && targetAliases.get(node.name.text) !== targetName) {
+            targetAliases.set(node.name.text, targetName);
+            aliasesChanged = true;
+          }
+        } else if (ts.isObjectBindingPattern(node.name) && isObjectAlias(node.initializer)) {
+          for (const element of node.name.elements) {
+            if (!ts.isIdentifier(element.name)) continue;
+            const targetName = propertyNameText(element.propertyName || element.name);
+            if (targetNames.has(targetName) && targetAliases.get(element.name.text) !== targetName) {
+              targetAliases.set(element.name.text, targetName);
+              aliasesChanged = true;
+            }
+          }
+        }
+      }
+      ts.forEachChild(node, collectAliases);
+    };
+    collectAliases(sourceFile);
+  }
+
+  const mutationTarget = (expression) => {
+    const current = unwrapExpression(expression);
+    const directTarget = targetFromExpression(current);
+    if (directTarget) return directTarget;
+    if (ts.isPropertyAccessExpression(current) || ts.isElementAccessExpression(current)) {
+      return targetFromExpression(current.expression);
+    }
+    return null;
+  };
+  const mutatingMethods = new Set([
+    'copyWithin',
+    'fill',
+    'pop',
+    'push',
+    'reverse',
+    'shift',
+    'sort',
+    'splice',
+    'unshift',
+  ]);
+  let hasTargetMutation = false;
   const visit = (node) => {
     if (ts.isBinaryExpression(node)) {
       const operator = node.operatorToken.kind;
@@ -249,28 +338,28 @@ const matePresetSpecOccurrences = (contents, spec) => {
         operator >= ts.SyntaxKind.FirstAssignment
         && operator <= ts.SyntaxKind.LastAssignment
       );
-      let targetName = null;
-      if (
-        ts.isPropertyAccessExpression(node.left)
-        && ts.isIdentifier(node.left.expression)
-        && node.left.expression.text === 'E2E_SPECS'
-      ) targetName = node.left.name.text;
-      if (
-        ts.isElementAccessExpression(node.left)
-        && ts.isIdentifier(node.left.expression)
-        && node.left.expression.text === 'E2E_SPECS'
-        && node.left.argumentExpression
-        && (
-          ts.isStringLiteral(node.left.argumentExpression)
-          || ts.isNoSubstitutionTemplateLiteral(node.left.argumentExpression)
-        )
-      ) targetName = node.left.argumentExpression.text;
-      if (isAssignment && Object.hasOwn(result, targetName)) hasTargetAssignment = true;
+      if (isAssignment && mutationTarget(node.left)) hasTargetMutation = true;
+    }
+    if (
+      (ts.isPrefixUnaryExpression(node) || ts.isPostfixUnaryExpression(node))
+      && mutationTarget(node.operand)
+    ) hasTargetMutation = true;
+    if (ts.isDeleteExpression(node) && mutationTarget(node.expression)) {
+      hasTargetMutation = true;
+    }
+    if (
+      ts.isCallExpression(node)
+      && (ts.isPropertyAccessExpression(node.expression) || ts.isElementAccessExpression(node.expression))
+    ) {
+      const methodName = memberName(node.expression);
+      if (mutatingMethods.has(methodName) && targetFromExpression(node.expression.expression)) {
+        hasTargetMutation = true;
+      }
     }
     ts.forEachChild(node, visit);
   };
   visit(sourceFile);
-  if (hasTargetAssignment) return result;
+  if (hasTargetMutation) return result;
 
   for (const presetName of Object.keys(result)) {
     const properties = specsObject.properties.filter((candidate) => (
@@ -365,6 +454,47 @@ const parseSimpleShellCommand = (command) => {
   if (quote) return null;
   if (tokenStarted) tokens.push(current);
   return tokens;
+};
+
+const isSupportedMateCoverageCommand = (tokens) => {
+  if (!tokens || tokens[0] !== 'node') return false;
+  const testIndex = tokens.indexOf('--test');
+  if (testIndex < 1 || tokens.lastIndexOf('--test') !== testIndex) return false;
+
+  const supportedThresholds = new Set([
+    '--test-coverage-lines=90',
+    '--test-coverage-branches=70',
+    '--test-coverage-functions=70',
+  ]);
+  const supportedExclusions = new Set([
+    '--test-coverage-exclude=**/*.test.ts',
+    '--test-coverage-exclude=**/*.test.tsx',
+  ]);
+  let importCount = 0;
+  let coverageFlagCount = 0;
+
+  for (let index = 1; index < testIndex; index += 1) {
+    const token = tokens[index];
+    if (token === '--import') {
+      if (tokens[index + 1] !== 'tsx' || importCount > 0) return false;
+      importCount += 1;
+      index += 1;
+      continue;
+    }
+    if (token === '--experimental-test-coverage') {
+      coverageFlagCount += 1;
+      continue;
+    }
+    if (supportedThresholds.has(token) || supportedExclusions.has(token)) continue;
+    if (/^--test-coverage-include=src\/[A-Za-z0-9_./*-]+\.tsx?$/.test(token)) continue;
+    return false;
+  }
+
+  if (coverageFlagCount !== 1) return false;
+  const testFiles = tokens.slice(testIndex + 1);
+  return testFiles.length > 0 && testFiles.every((token) => (
+    /^(?:src|scripts)\/[A-Za-z0-9_./-]+\.test\.tsx?$/.test(token)
+  ));
 };
 
 const stripYamlComments = (contents) => contents.split('\n').map((line) => {
@@ -486,6 +616,14 @@ const hasDirectStepMapping = (step, key, value) => {
   return step.split('\n').some((line) => line === `${indent}${key}: ${value}`);
 };
 
+const directStepMappingKeys = (step) => {
+  const indent = ' '.repeat(directStepIndent(step));
+  return step.split('\n').flatMap((line) => {
+    const match = line.match(new RegExp(`^${indent}([A-Za-z][A-Za-z0-9_-]*):`));
+    return match ? [match[1]] : [];
+  });
+};
+
 const extractDirectStepSection = (step, key) => {
   const lines = step.split('\n');
   const indentSize = directStepIndent(step);
@@ -542,6 +680,14 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
         'missing-mate-quality-gate',
         'package.json',
         'test:mate:coverage must be one simple command whose executable is node',
+      );
+    }
+    if (!isSupportedMateCoverageCommand(coverageTokens)) {
+      addFailure(
+        failures,
+        'missing-mate-quality-gate',
+        'package.json',
+        'test:mate:coverage contains unsupported or misplaced Node coverage options',
       );
     }
     const testFlagCount = coverageTokens.filter((token) => token === '--test').length;
@@ -608,20 +754,34 @@ const checkMateQualityGatePolicy = (repoRoot, failures) => {
   );
   const coverageStep = findWorkflowStep('Run mate unit coverage');
   const coverageRun = extractDirectStepSection(coverageStep, 'run');
-  const coverageRunLines = coverageRun.split('\n').map((line) => line.trim());
-  const hasCoverageCommand = coverageRunLines.includes(
+  const coverageRunLines = coverageRun.split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const expectedCoverageRunLines = [
+    'set -o pipefail',
     'npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+  ];
+  const stepMappingKeys = directStepMappingKeys(coverageStep);
+  const hasExactStepMappings = (
+    stepMappingKeys.length === 3
+    && ['id', 'run', 'shell'].every((key) => stepMappingKeys.includes(key))
+  );
+  const hasExactCoverageRun = (
+    coverageRunLines.length === expectedCoverageRunLines.length
+    && coverageRunLines.every((line, index) => line === expectedCoverageRunLines[index])
   );
   if (
-    !hasDirectStepMapping(coverageStep, 'id', 'coverage')
-    || !coverageRunLines.includes('set -o pipefail')
-    || !hasCoverageCommand
+    !hasExactStepMappings
+    || !hasDirectStepMapping(coverageStep, 'id', 'coverage')
+    || !hasDirectStepMapping(coverageStep, 'shell', 'bash')
+    || !hasDirectStepMapping(coverageStep, 'run', '|')
+    || !hasExactCoverageRun
   ) {
     addFailure(
       failures,
       'missing-mate-quality-gate',
       workflowPath('_frontend-mate-ci.yml'),
-      'Run mate unit coverage must own id coverage, pipefail, the coverage command, and coverage.log',
+      'Run mate unit coverage must be an unconditional bash step with the exact safe two-command run block',
     );
   }
 
