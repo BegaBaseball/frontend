@@ -26,8 +26,8 @@ export interface Game {
 
 export interface Ranking {
     rank: number;
-    teamId: string; 
-    teamName: string; 
+    teamId: string;
+    teamName: string;
     wins: number;
     losses: number;
     draws: number;
@@ -35,6 +35,8 @@ export interface Ranking {
     games: number;
     gamesBehind?: number;
     shortName?: string;
+    /** Most-recent-first, length <= 5. Omitted until the backend ranking endpoint ships it. */
+    recentForm?: ReadonlyArray<'W' | 'L' | 'D'>;
 }
 
 export interface LeagueStartDates {

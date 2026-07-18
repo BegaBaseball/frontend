@@ -289,3 +289,20 @@ Planned message:
 ```text
 test: harden landing audit contracts
 ```
+
+### Mate Task 6 checkpoint
+
+- Added Node 22 coverage-row parsing and the `Unit coverage` summary stage for smoke and regression.
+- Added `src/utils/mateListUrlState.test.ts` to `test:mate:smoke` and added `test:mate:coverage` with fixed floors L90/B70/F70.
+- RED: `/opt/homebrew/opt/node@22/bin/node --import tsx --test scripts/mate-ci-summary-lib.test.ts` exited 1 because `parseNodeCoverageMetrics` was not exported.
+- GREEN: the same focused Node 22 command passed 4/4 tests.
+- Coverage: `PATH="/opt/homebrew/opt/node@22/bin:$PATH" npm run test:mate:coverage` passed 92/92 tests with `# all files | 91.66 | 75.63 | 73.71 |`.
+
+### Mate Task 6 review fix
+
+- Hardened the Node coverage parser to require three complete decimal cells and a trailing delimiter, then reject non-finite or out-of-range metrics outside 0..100.
+- A reported successful coverage stage now becomes `failure` with `n/a` when its log is missing or malformed.
+- Added regression coverage index/count coverage and changed coverage glob arguments to escaped double quotes for shell portability.
+- RED: the focused Node 22 summary run passed 5/8 and failed the malformed-number, missing-log, and malformed-log expectations.
+- GREEN: `/opt/homebrew/opt/node@22/bin/node --import tsx --test scripts/mate-ci-summary-lib.test.ts` passed 8/8 tests.
+- Coverage: `PATH="/opt/homebrew/opt/node@22/bin:$PATH" npm run test:mate:coverage` passed 96/96 tests with `# all files | 91.66 | 75.63 | 73.71 |`.

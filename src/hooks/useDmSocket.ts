@@ -25,6 +25,7 @@ interface UseDmSocketProps {
   enabled?: boolean;
   onMessageReceived: (message: DirectMessage) => void;
   onMessageDeleted?: (messageId: number) => void;
+  onConnectionRestored?: () => void;
 }
 
 const getTestSocketFactory = (): DmSocketFactory | null => {
@@ -40,10 +41,17 @@ const getTestSocketFactory = (): DmSocketFactory | null => {
   return typedWindow.__begaDmSocketFactory;
 };
 
-export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessageDeleted }: UseDmSocketProps) {
+export function useDmSocket({
+  roomId,
+  enabled = true,
+  onMessageReceived,
+  onMessageDeleted,
+  onConnectionRestored,
+}: UseDmSocketProps) {
   const clientRef = useRef<StompClient | null>(null);
   const onMessageReceivedRef = useRef(onMessageReceived);
   const onMessageDeletedRef = useRef(onMessageDeleted);
+  const onConnectionRestoredRef = useRef(onConnectionRestored);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -55,8 +63,31 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessa
   }, [onMessageDeleted]);
 
   useEffect(() => {
+    onConnectionRestoredRef.current = onConnectionRestored;
+  }, [onConnectionRestored]);
+
+  useEffect(() => {
     let disposed = false;
+    let hasConnected = false;
     const testSocketFactory = getTestSocketFactory();
+
+    const markConnected = () => {
+      if (disposed) {
+        return false;
+      }
+
+      const connectionWasRestored = hasConnected;
+      hasConnected = true;
+      setIsConnected(true);
+
+      return connectionWasRestored;
+    };
+
+    const handleConnected = () => {
+      if (markConnected()) {
+        onConnectionRestoredRef.current?.();
+      }
+    };
 
     const disconnect = () => {
       if (clientRef.current?.active) {
@@ -74,10 +105,22 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessa
     if (testSocketFactory) {
       const cleanup = testSocketFactory({
         destination: buildDmSocketDestination(roomId),
-        onConnect: () => setIsConnected(true),
-        onDisconnect: () => setIsConnected(false),
-        onError: () => setIsConnected(false),
+        onConnect: handleConnected,
+        onDisconnect: () => {
+          if (!disposed) {
+            setIsConnected(false);
+          }
+        },
+        onError: () => {
+          if (!disposed) {
+            setIsConnected(false);
+          }
+        },
         onMessage: (message) => {
+          if (disposed) {
+            return;
+          }
+
           const payload = message as DirectMessage | DmDeleteEvent;
           if ('deleted' in payload && payload.deleted) {
             onMessageDeletedRef.current?.(payload.messageId);
@@ -88,6 +131,7 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessa
       });
 
       return () => {
+        disposed = true;
         if (typeof cleanup === 'function') {
           cleanup();
         }
@@ -114,8 +158,16 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessa
       });
 
       client.onConnect = () => {
-        setIsConnected(true);
+        const connectionWasRestored = markConnected();
+        if (disposed) {
+          return;
+        }
+
         client.subscribe(buildDmSocketDestination(roomId), (message: StompMessage) => {
+          if (disposed) {
+            return;
+          }
+
           const payload = JSON.parse(message.body) as DirectMessage | DmDeleteEvent;
           if ('deleted' in payload && payload.deleted) {
             onMessageDeletedRef.current?.(payload.messageId);
@@ -123,9 +175,17 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessa
             onMessageReceivedRef.current(payload as DirectMessage);
           }
         });
+
+        if (connectionWasRestored) {
+          onConnectionRestoredRef.current?.();
+        }
       };
 
       client.onStompError = (frame) => {
+        if (disposed) {
+          return;
+        }
+
         console.error('DM STOMP error', {
           command: frame.command,
           headers: frame.headers,
@@ -135,7 +195,9 @@ export function useDmSocket({ roomId, enabled = true, onMessageReceived, onMessa
       };
 
       client.onWebSocketClose = () => {
-        setIsConnected(false);
+        if (!disposed) {
+          setIsConnected(false);
+        }
       };
 
       client.activate();

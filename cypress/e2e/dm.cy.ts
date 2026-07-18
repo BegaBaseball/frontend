@@ -17,10 +17,13 @@ describe('Direct Message v1', () => {
 
     const installDmSocketFactory = (win: Window) => {
         let listener: ((message: unknown) => void) | null = null;
+        let reconnect: (() => void) | null = null;
 
         (win as Window & {
             __begaDmSocketFactory?: unknown;
             __emitBegaDmSocketMessage?: (message: unknown) => void;
+            __reconnectBegaDmSocket?: () => void;
+            __begaDmSocketConnected?: boolean;
         }).__begaDmSocketFactory = ({
             onConnect,
             onMessage,
@@ -29,9 +32,13 @@ describe('Direct Message v1', () => {
             onMessage: (message: unknown) => void;
         }) => {
             listener = onMessage;
+            reconnect = onConnect;
+            (win as Window & { __begaDmSocketConnected?: boolean }).__begaDmSocketConnected = true;
             onConnect();
             return () => {
                 listener = null;
+                reconnect = null;
+                (win as Window & { __begaDmSocketConnected?: boolean }).__begaDmSocketConnected = false;
             };
         };
 
@@ -39,6 +46,12 @@ describe('Direct Message v1', () => {
             __emitBegaDmSocketMessage?: (message: unknown) => void;
         }).__emitBegaDmSocketMessage = (message: unknown) => {
             listener?.(message);
+        };
+
+        (win as Window & {
+            __reconnectBegaDmSocket?: () => void;
+        }).__reconnectBegaDmSocket = () => {
+            reconnect?.();
         };
     };
 
@@ -53,21 +66,24 @@ describe('Direct Message v1', () => {
                 data: bootstrapResponse,
             },
         }).as('bootstrapDmRoom');
-        cy.intercept('GET', '**/api/dm/rooms/901/messages', {
-            statusCode: 200,
-            body: {
-                success: true,
-                data: [
-                    {
-                        id: 1,
-                        roomId: 901,
-                        senderId: 456,
-                        content: '이미 생성된 메시지입니다.',
-                        clientMessageId: null,
-                        createdAt: '2026-04-15T12:00:00.000Z',
-                    },
-                ],
-            },
+        cy.intercept('GET', '**/api/dm/rooms/901/messages', (request) => {
+            request.reply({
+                delay: 500,
+                statusCode: 200,
+                body: {
+                    success: true,
+                    data: [
+                        {
+                            id: 1,
+                            roomId: 901,
+                            senderId: 456,
+                            content: '이미 생성된 메시지입니다.',
+                            clientMessageId: null,
+                            createdAt: '2026-04-15T12:00:00.000Z',
+                        },
+                    ],
+                },
+            });
         }).as('getDmMessages');
         cy.intercept('POST', '**/api/dm/messages', {
             statusCode: 201,
@@ -91,9 +107,43 @@ describe('Direct Message v1', () => {
         });
 
         cy.wait('@bootstrapDmRoom');
+        cy.window().its('__begaDmSocketConnected').should('equal', true);
+        cy.window().then((win) => {
+            (win as Window & {
+                __emitBegaDmSocketMessage?: (message: unknown) => void;
+            }).__emitBegaDmSocketMessage?.({
+                id: 5,
+                roomId: 901,
+                senderId: 456,
+                content: '최초 이력 로딩 중 수신된 메시지입니다.',
+                clientMessageId: null,
+                createdAt: '2026-04-15T11:59:30.000Z',
+            });
+        });
         cy.wait('@getDmMessages');
         cy.contains('OtherUser').should('be.visible');
         cy.contains('이미 생성된 메시지입니다.').should('be.visible');
+        cy.contains('최초 이력 로딩 중 수신된 메시지입니다.').should('be.visible');
+
+        cy.window().then((win) => {
+            (win as Window & {
+                __reconnectBegaDmSocket?: () => void;
+            }).__reconnectBegaDmSocket?.();
+        });
+        cy.window().then((win) => {
+            (win as Window & {
+                __emitBegaDmSocketMessage?: (message: unknown) => void;
+            }).__emitBegaDmSocketMessage?.({
+                id: 4,
+                roomId: 901,
+                senderId: 456,
+                content: '복구 중 수신된 메시지입니다.',
+                clientMessageId: null,
+                createdAt: '2026-04-15T12:00:30.000Z',
+            });
+        });
+        cy.wait('@getDmMessages');
+        cy.contains('복구 중 수신된 메시지입니다.').should('be.visible');
 
         cy.get('textarea[placeholder="메시지를 입력하세요"]').type('안녕하세요!');
         cy.contains('button', '메시지 보내기').click();

@@ -1,5 +1,12 @@
+import {
+  LandingCalendarIcon,
+  LandingMapPinIcon,
+  LandingUsersIcon,
+} from '../../icons/LandingIcons';
 import { TEAM_ASSETS } from '../landingAssets';
 import { LANDING_MATE_DATA } from '../landingShowcaseData';
+
+const MATE_DETAIL_ICONS = [LandingCalendarIcon, LandingUsersIcon, LandingMapPinIcon];
 
 export default function LandingMateVignette() {
   return (
@@ -13,7 +20,15 @@ export default function LandingMateVignette() {
           <span className="landing-mate-status">{LANDING_MATE_DATA.status}</span>
         </header>
         <ul className="landing-mate-details">
-          {LANDING_MATE_DATA.details.map((detail) => <li key={detail}>{detail}</li>)}
+          {LANDING_MATE_DATA.details.map((detail, index) => {
+            const Icon = MATE_DETAIL_ICONS[index];
+            return (
+              <li key={detail}>
+                {Icon && <Icon size={14} stroke="#64748b" aria-hidden="true" />}
+                {detail}
+              </li>
+            );
+          })}
         </ul>
       </article>
 

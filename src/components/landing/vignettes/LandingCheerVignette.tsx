@@ -1,3 +1,4 @@
+import { LandingHeartIcon, LandingMessageCircleIcon } from '../../icons/LandingIcons';
 import { LANDING_CHEER_POSTS } from '../landingShowcaseData';
 
 export default function LandingCheerVignette() {
@@ -21,12 +22,14 @@ export default function LandingCheerVignette() {
           <div className="landing-cheer-metrics">
             <span className={post.liked ? 'landing-cheer-liked' : undefined}>
               <i data-anim={post.liked || undefined} aria-hidden="true">
-                {post.liked ? '♥' : '♡'}
+                <LandingHeartIcon filled={post.liked} size={16} />
               </i>
               좋아요 {post.likes}
             </span>
             <span>
-              <i aria-hidden="true">●</i>
+              <i aria-hidden="true">
+                <LandingMessageCircleIcon size={16} />
+              </i>
               댓글 {post.comments}
             </span>
           </div>

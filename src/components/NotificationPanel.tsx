@@ -97,9 +97,10 @@ export default function NotificationPanel() {
   };
 
   const handleMarkAllRead = async () => {
+    const requestStartedAt = Date.now();
     try {
       await notificationApi.markAllAsRead();
-      markAllAsRead();
+      markAllAsRead(requestStartedAt);
     } catch (error) {
       console.error('일괄 읽음 처리 오류:', error);
       toast.error('일괄 읽음 처리에 실패했습니다.');

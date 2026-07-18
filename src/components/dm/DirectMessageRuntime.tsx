@@ -24,6 +24,15 @@ const DM_QUERY_KEYS = {
   messages: (roomId: number) => ['dmMessages', roomId] as const,
 };
 
+type DmRecoveryEvent =
+  | { kind: 'message'; message: DirectMessage }
+  | { kind: 'deleted'; messageId: number };
+
+type DmRecoveryBuffer = {
+  roomId: number;
+  events: DmRecoveryEvent[];
+};
+
 const normalizeHandle = (value?: string): string | undefined => {
   if (!value) {
     return undefined;
@@ -35,6 +44,46 @@ const normalizeHandle = (value?: string): string | undefined => {
 const sortMessages = (messages: DirectMessage[]) => (
   [...messages].sort((left, right) => new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime())
 );
+
+const mergeMessage = (current: DirectMessage[], incoming: DirectMessage): DirectMessage[] => {
+  let replaced = false;
+  const next = current.map((message) => {
+    const sameId = String(message.id) === String(incoming.id);
+    const sameClientMessage = Boolean(
+      incoming.clientMessageId
+      && message.clientMessageId
+      && incoming.clientMessageId === message.clientMessageId
+      && Number(incoming.senderId) === Number(message.senderId),
+    );
+
+    if (!sameId && !sameClientMessage) {
+      return message;
+    }
+
+    replaced = true;
+    return {
+      ...message,
+      ...incoming,
+      isPending: false,
+    };
+  });
+
+  if (!replaced) {
+    next.push(incoming);
+  }
+
+  return sortMessages(next);
+};
+
+const replayRecoveryEvents = (
+  current: DirectMessage[],
+  events: DmRecoveryEvent[],
+): DirectMessage[] => events.reduce((next, event) => {
+  if (event.kind === 'deleted') {
+    return next.filter((message) => Number(message.id) !== event.messageId);
+  }
+  return mergeMessage(next, event.message);
+}, current);
 
 const buildProfilePath = (handle?: string): string => {
   if (!handle) {
@@ -56,6 +105,7 @@ export default function DirectMessageRuntime() {
   const [isSending, setIsSending] = useState(false);
   const [inlineAccessError, setInlineAccessError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
+  const recoveryBufferRef = useRef<DmRecoveryBuffer | null>(null);
 
   const normalizedHandle = normalizeHandle(handle);
 
@@ -71,6 +121,10 @@ export default function DirectMessageRuntime() {
   const targetUser = bootstrapQuery.data?.targetUser ?? null;
   const profilePath = buildProfilePath(targetUser?.handle ?? normalizedHandle);
 
+  useEffect(() => {
+    recoveryBufferRef.current = roomId == null ? null : { roomId, events: [] };
+  }, [roomId]);
+
   const messagesQuery = useQuery({
     queryKey: roomId ? DM_QUERY_KEYS.messages(roomId) : ['dmMessages', 'missing'],
     queryFn: () => fetchDirectMessages(roomId!),
@@ -80,36 +134,6 @@ export default function DirectMessageRuntime() {
   });
 
   const messages = messagesQuery.data ?? [];
-
-  const mergeMessage = (current: DirectMessage[], incoming: DirectMessage): DirectMessage[] => {
-    let replaced = false;
-    const next = current.map((message) => {
-      const sameId = String(message.id) === String(incoming.id);
-      const sameClientMessage = Boolean(
-        incoming.clientMessageId
-        && message.clientMessageId
-        && incoming.clientMessageId === message.clientMessageId
-        && Number(incoming.senderId) === Number(message.senderId),
-      );
-
-      if (!sameId && !sameClientMessage) {
-        return message;
-      }
-
-      replaced = true;
-      return {
-        ...message,
-        ...incoming,
-        isPending: false,
-      };
-    });
-
-    if (!replaced) {
-      next.push(incoming);
-    }
-
-    return sortMessages(next);
-  };
 
   const updateMessagesCache = (updater: (current: DirectMessage[]) => DirectMessage[]) => {
     if (roomId == null) {
@@ -121,6 +145,22 @@ export default function DirectMessageRuntime() {
       return updater(safeCurrent);
     });
   };
+
+  useEffect(() => {
+    if (roomId == null || messagesQuery.isFetching) {
+      return;
+    }
+
+    const recovery = recoveryBufferRef.current;
+    if (!recovery || recovery.roomId !== roomId) {
+      return;
+    }
+
+    queryClient.setQueryData<DirectMessage[]>(DM_QUERY_KEYS.messages(roomId), (current) => (
+      replayRecoveryEvents(Array.isArray(current) ? current : [], recovery.events)
+    ));
+    recoveryBufferRef.current = null;
+  }, [messagesQuery.dataUpdatedAt, messagesQuery.isFetching, queryClient, roomId]);
 
   const handleDeleteMessage = useCallback(async (messageId: number | string) => {
     if (roomId == null) {
@@ -143,12 +183,48 @@ export default function DirectMessageRuntime() {
     roomId: roomId ?? '',
     enabled: roomId != null && inlineAccessError == null,
     onMessageReceived: (message) => {
+      if (recoveryBufferRef.current?.roomId === roomId) {
+        recoveryBufferRef.current.events.push({ kind: 'message', message });
+      }
       updateMessagesCache((current) => mergeMessage(current, message));
       queryClient.invalidateQueries({ queryKey: ['dm', 'inbox'] });
     },
     onMessageDeleted: (messageId) => {
+      if (recoveryBufferRef.current?.roomId === roomId) {
+        recoveryBufferRef.current.events.push({ kind: 'deleted', messageId });
+      }
       updateMessagesCache((current) => current.filter((m) => Number(m.id) !== messageId));
       queryClient.invalidateQueries({ queryKey: ['dm', 'inbox'] });
+    },
+    onConnectionRestored: async () => {
+      if (roomId == null) {
+        return;
+      }
+
+      const previousRecovery = recoveryBufferRef.current;
+      const recovery: DmRecoveryBuffer = {
+        roomId,
+        events: previousRecovery?.roomId === roomId ? [...previousRecovery.events] : [],
+      };
+      recoveryBufferRef.current = recovery;
+
+      try {
+        await Promise.all([
+          queryClient.refetchQueries({
+            queryKey: DM_QUERY_KEYS.messages(roomId),
+            exact: true,
+            type: 'active',
+          }),
+          queryClient.invalidateQueries({ queryKey: ['dm', 'inbox'] }),
+        ]);
+      } finally {
+        if (recoveryBufferRef.current !== recovery) {
+          return;
+        }
+
+        updateMessagesCache((current) => replayRecoveryEvents(current, recovery.events));
+        recoveryBufferRef.current = null;
+      }
     },
   });
 
