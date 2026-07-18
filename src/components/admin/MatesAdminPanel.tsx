@@ -25,7 +25,7 @@ const statusBadge: Record<string, { className: string; label: string }> = {
   pending: { className: 'bg-amber-500/20 text-amber-300 border-0', label: '모집중' },
   matched: { className: 'bg-emerald-500/20 text-emerald-300 border-0', label: '매칭완료' },
   selling: { className: 'bg-sky-500/20 text-sky-300 border-0', label: '티켓판매' },
-  sold: { className: 'bg-violet-500/20 text-violet-300 border-0', label: '판매완료' },
+  sold: { className: 'bg-slate-700 text-slate-300 border-0', label: '판매완료' },
   completed: { className: 'bg-slate-700 text-slate-300 border-0', label: '완료' },
 };
 
@@ -56,11 +56,10 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
                 </TableCell>
               </TableRow>
             ) : (
-              mates.map((mate, index) => (
+              mates.map((mate) => (
                 <TableRow
                   key={mate.id}
-                  className="border-slate-800 hover:bg-slate-800/30 transition-colors duration-200 animate-fade-in-up"
-                  style={{ animationDelay: `${index * 50}ms` }}
+                  className="border-slate-800 transition-colors duration-150 hover:bg-slate-800/30"
                 >
                   <TableCell className="text-slate-300 font-mono text-caption">{mate.id}</TableCell>
                   <TableCell className="text-slate-200 font-semibold max-w-[200px] truncate">{mate.title}</TableCell>
@@ -82,7 +81,7 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="text-slate-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all duration-200"
+                      className="rounded-lg text-slate-500 transition-colors duration-150 hover:bg-red-500/10 hover:text-red-400"
                       onClick={() => setPendingDeleteMate(mate)}
                     >
                       <AdminTrashIcon className="w-4 h-4" />
@@ -112,7 +111,7 @@ export function MatesAdminPanel({ mates, handleDeleteMate }: MatesAdminPanelProp
                 handleDeleteMate(pendingDeleteMate.id);
                 setPendingDeleteMate(null);
               }}
-              className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0 hover:from-red-600 hover:to-red-700 shadow-lg shadow-red-500/25"
+              className="bg-red-500 text-white border-0 shadow-sm hover:bg-red-600"
             >
               삭제
             </Button>

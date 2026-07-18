@@ -1,25 +1,7 @@
-import { type SVGProps } from 'react';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
 import { parseHighlight, useIsDark } from './coachRiskHelpers';
 import { getCoachTokens } from './coachStyleTokens';
-
-function PenIcon(props: SVGProps<SVGSVGElement>) {
-    return (
-        <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-            {...props}
-        >
-            <path d="M16 4l4 4-11 11H5v-4L16 4z" />
-            <path d="M14 6l4 4" />
-        </svg>
-    );
-}
+import { PredictionPencilIcon } from './PredictionShellIcons';
 
 interface CoachVerdictMemoProps {
     verdict: string;
@@ -85,7 +67,7 @@ export default function CoachVerdictMemo({
 
             {/* 헤더 */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                <PenIcon style={{ width: 13, height: 13, color: accentColor, flexShrink: 0 }} />
+                <PredictionPencilIcon aria-hidden="true" style={{ width: 13, height: 13, color: accentColor, flexShrink: 0 }} />
                 <span style={{
                     fontSize: 11.5,
                     fontWeight: 800,

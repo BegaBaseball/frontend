@@ -1,15 +1,18 @@
+import type { InfiniteData } from '@tanstack/react-query';
 import {
   createPost as createCheerPost,
+  normalizeCheerPostTarget,
+  type CheerPost,
+  type PageResponse,
   type ShareMode,
 } from '../api/cheerApi';
 import { uploadMediaFiles } from '../api/media';
 import { parseError } from './errorUtils';
 
-interface SubmitCheerPostPayload {
+interface SubmitCheerPostBase {
   teamId: string;
   content: string;
   files: File[];
-  postType?: 'NORMAL' | 'NOTICE';
   shareMode?: ShareMode;
   sourceUrl?: string;
   sourceTitle?: string;
@@ -20,7 +23,31 @@ interface SubmitCheerPostPayload {
   sourceSnapshotType?: string;
 }
 
+export type SubmitCheerPostPayload =
+  | (SubmitCheerPostBase & { postType?: 'NORMAL'; diaryId?: never; partyId?: never })
+  | (SubmitCheerPostBase & { postType: 'NOTICE'; diaryId?: never; partyId?: never })
+  | (SubmitCheerPostBase & { postType: 'CHECKIN'; diaryId: number; partyId?: never })
+  | (SubmitCheerPostBase & { postType: 'RECRUITMENT'; diaryId?: never; partyId: number });
+
+export function removeOptimisticCheerPostFromFeed(
+  data: InfiniteData<PageResponse<CheerPost>> | undefined,
+  optimisticId: number,
+): InfiniteData<PageResponse<CheerPost>> | undefined {
+  if (!data) return data;
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      content: (page.content ?? []).filter((post) => post.id !== optimisticId),
+    })),
+  };
+}
+
 export async function submitCheerPost(payload: SubmitCheerPostPayload) {
+  if (!payload.content.trim()) {
+    throw new Error('CHEER_POST_CONTENT_REQUIRED');
+  }
+  const target = normalizeCheerPostTarget(payload.postType, payload.diaryId, payload.partyId);
   let uploadedUrls: string[] = [];
 
   if (payload.files.length > 0) {
@@ -50,7 +77,7 @@ export async function submitCheerPost(payload: SubmitCheerPostPayload) {
     teamId: payload.teamId,
     content: payload.content,
     images: uploadedUrls,
-    postType: payload.postType ?? 'NORMAL',
+    ...target,
     shareMode: payload.shareMode,
     sourceUrl: payload.sourceUrl,
     sourceTitle: payload.sourceTitle,

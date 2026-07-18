@@ -1,5 +1,18 @@
 import { useMemo, useState, type PointerEvent } from 'react';
-import { AlertTriangle, ArrowLeft, ArrowRight, ArrowUp, Bug, CheckCircle2, ChevronDown, Copy, Plus, RotateCcw, Search, Trash2 } from 'lucide-react';
+import {
+  ArrowCounterClockwiseIcon as RotateCcw,
+  ArrowLeftIcon as ArrowLeft,
+  ArrowRightIcon as ArrowRight,
+  ArrowUpIcon as ArrowUp,
+  BugIcon as Bug,
+  CaretDownIcon as ChevronDown,
+  CheckCircleIcon as CheckCircle2,
+  CopyIcon as Copy,
+  MagnifyingGlassIcon as Search,
+  PlusIcon as Plus,
+  TrashIcon as Trash2,
+  WarningIcon as AlertTriangle,
+} from '@phosphor-icons/react';
 
 import {
   buildSajikSeatMapSectionPatchPayload,

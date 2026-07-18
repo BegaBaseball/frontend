@@ -1,7 +1,7 @@
 // CheerEdit.tsx
 import { useNavigate, useParams } from 'react-router-dom';
 import { getTeamNameById } from '../api/cheerApi';
-import { ArrowLeftIcon, ImageIcon, MessageSquareIcon, UploadIcon, XIcon } from './icons/CheerIcons';
+import { ArrowLeftIcon, ImageIcon, MessageSquareIcon, UploadIcon, XIcon } from './icons/CheerFlowIcons';
 import { useAuthProfileSnapshot } from '../store/authStore';
 import { useCheerEdit } from '../hooks/useCheerEdit';
 import { Button } from './ui/button';

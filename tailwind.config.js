@@ -16,7 +16,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ['"Pretendard Variable"', '"Pretendard"', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        sans: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
+        native: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'sans-serif'],
         retro: ['"Press Start 2P"', 'monospace'],
       },
       // Font-size tokens — plain strings = font-size ONLY (no paired line-height),
@@ -131,6 +132,14 @@ export default {
           '0%': { transform: 'translateY(0)', opacity: '1' },
           '100%': { transform: 'translateY(12px)', opacity: '0' },
         },
+        'skeleton-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.55' },
+        },
+        'cheer-highlight-flash': {
+          '0%': { backgroundColor: 'var(--cheer-highlight-bg)' },
+          '100%': { backgroundColor: 'var(--cheer-card-bg)' },
+        },
         // Retro leaderboard animations
         'crt-flicker': {
           '0%, 100%': { opacity: '1' },
@@ -164,6 +173,8 @@ export default {
         'roll-out-up': 'roll-out-up 0.3s ease-out',
         'roll-in-down': 'roll-in-down 0.3s ease-out',
         'roll-out-down': 'roll-out-down 0.3s ease-out',
+        'skeleton-pulse': 'skeleton-pulse 1.1s ease-out infinite',
+        'cheer-highlight-flash': 'cheer-highlight-flash 1.6s ease-out',
         // Retro leaderboard animations
         'crt-flicker': 'crt-flicker 0.15s infinite',
         'pixel-bounce': 'pixel-bounce 0.6s ease-in-out infinite',

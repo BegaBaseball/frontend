@@ -7,18 +7,20 @@ import {
 } from '../../api/profile';
 import { getSocialLoginUrl } from '../../api/authPublic';
 import { getLinkToken } from '../../api/authPrivate';
-import { useAuthRedirectState } from '../../store/authStore';
+import { useAuthAccessActions, useAuthRedirectState } from '../../store/authStore';
 import { toast } from 'sonner';
 import { getApiErrorMessage } from '../../utils/errorUtils';
 import { ACCOUNT_SETTINGS_REDIRECT_PATH } from '../../utils/authFlow';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
 import ViewportDeferred from '../ViewportDeferred';
+import PlainDialog from '../ui/plain-dialog';
 import {
   MyPageLinkIcon,
   MyPageShieldAlertIcon,
+  MyPageTrashIcon,
   MyPageUnlinkIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface AccountSettingsSectionProps {
   userProvider?: string;
@@ -99,8 +101,10 @@ const PROVIDERS: ProviderMeta[] = [
 
 export default function AccountSettingsSection({ userProvider, hasPassword = true }: AccountSettingsSectionProps) {
   const { setPendingLoginRedirect } = useAuthRedirectState();
+  const { logout } = useAuthAccessActions();
 
   const [showSecurityDialog, setShowSecurityDialog] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   const [pendingUnlinkProvider, setPendingUnlinkProvider] = useState<ProviderKey | null>(null);
   const [isLinking, setIsLinking] = useState(false);
 
@@ -266,7 +270,7 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
   };
 
   return (
-      <div className="bg-card rounded-2xl shadow-lg border-2 border-border p-8 mb-6">
+    <div className="mypage-card-panel mypage-account-panel">
       <div className="flex items-center gap-3 mb-6">
         <MyPageShieldAlertIcon className="w-6 h-6 text-primary" />
         <h2 className="text-xl font-bold text-primary">계정 설정</h2>
@@ -275,6 +279,24 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
       <section className="mb-8">
         <h3 className="text-body font-semibold text-muted-foreground mb-4">로그인 연동 관리</h3>
         <div className="space-y-3">{PROVIDERS.map(renderProviderCard)}</div>
+      </section>
+
+      <section className="mb-8">
+        <h3 className="text-body font-semibold text-muted-foreground mb-4">계정 액션</h3>
+        <button
+          type="button"
+          className="mypage-card-setting-row is-danger"
+          data-testid="mypage-account-logout"
+          onClick={() => setShowLogoutDialog(true)}
+        >
+          <span className="mypage-card-setting-icon" aria-hidden="true">
+            <MyPageTrashIcon className="h-4 w-4" />
+          </span>
+          <span className="mypage-card-setting-copy">
+            <span className="mypage-card-setting-name">로그아웃</span>
+            <span className="mypage-card-setting-desc">현재 기기에서 계정을 로그아웃합니다</span>
+          </span>
+        </button>
       </section>
 
       <ViewportDeferred
@@ -306,6 +328,34 @@ export default function AccountSettingsSection({ userProvider, hasPassword = tru
         confirmLabel="연동 해제 진행"
         onConfirm={handleSecurityConfirm}
       />
+
+      <PlainDialog
+        open={showLogoutDialog}
+        onClose={() => setShowLogoutDialog(false)}
+        title="로그아웃"
+        description="현재 기기에서 계정을 로그아웃할까요?"
+        className="max-w-md"
+        footer={(
+          <>
+            <Button variant="outline" onClick={() => setShowLogoutDialog(false)}>
+              취소
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                setShowLogoutDialog(false);
+                logout();
+              }}
+            >
+              로그아웃
+            </Button>
+          </>
+        )}
+      >
+        <p className="text-body text-muted-foreground">
+          저장되지 않은 작업이 있다면 먼저 마무리한 뒤 진행해주세요.
+        </p>
+      </PlainDialog>
     </div>
   );
 }

@@ -1,15 +1,14 @@
 import { lazy, Suspense, type ReactNode, useEffect, useRef, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { OptimizedImage } from './common/OptimizedImage';
 import grassDecor from '../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import {
-  MateAlertTriangleIcon,
-  MateChevronLeftIcon,
-  MateMessageSquareIcon,
-  MateShieldIcon,
-  MateWalletIcon,
-} from './MateIcons';
+  MateApplyAlertTriangleIcon as MateAlertTriangleIcon,
+  MateApplyChevronLeftIcon as MateChevronLeftIcon,
+  MateApplyMessageSquareIcon as MateMessageSquareIcon,
+  MateApplyShieldIcon as MateShieldIcon,
+  MateApplyWalletIcon as MateWalletIcon,
+} from './icons/MateApplyIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Textarea } from './ui/textarea';
@@ -22,7 +21,7 @@ import { useAuthAccessActions, useAuthSession } from '../store/authStore';
 import TeamLogo from './TeamLogo';
 import { Alert, AlertDescription } from './ui/alert';
 import { useNavigate, useParams } from 'react-router-dom';
-import { createApplication } from '../api/mate';
+import { createApplication, fetchMatePaymentCapability } from '../api/mate';
 import { getApiErrorStatus } from '../api/errorStatus';
 import { formatGameDate } from '../utils/mate';
 import VerificationRequiredDialog from './VerificationRequiredDialog';
@@ -35,7 +34,7 @@ import {
   loadMateApplyDraft,
   saveMateApplyDraft,
 } from '../utils/mateApplyDraft';
-import { mateMobileBarClass } from '../utils/mateFlowUi';
+import { mateMetaLabelClass, mateMobileBarClass } from '../utils/mateFlowUi';
 import { validateMateApplyMessage } from '../utils/mateValidation';
 import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 
@@ -74,6 +73,13 @@ export default function MateApply() {
   const [isDraftHydrated, setIsDraftHydrated] = useState(false);
   const restoredDraftPartyIdRef = useRef<string | null>(null);
   const previousPartyIdRef = useRef<string | null>(null);
+  const paymentCapabilityQuery = useQuery({
+    queryKey: ['mate', 'payment-capability'],
+    queryFn: fetchMatePaymentCapability,
+    enabled: Boolean(currentUserId && !isAuthLoading && party),
+    staleTime: 30 * 1000,
+    retry: false,
+  });
 
   const redirectToLogin = (replace = false) => {
     logout(true);
@@ -142,10 +148,14 @@ export default function MateApply() {
   if (partyError || !party) {
     return (
       <div className="flex justify-center items-center h-screen bg-background dark:bg-background transition-colors duration-200">
-        <OptimizedImage
+        <img
           src={grassDecor}
           alt=""
           className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+          aria-hidden="true"
+          decoding="async"
+          fetchPriority="low"
+          loading="lazy"
         />
         <div className="text-center z-10">
           <p className="text-lg text-gray-600 dark:text-white mb-4">{partyError || '파티 정보를 불러오는 중입니다...'}</p>
@@ -158,24 +168,44 @@ export default function MateApply() {
   }
 
   const isSelling = party.status === 'SELLING';
+  const isSellingPaymentBlocked = isSelling && (
+    paymentCapabilityQuery.isPending
+    || paymentCapabilityQuery.isError
+    || paymentCapabilityQuery.data?.sellingPaymentRequired === true
+  );
+  const paymentCapabilityNotice = paymentCapabilityQuery.isError
+    ? '결제 모드 정보를 확인할 수 없어 판매 신청을 잠시 막았습니다.'
+    : paymentCapabilityQuery.isPending
+      ? '결제 모드를 확인하는 중입니다.'
+      : '현재 서버가 앱 결제를 요구하지만 결제 화면이 아직 연결되지 않았습니다.';
   const reservationDepositAmount = party.reservationDepositAmount || 0;
   const ticketAmount = party.ticketPrice || 0;
   const sellingPrice = party.price || 0;
   const sectionCardClass = 'border border-gray-200/80 bg-white shadow-md ring-1 ring-black/5 dark:border-border/80 dark:bg-card/90 dark:shadow-[0_18px_40px_rgba(0,0,0,0.45)] dark:ring-white/10';
-  const insetPanelClass = 'rounded-2xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
+  const insetPanelClass = 'rounded-xl border border-gray-200/80 bg-gray-50/90 dark:border-border/70 dark:bg-secondary/70';
   const primaryAmount = isSelling ? sellingPrice : (reservationDepositAmount > 0 ? reservationDepositAmount : ticketAmount);
-  const submitLabel = isSubmitting
-    ? '신청 중...'
-    : (isSelling ? '직거래 신청하기' : '참여 신청하기');
-  const flowBadgeLabel = '직거래 베타';
-  const flowDescription = isSelling
-    ? '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.'
+  const submitLabel = isSellingPaymentBlocked
+    ? '앱 결제 준비 중'
+    : isSubmitting
+      ? '신청 중...'
+      : (isSelling ? '직거래 신청하기' : '참여 신청하기');
+  const flowBadgeLabel = isSellingPaymentBlocked ? '결제 준비 중' : '직거래 베타';
+  const flowDescription = isSellingPaymentBlocked
+    ? paymentCapabilityNotice
+    : isSelling
+      ? '구매 신청 후 호스트 승인 시 채팅으로 직거래 시간과 장소를 조율합니다.'
     : '호스트에게 메시지를 보내고, 승인 후 채팅으로 직거래 및 관람 일정을 조율합니다.';
-  const policyHighlights = [
-    '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
-    '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
-    '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
-  ];
+  const policyHighlights = isSellingPaymentBlocked
+    ? [
+      '현재 서버 결제 모드가 판매 결제를 요구합니다.',
+      '결제 화면이 연결되기 전에는 판매 신청을 받을 수 없습니다.',
+      '결제 활성화 후 승인·환불·정산 흐름을 함께 검증해야 합니다.',
+    ]
+    : [
+      '현재 베타에서는 앱 내 결제를 제공하지 않습니다.',
+      '승인 후 채팅에서 거래 시간과 장소를 조율합니다.',
+      '플랫폼 결제/환불 없이 신청 취소만 처리됩니다.',
+    ];
   const nextSteps = isSelling
     ? [
       '구매 신청 후 호스트 승인 여부를 기다립니다.',
@@ -193,6 +223,11 @@ export default function MateApply() {
   const stadiumDisplayName = formatStadiumDisplayName(party.stadium);
 
   const handleSubmit = async () => {
+    if (isSellingPaymentBlocked) {
+      toast.error(paymentCapabilityNotice);
+      return;
+    }
+
     if (!currentUserId) {
       redirectToLogin();
       return;
@@ -257,11 +292,15 @@ export default function MateApply() {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-gray-50 dark:bg-background transition-colors duration-200">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-[radial-gradient(circle_at_top,_rgba(22,163,74,0.08),_transparent_58%)] dark:bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.16),_transparent_46%)]" />
-      <OptimizedImage
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[30rem] bg-primary/5 dark:bg-primary/10" />
+      <img
         src={grassDecor}
         alt=""
         className="fixed bottom-0 left-0 w-full h-24 object-cover object-top z-0 pointer-events-none opacity-30"
+        aria-hidden="true"
+        decoding="async"
+        fetchPriority="low"
+        loading="lazy"
       />
 
       <div className="relative z-10 mx-auto max-w-3xl px-4 py-6 pb-44 sm:px-6 sm:py-8 lg:px-8 lg:pb-8">
@@ -297,11 +336,18 @@ export default function MateApply() {
             </AlertDescription>
           </Alert>
         )}
+        {isSellingPaymentBlocked && (
+          <Alert className="mb-6 border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/20">
+            <AlertDescription className="text-amber-800 dark:text-amber-200">
+              {paymentCapabilityNotice}
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
           <div className="flex flex-col gap-4 sm:gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <div className="flex w-full items-center justify-center gap-2 rounded-2xl border border-gray-200/80 bg-gray-50/90 px-3 py-3 dark:border-border/70 dark:bg-secondary/70 sm:w-auto sm:gap-3 sm:px-4">
+              <div className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200/80 bg-gray-50/90 px-3 py-3 dark:border-border/70 dark:bg-secondary/70 sm:w-auto sm:gap-3 sm:px-4">
                 <div className="h-10 w-10 shrink-0 sm:h-12 sm:w-12">
                   <TeamLogo teamId={party.homeTeam} size="full" />
                 </div>
@@ -319,9 +365,9 @@ export default function MateApply() {
                 </p>
               </div>
             </div>
-            <div className="w-full rounded-2xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
+            <div className="w-full rounded-xl border border-primary/15 bg-primary/5 px-4 py-3 text-left dark:border-primary/20 dark:bg-primary/10 sm:w-auto sm:min-w-[170px] sm:text-right">
               <div className="flex items-center justify-between gap-4 sm:block">
-                <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-500 dark:text-white">
+                <p className={mateMetaLabelClass}>
                   {summaryAmountLabel}
                 </p>
                 <p className="text-xl font-black text-primary sm:mt-2 sm:text-2xl">
@@ -333,19 +379,19 @@ export default function MateApply() {
 
           <div className="mt-4 grid grid-cols-2 gap-2.5 sm:gap-3 md:grid-cols-4">
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">좌석</p>
+              <p className={mateMetaLabelClass}>좌석</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white line-clamp-2">{party.section}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">호스트</p>
+              <p className={mateMetaLabelClass}>호스트</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">{party.hostName}</p>
             </div>
             <div className={`${insetPanelClass} col-span-2 p-3 md:col-span-1`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">신뢰 신호</p>
+              <p className={mateMetaLabelClass}>신뢰 신호</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">{summaryTrustLabel}</p>
             </div>
             <div className={`${insetPanelClass} p-3`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">현재 상태</p>
+              <p className={mateMetaLabelClass}>현재 상태</p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">{isSelling ? '구매 신청 가능' : '참여 신청 가능'}</p>
             </div>
           </div>
@@ -379,7 +425,7 @@ export default function MateApply() {
 
         {!isSelling && (
           <Card className={`mb-6 p-5 sm:p-6 ${sectionCardClass}`}>
-            <Suspense fallback={<div className="h-40 animate-pulse rounded-2xl bg-muted/70" />}>
+            <Suspense fallback={<div className="h-40 animate-pulse rounded-xl bg-muted/70" />}>
               <MateApplyTicketVerificationPanel
                 gameDate={party.gameDate}
                 ticketVerified={ticketVerified}
@@ -469,7 +515,7 @@ export default function MateApply() {
           <div className="mt-6 hidden lg:block">
             <Button
               onClick={handleSubmit}
-              disabled={!isSubmitReady || isSubmitting}
+              disabled={!isSubmitReady || isSubmitting || isSellingPaymentBlocked}
               className="w-full bg-primary text-white"
               size="lg"
             >
@@ -488,7 +534,7 @@ export default function MateApply() {
       <div className={`${mateMobileBarClass} lg:hidden`}>
         <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-2.5 sm:gap-3">
           <div className="min-w-0 flex-1 basis-[180px]">
-            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className={mateMetaLabelClass}>
               {summaryAmountLabel}
             </p>
             <p className="mt-1 text-lg font-black text-primary">
@@ -502,7 +548,7 @@ export default function MateApply() {
           </div>
           <Button
             onClick={handleSubmit}
-            disabled={!isSubmitReady || isSubmitting}
+            disabled={!isSubmitReady || isSubmitting || isSellingPaymentBlocked}
             className="w-full bg-primary text-white sm:w-auto sm:min-w-[150px]"
             size="lg"
           >

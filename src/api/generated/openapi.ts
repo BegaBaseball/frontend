@@ -2170,6 +2170,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/payments/capability": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Mate payment capability */
+        get: operations["getPaymentCapability"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/parties/upcoming": {
         parameters: {
             query?: never;
@@ -3122,6 +3139,22 @@ export interface paths {
             cookie?: never;
         };
         get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/linked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["linked"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4165,6 +4198,15 @@ export interface components {
             sourceChangedNote?: string;
             sourceSnapshotType?: string;
         };
+        CheckinLinkedContentRes: {
+            /** Format: date */
+            gameDate?: string;
+            homeTeam?: string;
+            awayTeam?: string;
+            cheeringTeam?: string;
+            stadium?: string;
+            verified?: boolean;
+        };
         EmbeddedPostDto: {
             /** Format: int64 */
             id?: number;
@@ -4184,6 +4226,17 @@ export interface components {
             commentCount?: number;
             /** Format: int32 */
             repostCount?: number;
+            postType?: string;
+            linkedContent?: components["schemas"]["LinkedContentRes"];
+        };
+        LinkedContentRes: {
+            /** @enum {string} */
+            kind?: "CHECKIN" | "RECRUITMENT";
+            available?: boolean;
+            /** @enum {string} */
+            unavailableReason?: "SOURCE_MISSING" | "SOURCE_INELIGIBLE" | "MANUAL_BASEBALL_DATA_REQUIRED";
+            checkin?: components["schemas"]["CheckinLinkedContentRes"];
+            recruitment?: components["schemas"]["RecruitmentLinkedContentRes"];
         };
         PostDetailRes: {
             /** Format: int64 */
@@ -4221,6 +4274,35 @@ export interface components {
             originalDeleted?: boolean;
             shareMode?: string;
             sourceInfo?: components["schemas"]["SourceInfoRes"];
+            linkedContent?: components["schemas"]["LinkedContentRes"];
+        };
+        RecruitmentLinkedContentRes: {
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: date */
+            gameDate?: string;
+            /**
+             * Format: time
+             * @example 18:30:00
+             */
+            gameTime?: string;
+            homeTeam?: string;
+            awayTeam?: string;
+            stadium?: string;
+            section?: string;
+            /** Format: int32 */
+            currentParticipants?: number;
+            /** Format: int32 */
+            maxParticipants?: number;
+            status?: string;
+            recruiting?: boolean;
+            description?: string;
+            /** Format: int32 */
+            price?: number;
+            /** Format: int32 */
+            ticketPrice?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
         };
         SourceInfoRes: {
             title?: string;
@@ -4894,6 +4976,10 @@ export interface components {
             sourceLicenseUrl?: string;
             sourceChangedNote?: string;
             sourceSnapshotType?: string;
+            /** Format: int64 */
+            diaryId?: number;
+            /** Format: int64 */
+            partyId?: number;
         };
         CreateCommentReq: {
             content: string;
@@ -5464,6 +5550,7 @@ export interface components {
             price?: number;
             description?: string;
             section?: string;
+            seatDetail?: string;
             /** Format: int32 */
             maxParticipants?: number;
             /** Format: int32 */
@@ -5789,6 +5876,21 @@ export interface components {
             accuracy: number;
             /** Format: int32 */
             streak: number;
+        };
+        MatePaymentCapabilityResponse: {
+            /** @enum {string} */
+            paymentMode: "DIRECT_TRADE" | "TOSS_TEST" | "IN_APP_PAYMENT";
+            /** @enum {string} */
+            businessMode: "DIRECT_TRADE" | "IN_APP_PAYMENT";
+            /** @enum {string} */
+            provider: "TOSS" | "UNSUPPORTED";
+            /** @enum {string} */
+            environment: "NONE" | "TEST" | "LIVE";
+            tossPaymentEnabled: boolean;
+            sellingPaymentRequired: boolean;
+            payoutEnabled: boolean;
+            /** @enum {string} */
+            payoutProvider: "SIM" | "TOSS" | "UNSUPPORTED";
         };
         MatePartyMemberSummary: {
             initial?: string;
@@ -6176,8 +6278,7 @@ export interface components {
             maxParticipants?: number;
             /** Format: int32 */
             ticketPrice?: number;
-            /** @enum {string} */
-            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
+            status?: string;
         };
         HomeWidgetsResponseDto: {
             hotCheerPosts?: components["schemas"]["PostSummaryRes"][];
@@ -6222,6 +6323,7 @@ export interface components {
             originalDeleted?: boolean;
             shareMode?: string;
             sourceInfo?: components["schemas"]["SourceInfoRes"];
+            linkedContent?: components["schemas"]["LinkedContentRes"];
         };
         HomeScopedNavigationDto: {
             resolvedDate?: string;
@@ -6406,6 +6508,11 @@ export interface components {
         PagedModelCommentRes: {
             content?: components["schemas"]["CommentRes"][];
             page?: components["schemas"]["PageMetadata"];
+        };
+        LinkedPostLookupRes: {
+            /** Format: int64 */
+            postId?: number;
+            preview?: components["schemas"]["LinkedContentRes"];
         };
         PostChangesResponse: {
             /** Format: int32 */
@@ -6617,15 +6724,15 @@ export interface components {
             createdAt?: string;
         };
         PageObject: {
-            /** Format: int64 */
-            totalElements?: number;
             /** Format: int32 */
             totalPages?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
             first?: boolean;
             last?: boolean;
             /** Format: int32 */
             numberOfElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
             /** Format: int32 */
             size?: number;
             content?: components["schemas"]["AuditLogDto"][];
@@ -8388,7 +8495,16 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Created */
+            /** @description 기존 활성 연결 게시글 반환 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PostDetailRes"];
+                };
+            };
+            /** @description 새 게시글 생성 */
             201: {
                 headers: {
                     [name: string]: unknown;
@@ -9157,7 +9273,9 @@ export interface operations {
     coachAnalyze: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-AI-Event-Version"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -9208,7 +9326,9 @@ export interface operations {
     chatStream: {
         parameters: {
             query?: never;
-            header?: never;
+            header?: {
+                "X-AI-Event-Version"?: string;
+            };
             path?: never;
             cookie?: never;
         };
@@ -10693,6 +10813,26 @@ export interface operations {
             };
         };
     };
+    getPaymentCapability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePaymentCapabilityResponse"];
+                };
+            };
+        };
+    };
     getUpcomingParties: {
         parameters: {
             query?: never;
@@ -12020,6 +12160,29 @@ export interface operations {
             };
         };
     };
+    linked: {
+        parameters: {
+            query?: {
+                diaryId?: number;
+                partyId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkedPostLookupRes"];
+                };
+            };
+        };
+    };
     listHot: {
         parameters: {
             query: {
@@ -12244,7 +12407,10 @@ export interface operations {
     };
     getMessagesByPartyId: {
         parameters: {
-            query?: never;
+            query?: {
+                limit?: number;
+                beforeId?: number;
+            };
             header?: never;
             path: {
                 partyId: number;

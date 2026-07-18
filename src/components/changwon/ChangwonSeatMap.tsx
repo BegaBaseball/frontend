@@ -1,6 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
-import { ExternalLink, Minus, Plus, Search } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import {
+  ArrowSquareOutIcon as ExternalLink,
+  MinusIcon as Minus,
+  PlusIcon as Plus,
+  SearchIcon as Search,
+} from '../icons/StadiumGuideIcons';
 import {
   CHANGWON_BLOCKS,
   CHANGWON_CATEGORIES,
@@ -19,8 +23,8 @@ import {
   type ChangwonBlock,
 } from '../../data/changwonSeatData';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
-import { useDiaryStore } from '../../store/diaryStore';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import ChangwonSeatMapSvg from './ChangwonSeatMapSvg';
@@ -30,6 +34,7 @@ import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -59,13 +64,6 @@ const changwonSectionAdapter: SeatMapSectionAdapter<ChangwonBlock> = {
   getNotes: (section) => (CHANGWON_VIEW_INFO[section.id] ?? CHANGWON_VIEW_INFO.default).notes,
   getTags: (section) => (CHANGWON_VIEW_INFO[section.id] ?? CHANGWON_VIEW_INFO.default).tags ?? [],
 };
-
-function formatDraftDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
 
 function normalizeBlockSearchText(value: string): string {
   const trimmed = value.trim();
@@ -385,13 +383,11 @@ function DetailPanel({
 
 export default function ChangwonSeatMap() {
   const { resolvedTheme } = useTheme();
-  const navigate = useNavigate();
-  const { isLoggedIn } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
-  const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
+  const [uploadFor, setUploadFor] = useState<ChangwonBlock | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSearchResultListOpen, setIsSearchResultListOpen] = useState(false);
   const {
@@ -407,6 +403,7 @@ export default function ChangwonSeatMap() {
     filterLevels,
     activeFilterGroup,
     toast,
+    showToast,
   } = useSeatMapSelectionState({
     sections: CHANGWON_BLOCKS,
     filterGroups: CHANGWON_CATEGORY_GROUPS,
@@ -472,26 +469,15 @@ export default function ChangwonSeatMap() {
     setIsSearchResultListOpen(false);
   }, []);
 
-  const handleShareSeatView = useCallback((section: ChangwonBlock | null) => {
+  const handleOpenUpload = useCallback((section: ChangwonBlock | null) => {
     if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
 
-    setPendingDraft({
-      date: formatDraftDate(new Date()),
-      stadium: 'CHANGWON',
-      team: 'NC',
-      section: section.name,
-      block: section.block,
-      seatRow: '',
-      seatNumber: '',
-    });
-
-    if (!isLoggedIn) {
-      requireLogin('/mypage');
-      return;
-    }
-
-    navigate('/mypage');
-  }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const mapSvg = (
     <ChangwonSeatMapSvg
@@ -593,7 +579,7 @@ export default function ChangwonSeatMap() {
       adapter={changwonSectionAdapter}
       stadiumKey="CHANGWON"
       onClose={() => setSelected(null)}
-      onUpload={() => handleShareSeatView(selected)}
+      onUpload={() => handleOpenUpload(selected)}
       copy={CHANGWON_SEAT_MAP_COPY}
       extraMeta={(section) => (
         <>
@@ -636,7 +622,7 @@ export default function ChangwonSeatMap() {
             adapter={changwonSectionAdapter}
             stadiumKey="CHANGWON"
             onClose={() => setSelected(null)}
-            onUpload={() => handleShareSeatView(selected)}
+            onUpload={() => handleOpenUpload(selected)}
             copy={CHANGWON_SEAT_MAP_COPY}
             testId="changwon-bottom-sheet"
             extraMeta={(section) => (
@@ -673,6 +659,16 @@ export default function ChangwonSeatMap() {
         fullscreenTitle="창원NC파크"
         fullscreenSubtitle="창원 NC 공식 좌석도 전체화면"
       />
+      {uploadFor && (
+        <SeatViewDirectUploadModal
+          stadium="CHANGWON"
+          section={getChangwonBlockDisplayName(uploadFor)}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? CHANGWON_CATEGORIES[uploadFor.category].dark : CHANGWON_CATEGORIES[uploadFor.category].light}
+          onClose={() => setUploadFor(null)}
+          onSubmitted={handleUploadSubmitted}
+        />
+      )}
     </>
   );
 }

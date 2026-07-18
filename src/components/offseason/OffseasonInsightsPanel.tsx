@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 
 import { getTeamKoreanName } from '../../utils/teamNames';
 import { Card } from '../ui/card';
-import { Building2Icon, NewspaperIcon } from '../icons/PublicFeatureIcons';
+import { Building2Icon, NewspaperIcon } from '../icons/OffseasonIcons';
 import { OffseasonMovement } from './offseasonListTypes';
 import { OffseasonPill, OffseasonSectionPill } from './offseasonUi';
 import { formatDateLabel, getMovementSummary } from './offseasonListUtils';

@@ -32,3 +32,25 @@ export const resolveLatestVisiblePostId = (posts: PostWithId[]): number | null =
   if (!positiveIds.length) return null;
   return Math.max(...positiveIds);
 };
+
+export const advanceCheerPollingCursor = (
+  currentCursor: number | null,
+  responseCursor: number | null,
+): number | null => {
+  const validCurrent = typeof currentCursor === 'number' && Number.isFinite(currentCursor)
+    ? currentCursor
+    : null;
+  const validResponse = typeof responseCursor === 'number' && Number.isFinite(responseCursor)
+    ? responseCursor
+    : null;
+
+  if (validCurrent === null) return validResponse;
+  if (validResponse === null) return validCurrent;
+  return Math.max(validCurrent, validResponse);
+};
+
+export const accumulateCheerPollingCount = (currentCount: number, chunkCount: number): number => {
+  const safeCurrent = Number.isFinite(currentCount) ? Math.max(0, currentCount) : 0;
+  const safeChunk = Number.isFinite(chunkCount) ? Math.max(0, chunkCount) : 0;
+  return safeCurrent + safeChunk;
+};

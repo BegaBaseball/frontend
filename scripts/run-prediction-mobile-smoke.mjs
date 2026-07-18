@@ -27,6 +27,8 @@ const defaultPort = Number(process.env.PREDICTION_MOBILE_MANAGED_DEV_SERVER_PORT
 
 export const defaultPredictionMobileSmokeStates = [
   'match',
+  'vote-panel',
+  'date-sheet',
   'detail-loading',
   'detail-error',
   'top-notice',

@@ -41,8 +41,11 @@ test('AdvancedMatchCard는 투표 패널을 독립 컴포넌트로 렌더링한�
 test('예측 런타임은 탭 왼쪽에 해당 날짜 경기 목록 조회 버튼을 제공한다', () => {
   assert.match(predictionRuntimeSource, /import \{ Link, useSearchParams \} from 'react-router-dom';/);
   assert.match(predictionRuntimeSource, /import \{ buildPredictionListPath \} from '\.\.\/\.\.\/utils\/predictionDeepLink';/);
-  assert.match(predictionRuntimeSource, /const otherGamesDate = searchParams\.get\('date'\)\?\.trim\(\) \|\| '';/);
-  assert.match(predictionRuntimeSource, /const otherGamesPath = buildPredictionListPath\(\{ date: otherGamesDate \}\);/);
+  assert.match(predictionRuntimeSource, /export function getPredictionOtherGamesLinkState\(dateParam: string \| null\)/);
+  assert.match(predictionRuntimeSource, /const date = dateParam\?\.trim\(\) \|\| '';/);
+  assert.match(predictionRuntimeSource, /path: buildPredictionListPath\(\{ date \}\)/);
+  assert.match(predictionRuntimeSource, /const \{ date: otherGamesDate, path: otherGamesPath \} = getPredictionOtherGamesLinkState\(/);
+  assert.match(predictionRuntimeSource, /searchParams\.get\('date'\)/);
   assert.match(predictionRuntimeSource, /data-testid="prediction-other-games-link"/);
   assert.match(predictionRuntimeSource, /다른 경기 조회/);
 });
@@ -67,9 +70,20 @@ test('PredictionVotePanel은 투표 CTA와 참여 수만 제공하고 하단 결
   assert.match(predictionVotePanelSource, /선택/);
   assert.match(predictionVotePanelSource, /예측 취소/);
   assert.match(predictionVotePanelSource, /처리 중\.\.\./);
+  assert.match(predictionVotePanelSource, /aria-labelledby=\{votePanelTitleId\}/);
+  assert.match(predictionVotePanelSource, /aria-describedby=\{`\$\{votePanelHelperId\} \$\{votePanelParticipantsId\}`\}/);
+  assert.match(predictionVotePanelSource, /id=\{votePanelTitleId\}/);
+  assert.match(predictionVotePanelSource, /id=\{votePanelHelperId\}/);
+  assert.match(predictionVotePanelSource, /id=\{votePanelParticipantsId\}/);
+  assert.match(predictionVotePanelSource, /data-testid="prediction-vote-participants"/);
   assert.match(predictionVotePanelSource, /aria-pressed=\{isSelected\}/);
+  assert.match(predictionVotePanelSource, /aria-label=\{buttonAriaLabel\}/);
+  assert.match(predictionVotePanelSource, /다시 누르면 예측 취소/);
+  assert.match(predictionVotePanelSource, /data-testid="prediction-vote-cancel-btn"/);
+  assert.match(predictionVotePanelSource, /aria-label=\{`\$\{selectedVoteOption\?\.teamName \?\? '선택한 팀'\} 승리 예측 취소`\}/);
   assert.match(predictionVotePanelSource, /data-testid=\{team === 'away' \? 'prediction-vote-away-btn' : 'vote-home-btn'\}/);
   assert.match(predictionVotePanelSource, /data-testid=\{team === 'away' \? 'vote-disabled-away-btn' : 'vote-disabled-home-btn'\}/);
+  assert.match(predictionVotePanelSource, /aria-label=\{`\$\{teamName\} 승리 예측 불가`\}/);
   assert.match(predictionVotePanelSource, /PredictionCheckCircleIcon/);
   assert.doesNotMatch(predictionVotePanelSource, /data-testid="prediction-vote-result-bar"/);
   assert.doesNotMatch(predictionVotePanelSource, /shouldShowVoteDistribution/);

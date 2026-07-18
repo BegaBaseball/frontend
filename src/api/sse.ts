@@ -9,6 +9,7 @@ export interface ConsumeSseStreamOptions {
   timeoutMs: number;
   signal?: AbortSignal;
   onEvent: (event: SseEvent) => void | Promise<void>;
+  isTerminalEvent?: (event: SseEvent) => boolean;
 }
 
 export interface ConsumeSseStreamResult {
@@ -52,31 +53,47 @@ export async function consumeSseStream(
       return;
     }
 
-    await options.onEvent({
+    const sseEvent = {
       event: currentEvent,
       data,
-    });
+    };
+    await options.onEvent(sseEvent);
+    if (options.isTerminalEvent?.(sseEvent)) {
+      sawDone = true;
+    }
   };
 
-  while (true) {
-    if (options.signal?.aborted) {
-      throw options.signal.reason ?? new DOMException('aborted', 'AbortError');
+  try {
+    while (!sawDone) {
+      if (options.signal?.aborted) {
+        throw options.signal.reason ?? new DOMException('aborted', 'AbortError');
+      }
+      const { done, value } = await readWithTimeout(() => reader.read(), options.timeoutMs);
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        await processLine(line);
+        if (sawDone) break;
+      }
     }
-    const { done, value } = await readWithTimeout(() => reader.read(), options.timeoutMs);
-    if (done) break;
 
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() || '';
-
-    for (const line of lines) {
-      await processLine(line);
+    if (!sawDone) {
+      const remainingLines = buffer.split('\n');
+      for (const line of remainingLines) {
+        await processLine(line);
+        if (sawDone) break;
+      }
     }
-  }
 
-  const remainingLines = buffer.split('\n');
-  for (const line of remainingLines) {
-    await processLine(line);
+    if (sawDone) {
+      await reader.cancel('SSE completed');
+    }
+  } finally {
+    reader.releaseLock();
   }
 
   return { sawDone };

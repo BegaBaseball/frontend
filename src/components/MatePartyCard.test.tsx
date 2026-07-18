@@ -1,11 +1,18 @@
 import assert from 'node:assert/strict';
-import { registerHooks } from 'node:module';
+import * as moduleApi from 'node:module';
 import test from 'node:test';
 
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 
 import type { Party } from '../types/mate';
+
+type ModuleNextLoad = (url: string, context: unknown) => unknown;
+type ModuleLoadHook = (url: string, context: unknown, nextLoad: ModuleNextLoad) => unknown;
+
+const { registerHooks } = moduleApi as unknown as {
+  registerHooks: (hooks: { load: ModuleLoadHook }) => void;
+};
 
 registerHooks({
   load(url, context, nextLoad) {

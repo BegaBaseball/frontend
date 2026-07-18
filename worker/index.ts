@@ -15,8 +15,10 @@ function shouldBlockPreviewHost(url: URL): boolean {
   return hostname === 'pages.dev' || hostname.endsWith(BLOCKED_PREVIEW_HOST_SUFFIX);
 }
 
-function shouldRedirectToCanonicalHost(url: URL): boolean {
-  return url.hostname.toLowerCase() === BARE_HOST;
+function shouldRedirectToCanonicalOrigin(url: URL): boolean {
+  const hostname = url.hostname.toLowerCase();
+  return hostname === BARE_HOST
+    || (hostname === CANONICAL_HOST && url.protocol !== 'https:');
 }
 
 function buildCanonicalRedirect(url: URL): Response {
@@ -57,7 +59,7 @@ export default {
       return new Response(null, { status: 404 });
     }
 
-    if (shouldRedirectToCanonicalHost(url)) {
+    if (shouldRedirectToCanonicalOrigin(url)) {
       return buildCanonicalRedirect(url);
     }
 
@@ -75,5 +77,5 @@ export {
   isHtmlNavigation,
   serveSpaAsset,
   shouldBlockPreviewHost,
-  shouldRedirectToCanonicalHost,
+  shouldRedirectToCanonicalOrigin,
 };

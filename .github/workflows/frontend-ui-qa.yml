@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - "src/api/authPublic.ts"
+      - "src/**"
+      - "scripts/**"
       - "src/api/authPublic.test.ts"
       - "src/api/publicClient.ts"
       - "src/components/auth/AuthLayout.tsx"
@@ -28,6 +30,8 @@ on:
       - "cypress/support/**"
       - "cypress.config.ts"
       - "scripts/auth-qa.mjs"
+      - "scripts/frontend-ui-impact.mjs"
+      - "scripts/frontend-ui-impact.test.ts"
       - "scripts/cypress-run.mjs"
       - "scripts/landing-qa.mjs"
       - "scripts/landing-first-load-audit.mjs"
@@ -67,6 +71,7 @@ on:
           - auth
           - landing
           - stadium
+          - pages
 
 concurrency:
   group: frontend-ui-qa-${{ github.event.pull_request.number || github.ref }}
@@ -75,10 +80,12 @@ concurrency:
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       auth_changed: ${{ steps.detect.outputs.auth_changed }}
       landing_changed: ${{ steps.detect.outputs.landing_changed }}
       stadium_changed: ${{ steps.detect.outputs.stadium_changed }}
+      pages_changed: ${{ steps.detect.outputs.pages_changed }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -100,108 +107,33 @@ jobs:
             git diff --name-only "${BASE_SHA}" "${HEAD_SHA}" > "${CHANGED_FILE_LIST}"
           fi
 
-          python3 - "${CHANGED_FILE_LIST}" <<'PY'
-          import fnmatch
-          import os
-          import sys
-          from pathlib import Path
+          node scripts/frontend-ui-impact.mjs \
+            --changed-file="${CHANGED_FILE_LIST}"
 
-          changed_path = Path(sys.argv[1])
-          changed = [line.strip() for line in changed_path.read_text().splitlines() if line.strip()]
-          suite_input = os.environ.get("SUITE_INPUT", "all")
-
-          patterns = {
-              "auth": [
-                  "src/api/authPublic.ts",
-                  "src/api/authPublic.test.ts",
-                  "src/api/publicClient.ts",
-                  "src/components/auth/AuthLayout.tsx",
-                  "src/components/AppRoutes.tsx",
-                  "src/components/Login.tsx",
-                  "src/components/SignUp.tsx",
-                  "src/components/PasswordReset.tsx",
-                  "src/components/PasswordResetConfirm.tsx",
-                  "src/components/AccountDeletionRecovery.tsx",
-                  "src/components/ui/auth-primitives.tsx",
-                  "src/components/ui/button.tsx",
-                  "src/components/ui/input.tsx",
-                  "src/components/ui/select.tsx",
-                  "src/components/ui/label.tsx",
-                  "src/hooks/useSignUpForm.ts",
-                  "src/index.css",
-                  "src/types/auth.ts",
-                  "src/utils/loginRedirect.ts",
-                  "src/utils/validation.ts",
-                  "cypress/e2e/auth*.cy.ts",
-                  "cypress/support/**",
-                  "scripts/auth-qa.mjs",
-                  "scripts/cypress-run.mjs",
-                  "scripts/test-e2e.mjs",
-                  "package.json",
-                  "package-lock.json",
-                  ".github/workflows/_frontend-node-suite.yml",
-                  ".github/workflows/frontend-ui-qa.yml",
-              ],
-              "landing": [
-                  "src/components/Landing.tsx",
-                  "src/components/FeatureCard.tsx",
-                  "src/components/LaptopMockup.tsx",
-                  "src/assets/landing/**",
-                  "src/components/ThemeToggleButton.tsx",
-                  "src/components/ViewportDeferred.tsx",
-                  "src/components/common/OptimizedImage.tsx",
-                  "src/components/icons/FirstLoadIcons.tsx",
-                  "src/components/ui/button.tsx",
-                  "src/components/ui/card.tsx",
-                  "src/components/ui/page-primitives.tsx",
-                  "src/hooks/useLandingScroll.ts",
-                  "src/constants/landing.ts",
-                  "src/types/landing.tsx",
-                  "src/index.css",
-                  "scripts/landing-qa.mjs",
-                  "scripts/landing-first-load-audit.mjs",
-                  "package.json",
-                  "package-lock.json",
-                  ".github/workflows/_frontend-node-suite.yml",
-                  ".github/workflows/frontend-ui-qa.yml",
-              ],
-              "stadium": [
-                  "src/components/StadiumGuide.tsx",
-                  "src/hooks/useStadiumGuide.ts",
-                  "src/hooks/useKakaoMap.ts",
-                  "src/utils/kakaoMap.ts",
-                  "src/utils/stadiumGuideUtils.ts",
-                  "src/types/stadium.ts",
-                  "cypress/e2e/stadium.cy.ts",
-                  "cypress/support/**",
-                  "cypress.config.ts",
-                  "package.json",
-                  "package-lock.json",
-                  ".github/workflows/_frontend-node-suite.yml",
-                  ".github/workflows/frontend-ui-qa.yml",
-              ],
-          }
-
-          results = {name: False for name in patterns}
-          if suite_input != "all":
-            for name in results:
-              results[name] = name == suite_input
-          elif os.environ["GITHUB_EVENT_NAME"] != "pull_request":
-            for name in results:
-              results[name] = True
-          else:
-            for name, suite_patterns in patterns.items():
-              results[name] = any(
-                  fnmatch.fnmatch(path, pattern)
-                  for path in changed
-                  for pattern in suite_patterns
-              )
-
-          output_path = Path(os.environ["GITHUB_OUTPUT"])
-          with output_path.open("a", encoding="utf-8") as handle:
-            for name, enabled in results.items():
-              handle.write(f"{name}_changed={'true' if enabled else 'false'}\n")
-          PY
+  pages-qa:
+    needs: detect-changes
+    if: ${{ (github.event_name == 'pull_request' && needs.detect-changes.outputs.pages_changed == 'true') || (github.event_name == 'workflow_dispatch' && (github.event.inputs.suite == 'pages' || github.event.inputs.suite == 'all')) }}
+    uses: ./.github/workflows/_frontend-node-suite.yml
+    permissions:
+      contents: read
+    with:
+      timeout_minutes: 20
+      env_exports: |
+        VITE_SITE_URL=http://127.0.0.1:5176
+        VITE_API_BASE_URL=/api
+        VITE_AI_EVENT_VERSION=1
+        VITE_MATE_REQUIRE_SOCIAL_VERIFICATION=false
+        VITE_GA4_MEASUREMENT_ID=G-CI00000000
+        VITE_GOOGLE_SITE_VERIFICATION=ciGoogleVerificationToken2026
+        VITE_NAVER_SITE_VERIFICATION=ciNaverVerificationToken2026
+        VITE_KAKAO_MAP_KEY=ciKakaoMapKey
+      run_script: npm run build
+      summary_script: |
+        echo "### Frontend Pages Build QA" >> "${GITHUB_STEP_SUMMARY}"
+        echo "- Generic source/build impact detected." >> "${GITHUB_STEP_SUMMARY}"
+      artifact_name: frontend-pages-build-artifacts
+      artifact_paths: |
+        dist/**
 
   auth-qa:
     needs: detect-changes
@@ -347,6 +279,7 @@ jobs:
     permissions:
       contents: read
     with:
+      timeout_minutes: 20
       env_exports: |
         VITE_SITE_URL=http://127.0.0.1:5176
         VITE_API_BASE_URL=/api

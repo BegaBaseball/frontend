@@ -1,6 +1,6 @@
-import { mateInsetPanelClass, mateSectionCardClass } from '../utils/mateFlowUi';
+import { mateInsetPanelClass, mateMetaLabelClass, mateSectionCardClass } from '../utils/mateFlowUi';
 import type { CheckIn } from '../types/mate';
-import { MateCheckCircleIcon, MateLoaderIcon, MateMapPinIcon } from './MateIcons';
+import { MateCheckCircleIcon, MateLoaderIcon, MateMapPinIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { StatusBadge } from './ui/status-badge';
@@ -51,7 +51,7 @@ export default function MateCheckInStatusRuntime({
         <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className={mateMetaLabelClass}>
                 Personal Check-In
               </p>
               <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">도착 인증이 아직 필요합니다</h2>
@@ -107,7 +107,7 @@ export default function MateCheckInStatusRuntime({
         <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`}>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className={mateMetaLabelClass}>
                 Personal Status
               </p>
               <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">체크인 완료</h2>
@@ -146,7 +146,7 @@ export default function MateCheckInStatusRuntime({
       <Card className={`p-5 sm:p-6 ${mateSectionCardClass}`} data-testid="checkin-progress-card">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+            <p className={mateMetaLabelClass}>
               Group Progress
             </p>
             <h2 className="mt-2 text-xl font-black text-gray-900 dark:text-white">전체 체크인 진행률</h2>
@@ -168,17 +168,17 @@ export default function MateCheckInStatusRuntime({
             <span className="font-semibold text-gray-900 dark:text-white">{progressValue}%</span>
           </div>
           <ProgressBar value={progressValue} className="h-3" />
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-[0.9fr_0.9fr_1.2fr]">
             <div className={`${mateInsetPanelClass} p-4`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">완료</p>
+              <p className={mateMetaLabelClass}>완료</p>
               <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{checkedInCount}명</p>
             </div>
             <div className={`${mateInsetPanelClass} p-4`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">대기</p>
+              <p className={mateMetaLabelClass}>대기</p>
               <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{remainingCount}명</p>
             </div>
             <div className={`${mateInsetPanelClass} p-4`}>
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">진입 방식</p>
+              <p className={mateMetaLabelClass}>진입 방식</p>
               <p className="mt-2 text-lg font-bold text-gray-900 dark:text-white">{sessionLabel}</p>
             </div>
           </div>

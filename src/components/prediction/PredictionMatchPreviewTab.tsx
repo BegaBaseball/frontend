@@ -1,4 +1,13 @@
-import { lazy, Suspense, useEffect, useMemo, useRef } from 'react';
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { Button } from '../ui/button';
@@ -18,12 +27,18 @@ import {
   type PredictionScheduleStatusTone,
   type PredictionScheduleWinnerSide,
 } from '../../utils/predictionSchedulePreviewModel';
-import { SharedCalendarDaysIcon } from '../icons/SharedLeafIcons';
 import {
+  PredictionCalendarDaysIcon,
   PredictionChevronLeftIcon,
   PredictionChevronRightIcon,
   PredictionTrendingUpIcon,
 } from './PredictionShellIcons';
+import {
+  PREDICTION_BRAND_BUTTON_CLASS,
+  PREDICTION_BRAND_GRADIENT_CLASS,
+  PREDICTION_SOFT_CHIP_CLASS,
+  PREDICTION_SURFACE_CARD_CLASS,
+} from './predictionUiTokens';
 
 const TeamLogo = lazy(() => import('../TeamLogo'));
 
@@ -95,6 +110,49 @@ const getStatusToneClass = (tone: PredictionScheduleStatusTone) => {
 };
 
 const PREDICTION_SCHEDULE_INITIAL_RECT = { width: 920, height: 640 };
+const MOBILE_DATE_SHEET_SIZE = 7;
+
+const getCompactDateLabel = (dateKey: string) => {
+  const date = parsePredictionScheduleDateKey(dateKey);
+  if (!date) {
+    return formatDate(dateKey);
+  }
+
+  const weekday = ['일', '월', '화', '수', '목', '금', '토'][date.getDay()];
+  return `${date.getMonth() + 1}.${date.getDate()}(${weekday})`;
+};
+
+const getDateSheetMonthLabel = (dateKey: string) => {
+  const date = parsePredictionScheduleDateKey(dateKey);
+  if (!date) {
+    return getPredictionScheduleMonthTitle(dateKey);
+  }
+
+  return `${date.getFullYear()}년 ${date.getMonth() + 1}월`;
+};
+
+const getMobileDateSheetItems = (items: ReturnType<typeof buildPredictionScheduleDateRail>) => {
+  if (items.length <= MOBILE_DATE_SHEET_SIZE) {
+    return items;
+  }
+
+  const selectedIndex = Math.max(0, items.findIndex((item) => item.isSelected));
+  const maxStartIndex = Math.max(0, items.length - MOBILE_DATE_SHEET_SIZE);
+  const startIndex = Math.min(Math.max(0, selectedIndex - 3), maxStartIndex);
+  return items.slice(startIndex, startIndex + MOBILE_DATE_SHEET_SIZE);
+};
+
+const getDateSheetFocusableElements = (container: HTMLElement | null) => {
+  if (!container) {
+    return [];
+  }
+
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+    ),
+  ).filter((element) => !element.hasAttribute('disabled') && element.getAttribute('aria-hidden') !== 'true');
+};
 
 export default function PredictionMatchPreviewTab({
   currentDateGames,
@@ -105,12 +163,18 @@ export default function PredictionMatchPreviewTab({
   onGoToDate,
   onNearestNavigation,
 }: PredictionMatchPreviewTabProps) {
+  const [isDateSheetOpen, setIsDateSheetOpen] = useState(false);
   const selectedDateButtonRef = useRef<HTMLButtonElement | null>(null);
+  const mobileDateTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const mobileSelectedDateButtonRef = useRef<HTMLButtonElement | null>(null);
+  const dateSheetDialogRef = useRef<HTMLDivElement | null>(null);
+  const shouldRestoreMobileDateFocusRef = useRef(false);
   const matchListScrollRef = useRef<HTMLDivElement | null>(null);
   const currentDateKey = formatPredictionScheduleDateKey(parsePredictionScheduleDateKey(currentDate) || new Date());
   const monthTitle = getPredictionScheduleMonthTitle(currentDate);
   const currentTime = useCurrentTime(60_000);
   const dateRailItems = useMemo(() => buildPredictionScheduleDateRail(currentDate), [currentDate]);
+  const mobileDateSheetItems = useMemo(() => getMobileDateSheetItems(dateRailItems), [dateRailItems]);
   const rowViewModels = useMemo(
     () => currentDateGames.map((game) => ({
       game,
@@ -136,12 +200,40 @@ export default function PredictionMatchPreviewTab({
       start: index * ESTIMATED_ROW_HEIGHT,
     }));
 
+  const closeMobileDateSheet = useCallback(() => {
+    shouldRestoreMobileDateFocusRef.current = true;
+    setIsDateSheetOpen(false);
+  }, []);
+
   useEffect(() => {
     selectedDateButtonRef.current?.scrollIntoView({
       block: 'nearest',
       inline: 'center',
     });
   }, [currentDateKey]);
+
+  useEffect(() => {
+    if (!isDateSheetOpen) {
+      if (shouldRestoreMobileDateFocusRef.current) {
+        shouldRestoreMobileDateFocusRef.current = false;
+        mobileDateTriggerRef.current?.focus();
+      }
+      return;
+    }
+
+    const handleDocumentKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeMobileDateSheet();
+      }
+    };
+
+    document.addEventListener('keydown', handleDocumentKeyDown);
+    (mobileSelectedDateButtonRef.current ?? dateSheetDialogRef.current)?.focus();
+
+    return () => {
+      document.removeEventListener('keydown', handleDocumentKeyDown);
+    };
+  }, [closeMobileDateSheet, isDateSheetOpen, currentDateKey]);
 
   const handleMonthMove = (monthOffset: number) => {
     onGoToDate(resolvePredictionScheduleMonthDate(currentDate, monthOffset));
@@ -153,62 +245,129 @@ export default function PredictionMatchPreviewTab({
     }
   };
 
+  const handleMobileDateSelect = (date: string) => {
+    closeMobileDateSheet();
+    onGoToDate(date);
+  };
+
+  const handleDateSheetKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    const focusableElements = getDateSheetFocusableElements(dateSheetDialogRef.current);
+    if (focusableElements.length === 0) {
+      return;
+    }
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (event.shiftKey && document.activeElement === firstElement) {
+      event.preventDefault();
+      lastElement.focus();
+      return;
+    }
+
+    if (!event.shiftKey && document.activeElement === lastElement) {
+      event.preventDefault();
+      firstElement.focus();
+    }
+  };
+
   return (
     <div className="w-full font-sans" data-testid="prediction-schedule-preview">
       <div
         data-testid="prediction-schedule-toolbar"
-        className="mb-5 flex flex-wrap items-center justify-center gap-2 text-slate-900 dark:text-white sm:gap-4"
+        className="mb-4 text-slate-900 dark:text-white"
       >
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          data-testid="prediction-schedule-today-btn"
-          className="h-11 rounded-full border-slate-200 bg-white px-4 text-15 font-bold text-slate-500 shadow-sm hover:bg-slate-50 dark:border-border dark:bg-card dark:text-white sm:px-5"
-          onClick={() => onGoToDate(getPredictionScheduleTodayKey())}
-        >
-          최근
-        </Button>
-        <button
-          type="button"
-          aria-label="이전 달 보기"
-          data-testid="prediction-schedule-month-prev"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary"
-          onClick={() => handleMonthMove(-1)}
-        >
-          <PredictionChevronLeftIcon className="h-6 w-6 sm:h-7 sm:w-7" />
-        </button>
-        <p
-          key={monthTitle}
-          data-testid="prediction-schedule-month-title"
-          className="min-w-[8.5rem] animate-fade-in-up text-center text-[2.35rem] font-black leading-none tracking-normal text-slate-900 motion-reduce:animate-none dark:text-white sm:min-w-[10.5rem] sm:text-5xl"
-        >
-          {monthTitle}
-        </p>
-        <button
-          type="button"
-          aria-label="다음 달 보기"
-          data-testid="prediction-schedule-month-next"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary"
-          onClick={() => handleMonthMove(1)}
-        >
-          <PredictionChevronRightIcon className="h-6 w-6 sm:h-7 sm:w-7" />
-        </button>
-        <label className="relative inline-flex h-11 cursor-pointer items-center justify-center overflow-hidden rounded-full px-3 text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary sm:px-4">
-          <span className="sr-only">날짜 선택</span>
-          <SharedCalendarDaysIcon className="h-6 w-6" />
-          <input
-            type="date"
-            value={currentDateKey}
+        <div className="flex items-center gap-2 md:hidden">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="prediction-schedule-mobile-today-btn"
+            className="h-10 rounded-xl border-slate-200 bg-white px-3 text-13 font-extrabold text-slate-600 shadow-sm hover:bg-slate-50 dark:border-border dark:bg-card dark:text-white"
+            onClick={() => onGoToDate(getPredictionScheduleTodayKey())}
+          >
+            최근
+          </Button>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-12 font-bold text-slate-500 dark:text-white/70">
+              {getDateSheetMonthLabel(currentDateKey)}
+            </p>
+            <p className="truncate text-17 font-extrabold text-slate-950 dark:text-white">
+              KBO리그
+            </p>
+          </div>
+          <button
+            ref={mobileDateTriggerRef}
+            type="button"
             aria-label="경기 날짜 선택"
-            data-testid="prediction-schedule-date-input"
-            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-            onChange={(event) => handleDateInputChange(event.target.value)}
-          />
-        </label>
+            aria-haspopup="dialog"
+            aria-expanded={isDateSheetOpen}
+            aria-controls="prediction-mobile-date-sheet"
+            data-testid="prediction-schedule-mobile-date-trigger"
+            className={`${PREDICTION_BRAND_BUTTON_CLASS} inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-xl px-3 text-13 font-extrabold shadow-sm`}
+            onClick={() => setIsDateSheetOpen(true)}
+          >
+            {getCompactDateLabel(currentDateKey)}
+            <PredictionCalendarDaysIcon className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="hidden flex-wrap items-center justify-center gap-2 md:flex sm:gap-4">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            data-testid="prediction-schedule-today-btn"
+            className="h-11 rounded-full border-slate-200 bg-white px-4 text-15 font-bold text-slate-500 shadow-sm hover:bg-slate-50 dark:border-border dark:bg-card dark:text-white sm:px-5"
+            onClick={() => onGoToDate(getPredictionScheduleTodayKey())}
+          >
+            최근
+          </Button>
+          <button
+            type="button"
+            aria-label="이전 달 보기"
+            data-testid="prediction-schedule-month-prev"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary"
+            onClick={() => handleMonthMove(-1)}
+          >
+            <PredictionChevronLeftIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+          </button>
+          <p
+            key={monthTitle}
+            data-testid="prediction-schedule-month-title"
+            className="min-w-[8.5rem] animate-fade-in-up text-center text-[2.35rem] font-black leading-none tracking-normal text-slate-900 motion-reduce:animate-none dark:text-white sm:min-w-[10.5rem] sm:text-5xl"
+          >
+            {monthTitle}
+          </p>
+          <button
+            type="button"
+            aria-label="다음 달 보기"
+            data-testid="prediction-schedule-month-next"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary"
+            onClick={() => handleMonthMove(1)}
+          >
+            <PredictionChevronRightIcon className="h-6 w-6 sm:h-7 sm:w-7" />
+          </button>
+          <label className="relative inline-flex h-11 cursor-pointer items-center justify-center overflow-hidden rounded-full px-3 text-slate-700 transition-colors hover:bg-white hover:shadow-sm dark:text-white dark:hover:bg-secondary sm:px-4">
+            <span className="sr-only">날짜 선택</span>
+            <PredictionCalendarDaysIcon className="h-6 w-6" />
+            <input
+              type="date"
+              value={currentDateKey}
+              aria-label="경기 날짜 선택"
+              data-testid="prediction-schedule-date-input"
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+              onChange={(event) => handleDateInputChange(event.target.value)}
+            />
+          </label>
+        </div>
       </div>
 
-      <div className="relative -mx-4 mb-8 sm:-mx-6">
+      <div className="relative -mx-4 mb-8 hidden sm:-mx-6 md:block">
         <div
           data-testid="prediction-schedule-date-rail"
           className="overflow-x-auto px-4 sm:px-6"
@@ -248,12 +407,19 @@ export default function PredictionMatchPreviewTab({
       </div>
 
       <Card
-        className="overflow-hidden rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-sm dark:border-border dark:bg-card dark:text-white"
+        className={`${PREDICTION_SURFACE_CARD_CLASS} overflow-hidden rounded-2xl text-slate-900 dark:text-white`}
         data-testid="prediction-match-preview-root"
       >
-        <div className="flex min-h-[4.75rem] items-center justify-between border-b border-slate-200 px-5 dark:border-border sm:px-7">
-          <h2 className="text-2xl font-black tracking-normal">KBO리그</h2>
-          <PredictionChevronRightIcon className="h-6 w-6 text-slate-700 dark:text-white" />
+        <div className="flex min-h-[4.5rem] items-center justify-between border-b border-slate-100 px-4 dark:border-border sm:px-7">
+          <div>
+            <h2 className="text-xl font-black tracking-normal sm:text-2xl">KBO리그</h2>
+            <p className="mt-1 text-12 font-bold text-slate-500 dark:text-white/60 md:hidden">
+              좌우 스와이프로 날짜 이동
+            </p>
+          </div>
+          <span className={`${PREDICTION_SOFT_CHIP_CLASS} rounded-full px-3 py-1 text-12 font-extrabold`}>
+            {currentDateGames.length}경기
+          </span>
         </div>
 
         {currentDateGames.length > 0 ? (
@@ -363,7 +529,7 @@ export default function PredictionMatchPreviewTab({
                               variant="outline"
                               size="sm"
                               data-testid="prediction-match-enter-detail-btn"
-                              className="h-8 min-w-10 rounded-lg border-slate-200 bg-white px-2 text-12 font-black text-slate-700 hover:bg-slate-50 dark:border-border dark:bg-card dark:text-white dark:hover:bg-secondary sm:h-9 sm:min-w-[3.5rem] sm:text-caption lg:h-10 lg:min-w-[4.5rem] lg:px-4 lg:text-body"
+                              className="h-8 min-w-10 rounded-lg border-slate-200 bg-white px-2 text-12 font-black text-primary dark:border-border dark:bg-card dark:text-primary-light dark:hover:bg-secondary hover:bg-emerald-50 sm:h-9 sm:min-w-[3.5rem] sm:text-caption lg:h-10 lg:min-w-[4.5rem] lg:px-4 lg:text-body"
                               onClick={() => onEnterMatchDetail(game)}
                             >
                               전력
@@ -384,35 +550,119 @@ export default function PredictionMatchPreviewTab({
             </div>
           </div>
         ) : (
-          <div className="flex min-h-[14rem] flex-col items-center justify-start px-5 py-4 text-center sm:min-h-[18rem] sm:justify-center sm:py-10">
-            <div className="mb-2 rounded-full bg-slate-100 p-3 dark:bg-secondary sm:mb-4 sm:p-4">
-              <PredictionTrendingUpIcon className="h-6 w-6 text-slate-400 dark:text-white sm:h-8 sm:w-8" />
+          <div className={`${PREDICTION_BRAND_GRADIENT_CLASS} relative flex min-h-[15rem] flex-col items-center justify-start overflow-hidden px-5 py-7 text-center sm:min-h-[18rem] sm:justify-center sm:py-10`}>
+            <svg viewBox="0 0 400 220" className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden="true">
+              <path d="M200 210 L80 120 L200 30 L320 120 Z" fill="none" stroke="rgba(255,255,255,.08)" strokeWidth="1.5" />
+              <path d="M30 230 A200 200 0 0 1 370 230" fill="none" stroke="rgba(255,255,255,.06)" strokeWidth="1.5" />
+            </svg>
+            <div className="relative mb-3 rounded-full border border-white/20 bg-white/10 p-3 sm:mb-4 sm:p-4">
+              <PredictionTrendingUpIcon className="h-6 w-6 text-emerald-200 sm:h-8 sm:w-8" />
             </div>
-            <p className="mb-1 text-base font-black text-slate-900 dark:text-white sm:text-lg">
+            <p className="relative mb-2 inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-12 font-extrabold text-emerald-100">
               {formatDate(currentDate)}
             </p>
-            <h3 className="mb-1 text-lg font-black text-slate-800 dark:text-white sm:mb-2 sm:text-xl">
-              {isToday ? '오늘은 예정된 경기가 없습니다.' : '예정된 경기 일정이 없습니다.'}
+            <h3 className="relative mb-2 text-20 font-black tracking-normal text-white">
+              {isToday ? '오늘은 그라운드가 쉬는 날이에요' : '예정된 경기 일정이 없습니다'}
             </h3>
-            <p className="text-13 leading-snug text-slate-500 dark:text-white sm:text-body sm:leading-relaxed">
+            <p className="relative max-w-md text-13 font-medium leading-relaxed text-white/75 sm:text-body">
               {nearestNavigationDate
-                ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요!`
-                : '다른 날짜를 확인해보세요!'}
+                ? `가장 가까운 경기일은 ${formatDate(nearestNavigationDate.date)}입니다. ${nearestNavigationDate.isPast ? '이전' : '다음'} 날짜로 이동해 확인해보세요.`
+                : '다른 날짜를 확인해보세요.'}
             </p>
             {nearestNavigationDate ? (
               <Button
                 type="button"
                 variant="outline"
                 data-testid="prediction-empty-nearest-date-btn"
-                className="mt-3 min-h-10 border-emerald-200 text-emerald-800 hover:bg-emerald-50 dark:border-emerald-400/30 dark:text-emerald-200 dark:hover:bg-emerald-500/10 sm:mt-4"
+                className="relative mt-5 min-h-11 w-full max-w-xs border-0 bg-white text-primary-dark shadow-[0_8px_20px_-8px_rgba(0,0,0,0.4)] hover:bg-emerald-50"
                 onClick={onNearestNavigation}
               >
-                {nearestNavigationDate.isPast ? '가장 가까운 이전 경기 보기' : '가장 가까운 다음 경기 보기'}
+                {nearestNavigationDate.isPast ? '이전 경기 결과 보기' : '다음 경기 예측하러 가기'}
               </Button>
             ) : null}
           </div>
         )}
       </Card>
+
+      {isDateSheetOpen ? (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <button
+            type="button"
+            aria-label="날짜 선택 닫기"
+            className="absolute inset-0 w-full bg-slate-950/45"
+            onClick={closeMobileDateSheet}
+          />
+          <div
+            id="prediction-mobile-date-sheet"
+            ref={dateSheetDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="prediction-mobile-date-sheet-title"
+            aria-describedby="prediction-mobile-date-sheet-description"
+            tabIndex={-1}
+            className="absolute inset-x-0 bottom-0 rounded-t-20 bg-white px-4 pb-5 pt-3 shadow-[0_-12px_40px_rgba(0,0,0,0.25)] outline-none dark:bg-card"
+            onKeyDown={handleDateSheetKeyDown}
+          >
+            <span className="mx-auto block h-1 w-11 rounded-full bg-slate-200 dark:bg-border" />
+            <div className="mt-3 flex items-center justify-between">
+              <span
+                id="prediction-mobile-date-sheet-title"
+                className="text-15 font-extrabold text-slate-950 dark:text-white"
+              >
+                {getDateSheetMonthLabel(currentDateKey)}
+              </span>
+              <p id="prediction-mobile-date-sheet-description" className="sr-only">
+                날짜를 선택하면 해당 날짜의 KBO 경기 일정으로 이동합니다.
+              </p>
+              <button
+                type="button"
+                aria-label="날짜 선택 닫기"
+                data-testid="prediction-schedule-mobile-date-close"
+                className="rounded-full px-2 py-1 text-xl font-bold leading-none text-slate-400 hover:bg-slate-50 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-300 dark:text-white/60 dark:hover:bg-secondary"
+                onClick={closeMobileDateSheet}
+              >
+                x
+              </button>
+            </div>
+            <div className="mt-4 grid grid-cols-7 gap-1">
+              {mobileDateSheetItems.map((item) => (
+                <button
+                  key={item.date}
+                  ref={item.isSelected ? mobileSelectedDateButtonRef : undefined}
+                  type="button"
+                  data-testid="prediction-schedule-mobile-date-button"
+                  data-date={item.date}
+                  aria-pressed={item.isSelected}
+                  aria-label={`${item.date} 경기 일정 보기${item.isToday ? ', 오늘' : ''}${item.isSelected ? ', 선택됨' : ''}`}
+                  className={`flex min-h-[58px] flex-col items-center justify-center rounded-xl border px-1 transition-colors ${
+                    item.isSelected
+                      ? 'border-primary bg-emerald-50 text-primary-dark'
+                      : item.isToday
+                        ? 'border-emerald-100 bg-white text-emerald-700'
+                        : 'border-slate-100 bg-slate-50 text-slate-600'
+                  } focus:outline-none focus:ring-2 focus:ring-emerald-300`}
+                  onClick={() => handleMobileDateSelect(item.date)}
+                >
+                  <span className="text-11 font-bold">{item.weekday}</span>
+                  <span className="mt-1 text-17 font-black leading-none">{item.day}</span>
+                  <span className={`mt-1 text-9 font-black ${item.isSelected ? 'text-emerald-700' : 'text-slate-400'}`}>
+                    {item.isToday ? '오늘' : item.isSelected ? '선택' : ''}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <Button
+              type="button"
+              aria-label="오늘 경기 일정으로 이동"
+              variant="brand"
+              className="mt-4 min-h-11 w-full"
+              onClick={() => handleMobileDateSelect(getPredictionScheduleTodayKey())}
+            >
+              오늘로 이동
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

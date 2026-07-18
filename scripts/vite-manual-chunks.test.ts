@@ -1,13 +1,45 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 
 const packageJsonSource = readFileSync(new URL('../package.json', import.meta.url), 'utf8');
 const packageJson = JSON.parse(packageJsonSource) as { scripts: Record<string, string> };
+const indexHtmlSource = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const indexCssSource = readFileSync(new URL('../src/index.css', import.meta.url), 'utf8');
 const viteConfigSource = readFileSync(new URL('../vite.config.ts', import.meta.url), 'utf8');
 const bundleGuardSource = readFileSync(new URL('./bundle-guard.mjs', import.meta.url), 'utf8');
+const mainEntrySource = readFileSync(new URL('../src/main.tsx', import.meta.url), 'utf8');
+const landingSource = readFileSync(new URL('../src/components/Landing.tsx', import.meta.url), 'utf8');
+const landingAssetsSource = readFileSync(new URL('../src/components/landing/landingAssets.ts', import.meta.url), 'utf8');
+const landingClosingSource = readFileSync(new URL('../src/components/landing/LandingClosing.tsx', import.meta.url), 'utf8');
+const landingPhonePreviewSource = readFileSync(new URL('../src/components/landing/LandingPhonePreview.tsx', import.meta.url), 'utf8');
+const landingShowcaseDataSource = readFileSync(new URL('../src/components/landing/landingShowcaseData.ts', import.meta.url), 'utf8');
+const landingQaSource = readFileSync(new URL('./landing-qa.mjs', import.meta.url), 'utf8');
+const landingFirstLoadAuditSource = readFileSync(new URL('./landing-first-load-audit.mjs', import.meta.url), 'utf8');
+const readLandingComponentTree = (directoryUrl: URL): Array<{ file: string; source: string }> => (
+  readdirSync(directoryUrl, { withFileTypes: true }).flatMap((entry) => {
+    const entryUrl = new URL(entry.isDirectory() ? `${entry.name}/` : entry.name, directoryUrl);
+    if (entry.isDirectory()) {
+      return readLandingComponentTree(entryUrl);
+    }
+    if (!entry.isFile() || !/\.tsx?$/.test(entry.name)) {
+      return [];
+    }
+    return [{ file: entryUrl.pathname, source: readFileSync(entryUrl, 'utf8') }];
+  })
+);
+const landingComponentTreeSources = [
+  { file: new URL('../src/components/Landing.tsx', import.meta.url).pathname, source: landingSource },
+  ...readLandingComponentTree(new URL('../src/components/landing/', import.meta.url)),
+];
+const coreWebVitalsTelemetrySource = readFileSync(new URL('../src/utils/coreWebVitalsTelemetry.ts', import.meta.url), 'utf8');
+const seoHeadSource = readFileSync(new URL('../src/seo/SeoHead.tsx', import.meta.url), 'utf8');
 const predictionMatchScheduleDataRuntimeSource = readFileSync(
   new URL('../src/components/prediction/PredictionMatchScheduleDataRuntime.tsx', import.meta.url),
+  'utf8',
+);
+const predictionRuntimeSource = readFileSync(
+  new URL('../src/components/prediction/PredictionRuntime.tsx', import.meta.url),
   'utf8',
 );
 const appRoutesSource = readFileSync(new URL('../src/components/AppRoutes.tsx', import.meta.url), 'utf8');
@@ -18,7 +50,7 @@ const authenticatedLayoutChromeSource = readFileSync(new URL('../src/components/
 const authenticatedLayoutToasterSource = readFileSync(new URL('../src/components/AuthenticatedLayoutToaster.tsx', import.meta.url), 'utf8');
 const authenticatedNotificationSocketBridgeSource = readFileSync(new URL('../src/components/AuthenticatedNotificationSocketBridge.tsx', import.meta.url), 'utf8');
 const authBootstrapGateSource = readFileSync(new URL('../src/components/AuthBootstrapGate.tsx', import.meta.url), 'utf8');
-const deferredPretendardFontSource = readFileSync(new URL('../src/components/DeferredPretendardFont.tsx', import.meta.url), 'utf8');
+const appShellRuntimeSource = readFileSync(new URL('../src/components/AppShellRuntime.tsx', import.meta.url), 'utf8');
 const homeApiSource = readFileSync(new URL('../src/api/home.ts', import.meta.url), 'utf8');
 const homeCoreApiSource = readFileSync(new URL('../src/api/homeCore.ts', import.meta.url), 'utf8');
 const homeRuntimeSource = readFileSync(new URL('../src/components/HomeRuntime.tsx', import.meta.url), 'utf8');
@@ -43,6 +75,11 @@ const navbarSource = readFileSync(new URL('../src/components/Navbar.tsx', import
 const publicNavbarSource = readFileSync(new URL('../src/components/PublicNavbar.tsx', import.meta.url), 'utf8');
 const publicNavbarDmUnreadBadgeSource = readFileSync(new URL('../src/components/PublicNavbarDmUnreadBadge.tsx', import.meta.url), 'utf8');
 const cheerMobileBottomNavSource = readFileSync(new URL('../src/components/CheerMobileBottomNav.tsx', import.meta.url), 'utf8');
+const cheerRuntimeSource = readFileSync(new URL('../src/components/CheerRuntime.tsx', import.meta.url), 'utf8');
+const cheerFeedRuntimeContentSource = readFileSync(new URL('../src/components/CheerFeedRuntimeContent.tsx', import.meta.url), 'utf8');
+const cheerSidebarPanelsSource = readFileSync(new URL('../src/components/CheerSidebarPanels.tsx', import.meta.url), 'utf8');
+const matePageSource = readFileSync(new URL('../src/components/MatePage.tsx', import.meta.url), 'utf8');
+const appQueryProviderSource = readFileSync(new URL('../src/components/AppQueryProvider.tsx', import.meta.url), 'utf8');
 const uiButtonSource = readFileSync(new URL('../src/components/ui/button.tsx', import.meta.url), 'utf8');
 const uiInputSource = readFileSync(new URL('../src/components/ui/input.tsx', import.meta.url), 'utf8');
 const uiTextareaSource = readFileSync(new URL('../src/components/ui/textarea.tsx', import.meta.url), 'utf8');
@@ -91,13 +128,132 @@ test('preloads the match schedule data chunk before the first Suspense render', 
   );
 });
 
+test('keeps the redesigned landing CTA-free, local-asset-only, and lazy below the fold', () => {
+  const landingAssetPaths = Array.from(
+    landingAssetsSource.matchAll(/import\s+\w+\s+from\s+'([^']+)'/g),
+    (match) => match[1],
+  );
+  const mascotImage = landingClosingSource.match(
+    /<img[\s\S]*?data-testid="landing-closing-mascot"[\s\S]*?\/>/,
+  )?.[0];
+
+  assert.ok(landingSource.includes('<LandingTicker />'));
+  assert.ok(landingSource.includes('<LandingClosing />'));
+  const screenshotEraIdentifiers = [
+    'LandingFeaturesRuntime',
+    'ThemeToggleButton',
+    'landing-showcase-',
+    'homeScreenshot',
+    'predictionScreenshot',
+    'mateScreenshot',
+    'landingShowcaseHome',
+    'landingShowcasePrediction',
+    'landingShowcaseMate',
+    'landing-capability-showcase',
+    'landing-laptop-mockup',
+  ];
+  for (const { file, source } of landingComponentTreeSources) {
+    for (const identifier of screenshotEraIdentifiers) {
+      assert.equal(source.includes(identifier), false, `${file} contains obsolete ${identifier}`);
+    }
+  }
+  assert.equal(landingSource.includes('data-testid="landing-cta'), false);
+  assert.equal(landingSource.includes('<a '), false);
+
+  assert.ok(landingAssetPaths.length > 0);
+  assert.ok(landingAssetPaths.every((assetPath) => assetPath.startsWith('../../assets/')));
+  assert.equal(/https?:\/\//.test(landingAssetsSource), false);
+
+  assert.ok(mascotImage);
+  assert.ok(mascotImage.includes('loading="lazy"'));
+  assert.ok(mascotImage.includes('decoding="async"'));
+
+  assert.ok(bundleGuardSource.includes("label: 'Landing manifest avoids heavy icon runtime'"));
+  assert.equal(bundleGuardSource.includes("label: 'ThemeToggleButton manifest avoids heavy icon runtime'"), false);
+  assert.equal(bundleGuardSource.includes("label: 'LandingFeaturesRuntime manifest imports'"), false);
+  for (const forbiddenImport of ['ThemeToggleButton-', 'LandingFeaturesRuntime-', 'landing-showcase-']) {
+    assert.ok(bundleGuardSource.includes(`'${forbiddenImport}'`));
+  }
+  assert.ok(bundleGuardSource.includes("label: 'Landing static closure avoids screenshot-era assets'"));
+  assert.ok(bundleGuardSource.includes("entrypoints: ['src/components/Landing.tsx']"));
+  assert.ok(bundleGuardSource.includes('findForbiddenManifestClosureReferences('));
+});
+
+test('keeps every phone preview baseball example in the typed landing showcase dataset', () => {
+  assert.match(landingShowcaseDataSource, /export interface LandingPhonePreviewData/);
+  assert.match(landingShowcaseDataSource, /export const LANDING_PHONE_PREVIEW/);
+  assert.match(landingPhonePreviewSource, /import \{ LANDING_PHONE_PREVIEW \} from '\.\/landingShowcaseData'/);
+  assert.equal(landingPhonePreviewSource.includes("const PHONE_TABS = ['홈'"), false);
+  assert.equal(landingPhonePreviewSource.includes('LIVE · 7회말 · 잠실'), false);
+  assert.equal(landingPhonePreviewSource.includes('9회말 끝내기라니'), false);
+});
+
+test('audits the redesigned landing first load with current assets and lazy closing media', () => {
+  const landingAssetNames = Array.from(
+    landingAssetsSource.matchAll(/\.\.\/\.\.\/assets\/([^']+)/g),
+    (match) => match[1].split('/').at(-1)?.replace(/\.(png|webp)$/i, ''),
+  ).filter(
+    (assetName): assetName is string => Boolean(assetName),
+  );
+
+  assert.ok(landingAssetNames.length > 0);
+  for (const assetName of landingAssetNames) {
+    assert.ok(landingFirstLoadAuditSource.includes(`'${assetName}'`));
+  }
+
+  assert.ok(landingFirstLoadAuditSource.includes('deferredClosingAssetNames'));
+  assert.ok(landingQaSource.includes('getPhoneWidthFailure({'));
+  assert.ok(landingFirstLoadAuditSource.includes('isViewportIntersectionVisible.toString()'));
+  assert.ok(landingFirstLoadAuditSource.includes('collectSuccessfulDeferredRequests(network.requests'));
+  assert.ok(landingFirstLoadAuditSource.includes('getClosingAuditFailures({'));
+  assert.ok(landingFirstLoadAuditSource.includes("page.locator('[data-testid=\"landing-closing\"]')"));
+  assert.ok(landingFirstLoadAuditSource.includes("waitForVisibleTestId(page, 'landing-closing-mascot'"));
+  assert.ok(landingFirstLoadAuditSource.includes('afterClosingDeferredRequests'));
+  for (const obsoleteContract of [
+    'LandingFeaturesRuntime',
+    'PublicShellIcons',
+    'landing-showcase-',
+    'landing-hero-cta-secondary',
+    'landing-feature-layout',
+  ]) {
+    assert.equal(landingFirstLoadAuditSource.includes(obsoleteContract), false);
+  }
+});
+
+test('keeps GA4 network loading off the initial render critical path', () => {
+  assert.equal(indexHtmlSource.includes('googletagmanager.com'), false);
+  assert.ok(seoHeadSource.includes('script.async = true;'));
+  assert.ok(seoHeadSource.includes("window.addEventListener('load', scheduleIdle, { once: true });"));
+  assert.ok(seoHeadSource.includes('window.requestIdleCallback(run, { timeout: GA4_IDLE_TIMEOUT_MS });'));
+  assert.ok(seoHeadSource.includes('ensureGa4Queue();'));
+  assert.ok(seoHeadSource.includes('return scheduleGa4ScriptLoad();'));
+});
+
+test('reveals the performance prerender shell before delayed React hydration', () => {
+  assert.match(
+    indexHtmlSource,
+    /<script src="\/performance-shell-init\.js"><\/script>/,
+  );
+  assert.doesNotMatch(indexHtmlSource, /<script>\s*\(\(\) => \{/);
+  assert.ok(mainEntrySource.includes("rootEl.querySelector('[data-performance-prerender=\"true\"]')"));
+  assert.ok(mainEntrySource.includes('const PERFORMANCE_PRERENDER_PAINT_DELAY_MS = 100;'));
+  assert.ok(mainEntrySource.includes("link[data-performance-app-style=\"true\"]"));
+  assert.ok(mainEntrySource.includes('await Promise.all(['));
+  assert.ok(mainEntrySource.includes('waitForPerformanceStyles(),'));
+  assert.ok(mainEntrySource.includes('waitForDelay(PERFORMANCE_PRERENDER_PAINT_DELAY_MS),'));
+  assert.match(mainEntrySource, /removeShellLoader\(true\);\s*void mountPerformanceApp\(\);/);
+  assert.match(
+    mainEntrySource,
+    /if \(immediate\) \{\s*shellLoader\.remove\(\);\s*return;\s*\}/,
+  );
+});
+
 test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(appRoutesSource.includes("const shouldPreloadInitialHomeRoute = /^\\/home\\/?$/.test(initialPathname);"));
-  assert.ok(appRoutesSource.includes("const initialLayoutModulePromise = shouldPreloadInitialHomeRoute ? import('./Layout') : null;"));
-  assert.equal(appRoutesSource.includes('initialAppQueryProviderModulePromise'), false);
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
+  assert.ok(appRoutesSource.includes("const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;"));
   assert.ok(appRoutesSource.includes("const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;"));
   assert.ok(appRoutesSource.includes("void import('./home/HomeMatchPanel');"));
-  assert.ok(appRoutesSource.includes("const AppQueryProvider = lazy(() => import('./AppQueryProvider'));"));
   assert.ok(appRoutesSource.includes("lazy(() => initialHomeModulePromise ?? import('./Home'))"));
   assert.match(
     appRoutesSource,
@@ -118,6 +274,168 @@ test('preloads /home route chunks before nested lazy route rendering', () => {
   assert.ok(bundleGuardSource.includes("'errorUtils-'"));
   assert.ok(bundleGuardSource.includes("'teams-'"));
   assert.ok(bundleGuardSource.includes("'sonner-'"));
+});
+
+test('keeps the /prediction shell outside the query provider critical path', () => {
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialPredictionRoute = /^\\/prediction(?:\\/matches\\/[^/]+)?\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes("const initialPredictionModulePromise = shouldPreloadInitialPredictionRoute ? loadPredictionPage() : null;"));
+  assert.ok(appRoutesSource.includes('const Prediction = lazy(() => initialPredictionModulePromise ?? loadPredictionPage());'));
+  assert.match(
+    appRoutesSource,
+    /<Route element={<Layout authenticated={false} \/>}>[\s\S]*?<Route path="\/prediction" element={<Prediction \/>} \/>[\s\S]*?<Route path="\/prediction\/matches\/:gameId" element={<Prediction \/>} \/>/,
+  );
+
+  const appQueryProviderRouteGroup = appRoutesSource.slice(
+    appRoutesSource.indexOf('<Route element={<AppQueryProvider />}>'),
+    appRoutesSource.indexOf('{import.meta.env.DEV'),
+  );
+  assert.equal(appQueryProviderRouteGroup.includes('<Route path="/prediction" element={<Prediction />} />'), false);
+
+  assert.ok(predictionRuntimeSource.includes("const AppQueryProvider = lazy(() => import('../AppQueryProvider'));"));
+  assert.match(
+    predictionRuntimeSource,
+    /<Suspense fallback={<PredictionLoadingView topNotice={null} \/>}>\s*<AppQueryProvider>[\s\S]*?<\/AppQueryProvider>\s*<\/Suspense>/,
+  );
+
+  const predictionFirstLoadGuard = bundleGuardSource.match(
+    /route: '\/prediction',[\s\S]*?\n\s*},\n/,
+  )?.[0];
+  assert.ok(predictionFirstLoadGuard);
+  assert.ok(predictionFirstLoadGuard.includes("label: '/prediction shell first-load static closure'"));
+  assert.ok(predictionFirstLoadGuard.includes("'src/components/Layout.tsx'"));
+  assert.equal(predictionFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"), false);
+});
+
+test('defers /prediction ranking preloads beyond the LCP window', () => {
+  assert.ok(predictionRuntimeSource.includes('const PREDICTION_RANKING_PRELOAD_DELAY_MS = 2500;'));
+  assert.match(
+    predictionRuntimeSource,
+    /const rankingPreloadTimeoutId = globalThis\.setTimeout\(\(\) => \{\s*cancelRankingPreload = schedulePredictionPostPaintIdleWork/,
+  );
+  assert.ok(predictionRuntimeSource.includes('globalThis.clearTimeout(rankingPreloadTimeoutId);'));
+});
+
+test('keeps the /prediction match runtime behind the query provider fallback', () => {
+  assert.ok(predictionRuntimeSource.includes("const PredictionMatchRuntime = lazy(() => import('./PredictionMatchRuntime'));"));
+  assert.equal(predictionRuntimeSource.includes("import PredictionMatchRuntime from './PredictionMatchRuntime';"), false);
+  assert.match(
+    predictionRuntimeSource,
+    /const matchChildren = \([\s\S]*?<PredictionMatchRuntime \/>[\s\S]*?<Suspense fallback={<PredictionLoadingView topNotice={null} \/>}>\s*<AppQueryProvider>[\s\S]*?contentTab === 'match' \? matchChildren : rankingChildren[\s\S]*?<\/AppQueryProvider>/,
+  );
+});
+
+test('preloads /cheer route chunks before nested lazy route rendering', () => {
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialCheerRoute = /^\\/cheer(?:\\/write)?\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;'));
+  assert.ok(appRoutesSource.includes("const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;"));
+  assert.ok(appRoutesSource.includes("const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;"));
+  assert.match(
+    appRoutesSource,
+    /if \(shouldPreloadInitialCheerRoute\) \{\s*void import\('\.\/CheerRuntime'\);\s*void import\('\.\/CheerComposerRuntime'\);\s*\}/,
+  );
+  assert.equal(appRoutesSource.includes("void import('./CheerFeedRuntimeContent');"), false);
+  assert.equal(appRoutesSource.includes('shouldPreloadInitialCheerSidebar'), false);
+  assert.equal(appRoutesSource.includes("void import('./CheerSidebarPanels');"), false);
+  assert.ok(appRoutesSource.includes("const AppQueryProvider = lazy(() => initialAppQueryProviderModulePromise ?? import('./AppQueryProvider'));"));
+  assert.ok(appRoutesSource.includes("const Cheer = lazy(() => initialCheerModulePromise ?? import('./Cheer'));"));
+  assert.match(
+    appRoutesSource,
+    /<Route path="\/cheer" element={<Cheer \/>} \/>/,
+  );
+  assert.match(
+    appRoutesSource,
+    /<Route path="\/cheer\/write" element={<Cheer openComposerOnMount \/>} \/>/,
+  );
+  const cheerFirstLoadGuard = bundleGuardSource.match(
+    /route: '\/cheer first-load',[\s\S]*?\n\s*},\n/,
+  )?.[0];
+  assert.ok(cheerFirstLoadGuard);
+  assert.ok(cheerFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"));
+  assert.equal(cheerFirstLoadGuard.includes("'src/components/CheerFeedRuntimeContent.tsx'"), false);
+  assert.equal(cheerFirstLoadGuard.includes("'src/components/CheerComposerRuntime.tsx'"), false);
+  assert.ok(cheerFirstLoadGuard.includes('maxJsGzipBytes: 155_000'));
+});
+
+test('loads the /cheer feed runtime after the composer can paint', () => {
+  assert.ok(cheerRuntimeSource.includes('const [shouldRenderFeedRuntime, setShouldRenderFeedRuntime] = useState(false);'));
+  assert.match(
+    cheerRuntimeSource,
+    /scheduleAfterNextPaint\(\(\) => \{\s*startTransition\(\(\) => setShouldRenderFeedRuntime\(true\)\);\s*\}\)/,
+  );
+  assert.match(
+    cheerRuntimeSource,
+    /shouldRenderFeedRuntime \? \([\s\S]*?<LazyCheerFeedRuntimeContent[\s\S]*?\) : \(<CheerFeedRuntimeFallback \/>\)/,
+  );
+});
+
+test('preloads /mate public route shells in parallel', () => {
+  assert.ok(appRoutesSource.includes("const shouldPreloadInitialMateRoute = /^\\/mate\\/?$/.test(initialPathname);"));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;'));
+  assert.ok(appRoutesSource.includes('const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;'));
+  assert.ok(appRoutesSource.includes("const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;"));
+  assert.ok(appRoutesSource.includes("const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));"));
+  assert.match(
+    appRoutesSource,
+    /<Route element={<Layout authenticated={false} \/>}>\s*<Route path="\/home" element={<Home \/>} \/>[\s\S]*?<Route path="\/mate" element={<MatePage \/>} \/>/,
+  );
+
+  const appQueryProviderRouteGroup = appRoutesSource.slice(
+    appRoutesSource.indexOf('<Route element={<AppQueryProvider />}>'),
+    appRoutesSource.indexOf('{import.meta.env.DEV'),
+  );
+  assert.equal(appQueryProviderRouteGroup.includes('<Route path="/mate" element={<MatePage />} />'), false);
+});
+
+test('loads React Query only for the authenticated /mate runtime', () => {
+  assert.ok(matePageSource.includes("const AppQueryProvider = lazy(() => import('./AppQueryProvider'));"));
+  assert.match(
+    matePageSource,
+    /<AppQueryProvider>\s*<MateRuntime \/>\s*<\/AppQueryProvider>/,
+  );
+  assert.match(
+    appQueryProviderSource,
+    /export default function AppQueryProvider\(\{ children \}: \{ children\?: ReactNode \}\)/,
+  );
+  assert.ok(appQueryProviderSource.includes('{children ?? <Outlet />}'));
+
+  const mateGuestFirstLoadGuard = bundleGuardSource.match(
+    /route: '\/mate',[\s\S]*?\n\s*},\n/,
+  )?.[0];
+  assert.ok(mateGuestFirstLoadGuard);
+  assert.ok(mateGuestFirstLoadGuard.includes("label: '/mate guest first-load static closure'"));
+  assert.ok(mateGuestFirstLoadGuard.includes('maxJsGzipBytes: 90_000'));
+  assert.equal(mateGuestFirstLoadGuard.includes("'src/components/AppQueryProvider.tsx'"), false);
+  assert.equal(mateGuestFirstLoadGuard.includes("'src/components/Mate.tsx'"), false);
+});
+
+test('keeps the /mate guest LCP heading on the zero-request font stack', () => {
+  assert.ok(tailwindConfigSource.includes("native: ['system-ui', '-apple-system', 'BlinkMacSystemFont', '\"Segoe UI\"', 'sans-serif']"));
+  assert.match(
+    matePageSource,
+    /<h1 className="text-2xl font-native font-black tracking-tight text-gray-900 dark:text-white sm:text-3xl">/,
+  );
+});
+
+test('reserves /cheer feed and sidebar space to prevent CLS', () => {
+  assert.ok(cheerFeedRuntimeContentSource.includes('className="min-h-[88svh]"'));
+  assert.equal(cheerFeedRuntimeContentSource.includes('lg:min-h-0'), false);
+  assert.ok(cheerFeedRuntimeContentSource.includes('className="relative flex min-h-[220px] items-center justify-center"'));
+  assert.ok(cheerSidebarPanelsSource.includes('className="min-h-[140px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card"'));
+  assert.ok(cheerSidebarPanelsSource.includes('className="min-h-[188px] rounded-2xl border border-border/70 bg-white p-4 dark:border-border dark:bg-card"'));
+});
+
+test('defers the below-fold cheer ad slot outside the feed static closure', () => {
+  assert.equal(cheerFeedRuntimeContentSource.includes("import AdSlot from './ads/AdSlot';"), false);
+  assert.ok(cheerFeedRuntimeContentSource.includes("const AdSlot = lazy(() => import('./ads/AdSlot'));"));
+  assert.ok(cheerFeedRuntimeContentSource.includes('<Suspense fallback={null}>'));
+});
+
+test('forbids the retired icon vendor chunk from production assets', () => {
+  const forbiddenChunkPrefixesSource = bundleGuardSource.match(
+    /const forbiddenChunkPrefixes = \[[\s\S]*?\];/,
+  )?.[0];
+  assert.ok(forbiddenChunkPrefixesSource);
+  assert.ok(forbiddenChunkPrefixesSource.includes("'vendor-icons-'"));
 });
 
 test('groups tiny /home first-load helpers to reduce pre-card request fanout', () => {
@@ -193,19 +511,13 @@ test('defers public home footer outside the first card critical path', () => {
   assert.ok(layoutSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
 });
 
-test('defers Pretendard font loading outside the /home first-card critical path', () => {
-  assert.ok(deferredPretendardFontSource.includes("const PRETENDARD_STYLESHEET_HREF = 'https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.css';"));
-  assert.ok(deferredPretendardFontSource.includes("const HOME_FIRST_CARD_READY_EVENT = 'bega:home-first-card-ready';"));
-  assert.ok(deferredPretendardFontSource.includes('const FONT_IDLE_TIMEOUT_MS = 3000;'));
-  assert.ok(deferredPretendardFontSource.includes('const HOME_FONT_FALLBACK_DELAY_MS = 5000;'));
-  assert.ok(deferredPretendardFontSource.includes('__begaHomeFirstCardReadyPathname'));
-  assert.ok(deferredPretendardFontSource.includes('const requestFontWhenReady = () => {'));
-  assert.ok(deferredPretendardFontSource.includes('const handleHomeFirstCardReady = () => {'));
-  assert.ok(deferredPretendardFontSource.includes('if (readyPathname !== pathname)'));
-  assert.ok(deferredPretendardFontSource.includes('window.addEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
-  assert.ok(deferredPretendardFontSource.includes('homeFallbackId = window.setTimeout(requestFontWhenReady, HOME_FONT_FALLBACK_DELAY_MS);'));
-  assert.ok(deferredPretendardFontSource.includes('window.removeEventListener(HOME_FIRST_CARD_READY_EVENT, handleHomeFirstCardReady);'));
-  assert.equal(deferredPretendardFontSource.includes("const delayMs = pathname === '/home' ? 1800 : 0;"), false);
+test('uses a zero-request system font stack on the app critical path', () => {
+  const systemFontStack = "['system-ui', '-apple-system', 'BlinkMacSystemFont', '\"Segoe UI\"', 'sans-serif']";
+  assert.ok(tailwindConfigSource.includes(`sans: ${systemFontStack}`));
+  assert.ok(tailwindConfigSource.includes(`native: ${systemFontStack}`));
+  assert.ok(indexCssSource.includes("font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;"));
+  assert.equal(appShellRuntimeSource.includes('DeferredPretendardFont'), false);
+  assert.equal(appShellRuntimeSource.includes('cdn.jsdelivr.net'), false);
 });
 
 test('keeps authenticated layout realtime and toaster internals out of the chrome shell', () => {
@@ -347,6 +659,9 @@ test('defers home match error UI outside the successful first-card static path',
   assert.equal(homeMatchPanelSource.includes('HOME_MATCH_REFRESH_ICON_CLASS'), false);
   assert.ok(homeMatchPanelSource.includes('경기 상태를 확인하고 있습니다.'));
   assert.ok(homeMatchPanelErrorStateSource.includes('HOME_MATCH_ERROR_PANEL_CLASS'));
+  assert.ok(homeMatchPanelErrorStateSource.includes('HOME_MATCH_ERROR_DESCRIPTION_CLASS'));
+  assert.ok(homeMatchPanelErrorStateSource.includes('text-sm font-semibold leading-5'));
+  assert.equal(homeMatchPanelErrorStateSource.includes('text-body font-bold mb-4'), false);
   assert.ok(homeMatchPanelErrorStateSource.includes('HOME_MATCH_RETRY_BUTTON_CLASS'));
   assert.ok(homeMatchPanelErrorStateSource.includes('다시 시도'));
   assert.ok(bundleGuardSource.includes("'HomeMatchPanelErrorState-'"));
@@ -428,6 +743,22 @@ test('defers home load telemetry formatting outside the first-card critical path
   assert.ok(homeLoadTelemetrySource.includes('home_load_completed'));
   assert.ok(homeLoadTelemetrySource.includes('home_load_manual_data_required'));
   assert.ok(bundleGuardSource.includes("'homeLoadTelemetry-'"));
+});
+
+test('defers Core Web Vitals RUM outside the initial app entry', () => {
+  assert.ok(mainEntrySource.includes("void import('./utils/coreWebVitalsTelemetry')"));
+  assert.equal(mainEntrySource.includes("import { startCoreWebVitalsTelemetry }"), false);
+  assert.ok(mainEntrySource.includes('if (import.meta.env.PROD)'));
+  assert.ok(coreWebVitalsTelemetrySource.includes("from 'web-vitals'"));
+  assert.ok(coreWebVitalsTelemetrySource.includes('onLCP'));
+  assert.ok(coreWebVitalsTelemetrySource.includes('onCLS'));
+  assert.ok(coreWebVitalsTelemetrySource.includes('onINP'));
+  assert.equal(coreWebVitalsTelemetrySource.includes('new PerformanceObserver'), false);
+  assert.ok(coreWebVitalsTelemetrySource.includes("cwv_lcp"));
+  assert.ok(coreWebVitalsTelemetrySource.includes("cwv_cls"));
+  assert.ok(coreWebVitalsTelemetrySource.includes("cwv_inp"));
+  assert.ok(coreWebVitalsTelemetrySource.includes("normalizeCwvPath"));
+  assert.ok(bundleGuardSource.includes("'coreWebVitalsTelemetry-'"));
 });
 
 test('keeps public shell icon bundle out of the /home first-card path', () => {

@@ -35,7 +35,7 @@ type AdminReportRecord = {
 
 type SeatViewRecord = {
     id: number;
-    diaryId: number;
+    diaryId: number | null;
     userId: number;
     photoUrl: string;
     storagePath: string;
@@ -58,6 +58,9 @@ type SeatViewRecord = {
     diaryDate: string | null;
     ticketVerified: boolean;
     ticketVerifiedAt: string | null;
+    rating: number | null;
+    comment: string | null;
+    tags: string[];
 };
 
 type GameStatusMismatchRecord = {
@@ -488,11 +491,11 @@ describe('Admin page coverage', () => {
         seatViews = [
             {
                 id: 701,
-                diaryId: 41,
+                diaryId: null,
                 userId: 11,
                 photoUrl: '/seat-view-701.png',
                 storagePath: 'seat-view-701',
-                sourceType: 'DIARY_UPLOAD',
+                sourceType: 'SEATMAP_UPLOAD',
                 aiSuggestedLabel: 'SEAT_VIEW',
                 aiConfidence: 0.93,
                 aiReason: '전면 시야가 분명합니다.',
@@ -509,8 +512,11 @@ describe('Admin page coverage', () => {
                 seatRow: '5열',
                 seatNumber: '12번',
                 diaryDate: '2026-03-19',
-                ticketVerified: true,
-                ticketVerifiedAt: '2026-03-19T10:00:00Z',
+                ticketVerified: false,
+                ticketVerifiedAt: null,
+                rating: 5,
+                comment: '전광판과 내야가 잘 보여요',
+                tags: ['전광판 잘 보임', '탁 트임'],
             },
         ];
 
@@ -1525,6 +1531,15 @@ describe('Admin page coverage', () => {
         cy.getBySel('admin-seat-view-detail-701').click({ force: true });
         cy.wait('@getAdminSeatViewDetail');
         cy.contains('Seat View #701').should('exist');
+        cy.getBySel('admin-seat-view-detail-drawer')
+            .should('contain', 'SEATMAP_UPLOAD')
+            .and('contain', '잠실')
+            .and('contain', '1루 / 101 / 5열 / 12번');
+        cy.getBySel('admin-seat-view-submission-details')
+            .should('contain', '5점')
+            .and('contain', '전광판과 내야가 잘 보여요')
+            .and('contain', '전광판 잘 보임')
+            .and('contain', '탁 트임');
         cy.get('textarea[placeholder="분류 근거를 입력하세요."]').type('관리자 승인');
         cy.getBySel('admin-seat-view-approve-701').click({ force: true });
 
@@ -1586,9 +1601,9 @@ describe('Admin page coverage', () => {
         selectOption('admin-place-category-trigger', '음식점');
         visibleDialog().within(() => {
             cy.get('input[placeholder="도로명 주소"]').type('대전 중구 중앙로 10');
-            cy.get('input[placeholder="02-1234-5678"]').type('042-555-1234');
-            cy.get('input[placeholder="37.123456"]').clear().type('36.3201');
-            cy.get('input[placeholder="126.987654"]').clear().type('127.4301');
+            cy.get('input[placeholder="대표 전화번호"]').type('042-555-1234');
+            cy.get('input[placeholder="37.5121"]').clear().type('36.3201');
+            cy.get('input[placeholder="127.0719"]').clear().type('127.4301');
             cy.contains('button', '추가').click();
         });
 

@@ -9,6 +9,10 @@ import {
   PredictionCheckCircleIcon,
   PredictionLoaderIcon,
 } from './PredictionShellIcons';
+import {
+  PREDICTION_SOFT_CHIP_CLASS,
+  PREDICTION_SURFACE_CARD_CLASS,
+} from './predictionUiTokens';
 
 type PredictionVotePanelProps = {
   game: Game;
@@ -43,6 +47,9 @@ export default function PredictionVotePanel({
     : undefined;
   const totalVotes = votePercentages.totalVotes;
   const shouldRenderDisabledVote = !isVoteOpen && isPostponedOrCancelled;
+  const votePanelTitleId = 'prediction-vote-panel-title';
+  const votePanelHelperId = 'prediction-vote-panel-helper';
+  const votePanelParticipantsId = 'prediction-vote-panel-participants';
 
   const voteOptions: Array<{
     team: VoteTeam;
@@ -66,6 +73,7 @@ export default function PredictionVotePanel({
       color: homeColor,
     },
   ];
+  const selectedVoteOption = voteOptions.find((option) => option.team === userVote);
 
   if (!isVoteOpen && !shouldRenderDisabledVote) {
     return null;
@@ -73,21 +81,26 @@ export default function PredictionVotePanel({
 
   return (
     <section
-      className="mt-4 rounded-2xl border border-slate-200/80 bg-white/95 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-950/70 sm:p-4"
+      className={`${PREDICTION_SURFACE_CARD_CLASS} mt-4 rounded-2xl p-3 sm:p-4`}
       data-testid="prediction-vote-panel"
-      aria-label="승리 팀 예측"
+      aria-labelledby={votePanelTitleId}
+      aria-describedby={`${votePanelHelperId} ${votePanelParticipantsId}`}
     >
       <div className="mb-3 flex flex-col gap-1.5 sm:mb-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h3 className="text-16 font-black text-slate-950 dark:text-white">승리 팀 예측</h3>
+          <h3 id={votePanelTitleId} className="text-16 font-black tracking-normal text-slate-950 dark:text-white">승리 팀 예측</h3>
           <p className="mt-1 text-body font-semibold text-slate-700 dark:text-white/80">
             승리할 것으로 예상하는 팀을 선택해 주세요.
           </p>
-          <p className="mt-0.5 text-12 font-medium text-slate-500 dark:text-white/55">
+          <p id={votePanelHelperId} className="mt-0.5 text-12 font-medium text-slate-500 dark:text-white/55">
             경기 시작 전까지 변경할 수 있어요.
           </p>
         </div>
-        <span className="w-fit rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-12 font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-white/65">
+        <span
+          id={votePanelParticipantsId}
+          data-testid="prediction-vote-participants"
+          className={`${PREDICTION_SOFT_CHIP_CLASS} w-fit rounded-full px-2.5 py-1 text-12 font-extrabold`}
+        >
           참여 {totalVotes.toLocaleString()}명
         </span>
       </div>
@@ -96,6 +109,9 @@ export default function PredictionVotePanel({
         {voteOptions.map(({ team, teamCode, teamName, sideLabel, color }, index) => {
           const isSelected = userVote === team;
           const buttonLabel = isVoteActionLocked ? '처리 중...' : isSelected ? '선택됨' : '선택';
+          const buttonAriaLabel = isSelected
+            ? `${teamName} 승리 예측 선택됨, 다시 누르면 예측 취소`
+            : `${teamName} 승리 예측`;
           const buttonStyle = {
             borderColor: isSelected
               ? color
@@ -103,13 +119,11 @@ export default function PredictionVotePanel({
                 ? 'rgba(51, 65, 85, 0.95)'
                 : 'rgba(226, 232, 240, 0.95)',
             background: isSelected
-              ? isDarkMode
-                ? `linear-gradient(180deg, ${color}18 0%, rgba(15, 23, 42, 0.92) 100%)`
-                : `linear-gradient(180deg, ${color}10 0%, rgba(255, 255, 255, 0.98) 100%)`
+              ? color
               : isDarkMode
                 ? 'rgba(15, 23, 42, 0.82)'
                 : 'rgba(255, 255, 255, 0.96)',
-            boxShadow: isSelected ? `0 0 0 1px ${color}33` : undefined,
+            boxShadow: isSelected ? `0 0 0 1px ${color}33, 0 14px 32px -18px ${color}` : undefined,
           } satisfies CSSProperties;
 
           return (
@@ -124,11 +138,12 @@ export default function PredictionVotePanel({
               {shouldRenderDisabledVote ? (
                 <Button
                   disabled
+                  aria-label={`${teamName} 승리 예측 불가`}
                   data-testid={team === 'away' ? 'vote-disabled-away-btn' : 'vote-disabled-home-btn'}
                   variant="outline"
-                  className="h-auto min-h-[96px] w-full items-center justify-between gap-3 whitespace-normal rounded-xl border border-slate-200 bg-slate-100 px-3.5 py-3 text-left text-slate-500 dark:border-slate-700 dark:bg-slate-900/80 dark:text-white"
+                  className="h-auto min-h-[104px] w-full items-center justify-between gap-3 whitespace-normal rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3.5 text-left text-slate-500 dark:border-slate-700 dark:bg-slate-950/70 dark:text-white"
                 >
-                  <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex min-w-0 flex-1 items-center gap-3">
                     <TeamLogo team={teamCode} size={36} className="h-9 w-9 shrink-0" />
                     <span className="min-w-0">
                       <span className="mb-1 inline-flex rounded-full border border-slate-200 bg-white px-2 py-0.5 text-11 font-black tracking-[0.08em] text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-white/55">
@@ -148,34 +163,44 @@ export default function PredictionVotePanel({
                   onClick={() => onVote(team)}
                   disabled={isVoteActionLocked}
                   aria-pressed={isSelected}
-                  aria-label={`${teamName} 승리 예측`}
+                  aria-label={buttonAriaLabel}
                   title={voteButtonTitle}
                   data-testid={team === 'away' ? 'prediction-vote-away-btn' : 'vote-home-btn'}
                   className={[
-                    'h-auto min-h-[96px] w-full items-center justify-between gap-3 whitespace-normal rounded-xl border px-3.5 py-3 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform]',
+                    'h-auto min-h-[104px] w-full items-center justify-between gap-3 whitespace-normal rounded-2xl border bg-white/95 px-4 py-3.5 text-left shadow-sm transition-[background-color,border-color,box-shadow,transform]',
                     'duration-200 ease-out motion-reduce:transition-none',
-                    isSelected ? 'scale-[1.01] shadow-md motion-reduce:scale-100' : 'hover:-translate-y-0.5 hover:bg-slate-50',
-                    'active:scale-[0.99] dark:hover:bg-slate-900/80',
+                    isSelected ? 'scale-[1.01] text-white shadow-md motion-reduce:scale-100' : 'hover:-translate-y-0.5 hover:bg-slate-50',
+                    'active:scale-[0.99] dark:bg-slate-950/70 dark:hover:bg-slate-900/80',
                     'disabled:cursor-not-allowed disabled:active:scale-100 disabled:opacity-80 disabled:hover:translate-y-0',
                   ].join(' ')}
                   style={buttonStyle}
                 >
-                  <span className="flex min-w-0 items-center gap-3">
+                  <span className="flex min-w-0 flex-1 items-center gap-3">
                     <TeamLogo team={teamCode} size={38} className="h-9 w-9 shrink-0 sm:h-10 sm:w-10" />
                     <span className="min-w-0">
-                      <span className="mb-1 inline-flex rounded-full border border-slate-200 bg-white/80 px-2 py-0.5 text-11 font-black tracking-[0.08em] text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-white/55">
+                      <span className={`mb-1 inline-flex rounded-full border px-2 py-0.5 text-11 font-black tracking-[0.08em] ${
+                        isSelected
+                          ? 'border-white/50 bg-white/20 text-white'
+                          : 'border-slate-200 bg-white/80 text-slate-500 dark:border-slate-700 dark:bg-slate-950/60 dark:text-white/55'
+                      }`}>
                         {sideLabel}
                       </span>
-                      <span className="block truncate text-18 font-black text-slate-950 dark:text-white">
+                      <span className={`block truncate text-18 font-black ${
+                        isSelected ? 'text-white' : 'text-slate-950 dark:text-white'
+                      }`}>
                         {teamName}
                       </span>
                     </span>
                   </span>
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-12 font-black text-slate-700 dark:border-slate-700 dark:bg-slate-950/60 dark:text-white">
+                  <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-12 font-black ${
+                    isSelected
+                      ? 'border-white/50 bg-white/20 text-white'
+                      : 'border-slate-200 bg-slate-50 text-slate-700 dark:border-slate-700 dark:bg-slate-950/60 dark:text-white'
+                  }`}>
                     {isSelected ? (
                       <PredictionCheckCircleIcon
                         className="h-3.5 w-3.5 animate-score-pop motion-reduce:animate-none"
-                        style={{ color }}
+                        style={{ color: '#ffffff' }}
                         aria-hidden
                       />
                     ) : null}
@@ -202,7 +227,9 @@ export default function PredictionVotePanel({
         <div className="mt-2 flex justify-end">
           <button
             type="button"
-            className="text-12 font-bold text-slate-500 underline-offset-4 hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-white/60 dark:hover:text-white"
+            data-testid="prediction-vote-cancel-btn"
+            aria-label={`${selectedVoteOption?.teamName ?? '선택한 팀'} 승리 예측 취소`}
+            className="min-h-10 rounded-full px-2.5 text-12 font-bold text-slate-500 underline-offset-4 hover:bg-slate-100 hover:text-slate-900 hover:underline disabled:cursor-not-allowed disabled:opacity-50 dark:text-white/60 dark:hover:bg-slate-900/80 dark:hover:text-white"
             onClick={() => onVote(userVote)}
             disabled={isVoteActionLocked}
           >

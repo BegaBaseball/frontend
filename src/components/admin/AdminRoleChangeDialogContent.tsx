@@ -55,7 +55,7 @@ export default function AdminRoleChangeDialogContent({
             <AdminBadge
               className={
                 pendingRoleChange?.targetRole === 'ROLE_ADMIN'
-                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0'
+                  ? 'bg-amber-500/20 text-amber-200 border-0'
                   : 'bg-slate-700 text-slate-300 border-0'
               }
             >
@@ -79,8 +79,8 @@ export default function AdminRoleChangeDialogContent({
             data-testid="admin-role-change-confirm"
             className={
               pendingRoleChange?.targetRole === 'ROLE_ADMIN'
-                ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0 hover:from-amber-600 hover:to-orange-600 shadow-lg shadow-amber-500/25'
-                : 'bg-gradient-to-r from-slate-600 to-slate-700 text-white border-0 hover:from-slate-500 hover:to-slate-600'
+                ? 'bg-amber-500 text-slate-950 border-0 shadow-sm hover:bg-amber-400'
+                : 'bg-slate-700 text-slate-100 border-0 hover:bg-slate-600'
             }
             onClick={onConfirm}
           >

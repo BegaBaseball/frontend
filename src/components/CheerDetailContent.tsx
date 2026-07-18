@@ -140,13 +140,13 @@ export default function CheerDetailContent({
                 {[1, 2].map((item) => (
                     <div
                         key={item}
-                        className="flex animate-pulse gap-2.5 rounded-2xl border border-slate-200 bg-white/80 p-2.5 dark:border-white/10 dark:bg-slate-900/70"
+                        className="flex animate-skeleton-pulse gap-2.5 rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-2.5"
                     >
-                        <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-800" />
+                        <div className="h-8 w-8 rounded-full bg-[var(--cheer-chip-bg)]" />
                         <div className="flex-1 space-y-1.5">
-                            <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
-                            <div className="h-3.5 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                            <div className="h-3.5 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+                            <div className="h-3 w-24 rounded bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-3.5 w-full rounded bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-3.5 w-5/6 rounded bg-[var(--cheer-chip-bg)]" />
                         </div>
                     </div>
                 ))}
@@ -155,48 +155,48 @@ export default function CheerDetailContent({
     );
     const articleFallback = (
         <article
-            className="relative mt-4 overflow-hidden rounded-3xl border bg-white font-sans shadow-lg dark:bg-slate-950"
+            className="relative mt-4 overflow-hidden rounded-3xl border bg-[var(--cheer-card-bg)] font-sans shadow-lg"
             style={primaryBorderStyle}
             aria-busy="true"
             aria-label="응원 상세 불러오는 중"
         >
             <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: detailAccent }} />
             <div className="relative space-y-4 px-4 py-4 sm:px-5 sm:py-5 lg:px-6 lg:py-6">
-                <div className="flex animate-pulse items-start justify-between gap-4">
+                <div className="flex animate-skeleton-pulse items-start justify-between gap-4">
                     <div className="min-w-0 flex-1 space-y-3">
                         <div className="flex flex-wrap items-center gap-2">
-                            <div className="h-8 w-8 rounded-full bg-slate-200 dark:bg-slate-800" />
-                            <div className="h-7 w-24 rounded-full bg-slate-200 dark:bg-slate-800" />
-                            <div className="h-7 w-16 rounded-full bg-slate-200 dark:bg-slate-800" />
+                            <div className="h-8 w-8 rounded-full bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-7 w-24 rounded-full bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-7 w-16 rounded-full bg-[var(--cheer-chip-bg)]" />
                         </div>
                         <div className="flex items-start gap-3">
-                            <div className="h-12 w-12 rounded-full bg-slate-200 dark:bg-slate-800" />
+                            <div className="h-12 w-12 rounded-full bg-[var(--cheer-chip-bg)]" />
                             <div className="min-w-0 flex-1 space-y-2">
-                                <div className="h-4 w-28 rounded bg-slate-200 dark:bg-slate-800" />
-                                <div className="h-3 w-48 rounded bg-slate-200 dark:bg-slate-800" />
+                                <div className="h-4 w-28 rounded bg-[var(--cheer-chip-bg)]" />
+                                <div className="h-3 w-48 rounded bg-[var(--cheer-chip-bg)]" />
                             </div>
                         </div>
                     </div>
-                    <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800" />
+                    <div className="h-9 w-9 rounded-full bg-[var(--cheer-chip-bg)]" />
                 </div>
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
-                    <div className="rounded-22 border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5" style={primaryBorderStyle}>
-                        <div className="animate-pulse space-y-3">
-                            <div className="h-4 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
-                            <div className="h-4 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                            <div className="h-4 w-4/5 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="rounded-22 border bg-[var(--cheer-sub-card)] p-4 shadow-sm backdrop-blur-sm sm:p-5" style={primaryBorderStyle}>
+                        <div className="animate-skeleton-pulse space-y-3">
+                            <div className="h-4 w-5/6 rounded bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-4 w-full rounded bg-[var(--cheer-chip-bg)]" />
+                            <div className="h-4 w-4/5 rounded bg-[var(--cheer-chip-bg)]" />
                             <div className="mt-4 grid grid-cols-4 gap-2">
                                 {[1, 2, 3, 4].map((item) => (
-                                    <div key={item} className="h-10 rounded-full bg-slate-200 dark:bg-slate-800" />
+                                    <div key={item} className="h-10 rounded-full bg-[var(--cheer-chip-bg)]" />
                                 ))}
                             </div>
                         </div>
                     </div>
-                    <div className="rounded-2xl border bg-white/85 p-2.5 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80" style={primaryBorderStyle}>
-                        <div className="animate-pulse space-y-2">
-                            <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-800" />
+                    <div className="rounded-2xl border bg-[var(--cheer-sub-card)] p-2.5 shadow-sm backdrop-blur-sm" style={primaryBorderStyle}>
+                        <div className="animate-skeleton-pulse space-y-2">
+                            <div className="h-4 w-24 rounded bg-[var(--cheer-chip-bg)]" />
                             {[1, 2, 3].map((item) => (
-                                <div key={item} className="h-[44px] rounded-xl bg-slate-200 dark:bg-slate-800" />
+                                <div key={item} className="h-[44px] rounded-xl bg-[var(--cheer-chip-bg)]" />
                             ))}
                         </div>
                     </div>

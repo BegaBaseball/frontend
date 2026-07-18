@@ -68,7 +68,6 @@ function Stack({ className, gap = "md", ...props }: StackProps) {
 }
 
 interface SectionHeaderProps extends Omit<React.ComponentProps<"header">, "title"> {
-  eyebrow?: React.ReactNode;
   title: React.ReactNode;
   description?: React.ReactNode;
   align?: Align;
@@ -77,7 +76,6 @@ interface SectionHeaderProps extends Omit<React.ComponentProps<"header">, "title
 
 function SectionHeader({
   className,
-  eyebrow,
   title,
   description,
   align = "center",
@@ -91,7 +89,6 @@ function SectionHeader({
       {...props}
     >
       <Stack gap="sm" className={cn(align === "center" && "items-center", align === "start" && "items-start")}>
-        {eyebrow ? <span className="ds-kicker">{eyebrow}</span> : null}
         <TextBlock measure={measure} align={align}>
           <h2 className="ds-section-title">{title}</h2>
           {description ? <p className="ds-section-copy">{description}</p> : null}

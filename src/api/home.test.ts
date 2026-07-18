@@ -23,6 +23,38 @@ const buildJsonResponse = (body: unknown, status = 200) =>
     status,
   });
 
+const availableCheckin = {
+  kind: 'CHECKIN',
+  available: true,
+  unavailableReason: null,
+  checkin: {
+    gameDate: '2026-04-14',
+    homeTeam: 'LG',
+    awayTeam: 'HH',
+    cheeringTeam: 'LG',
+    stadium: '잠실',
+    verified: true,
+  },
+  recruitment: null,
+};
+
+const availableRecruitment = {
+  kind: 'RECRUITMENT',
+  available: true,
+  unavailableReason: null,
+  checkin: null,
+  recruitment: {
+    partyId: 29,
+    gameDate: '2026-04-14',
+    homeTeam: 'LG',
+    awayTeam: 'HH',
+    stadium: '잠실',
+    currentParticipants: 2,
+    maxParticipants: 4,
+    recruiting: true,
+  },
+};
+
 test('fetchHomeBootstrap은 공개 홈 부트스트랩 요청으로 same-origin fetch를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
@@ -259,6 +291,112 @@ test('fetchHomeWidgets는 rankingSnapshot 누락 응답을 거부한다', async 
   );
 });
 
+test('fetchHomeWidgets preserves CHECKIN and RECRUITMENT linked content on top-level and embedded hot posts', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    hotCheerPosts: [
+      {
+        id: 30,
+        teamId: 'LG',
+        content: 'hot checkin',
+        author: 'Checkin User',
+        authorHandle: '@checkin',
+        createdAt: '2026-04-14T00:00:00Z',
+        comments: 0,
+        likes: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: true,
+        postType: 'CHECKIN',
+        linkedContent: availableCheckin,
+        imageUrls: [],
+        originalPost: {
+          id: 31,
+          teamId: 'LG',
+          content: 'embedded recruitment',
+          author: 'Recruitment User',
+          authorHandle: '@recruitment',
+          createdAt: '2026-04-14T00:00:00Z',
+          imageUrls: [],
+          deleted: false,
+          postType: 'RECRUITMENT',
+          linkedContent: availableRecruitment,
+        },
+      },
+      {
+        id: 32,
+        teamId: 'LG',
+        content: 'hot recruitment',
+        author: 'Recruitment User',
+        authorHandle: '@recruitment',
+        createdAt: '2026-04-14T00:00:00Z',
+        comments: 0,
+        likes: 0,
+        bookmarkCount: 0,
+        repostCount: 0,
+        views: 0,
+        liked: false,
+        isBookmarked: false,
+        isOwner: false,
+        repostedByMe: false,
+        isHot: true,
+        postType: 'RECRUITMENT',
+        linkedContent: availableRecruitment,
+        imageUrls: [],
+      },
+    ],
+    featuredMates: [],
+    rankingSnapshot: {
+      rankingSeasonYear: 2025,
+      rankingSourceMessage: '2025 시즌 순위 데이터',
+      isOffSeason: true,
+      rankings: [],
+    },
+  }));
+
+  const response = await fetchHomeWidgets(new Date('2026-04-14T12:00:00'));
+
+  assert.equal(response.hotCheerPosts[0]?.postType, 'CHECKIN');
+  assert.deepEqual(response.hotCheerPosts[0]?.linkedContent, availableCheckin);
+  assert.equal(response.hotCheerPosts[0]?.originalPost?.postType, 'RECRUITMENT');
+  assert.deepEqual(response.hotCheerPosts[0]?.originalPost?.linkedContent, availableRecruitment);
+  assert.equal(response.hotCheerPosts[1]?.postType, 'RECRUITMENT');
+  assert.deepEqual(response.hotCheerPosts[1]?.linkedContent, availableRecruitment);
+});
+
+test('fetchHomeWidgets rejects an unknown present hot-post type', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    hotCheerPosts: [{
+      id: 40,
+      teamId: 'LG',
+      content: 'future',
+      author: 'Future User',
+      authorHandle: '@future',
+      createdAt: '2026-04-14T00:00:00Z',
+      comments: 0,
+      likes: 0,
+      postType: 'FUTURE_TYPE',
+      imageUrls: [],
+    }],
+    featuredMates: [],
+    rankingSnapshot: {
+      rankingSeasonYear: 2025,
+      rankingSourceMessage: '2025 시즌 순위 데이터',
+      isOffSeason: true,
+      rankings: [],
+    },
+  }));
+
+  await assert.rejects(
+    () => fetchHomeWidgets(new Date('2026-04-14T12:00:00')),
+    /UNKNOWN_CHEER_POST_TYPE:FUTURE_TYPE/,
+  );
+});
+
 test('fetchHomeScopedNavigation은 scoped navigation 요청으로 same-origin fetch를 사용한다', async (t) => {
   let requestUrl = '';
   let requestInit: RequestInit | undefined;
@@ -352,6 +490,20 @@ test('fetchGamesData는 kbo schedule wire 응답을 home Game으로 정규화한
   assert.equal(response[0]?.gameInfo, '롯데 vs 한화');
   assert.equal(response[0]?.homeTeamFull, '한화 이글스');
   assert.match(requestUrl, /\/api\/kbo\/schedule\?date=2026-04-02$/);
+});
+
+test('fetchGamesData는 일정 요청 실패를 빈 경기 목록으로 숨기지 않는다', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => buildJsonResponse({
+    code: 'BASEBALL_DATA_SYNC_PENDING',
+    message: 'sync pending',
+  }, 503));
+
+  await assert.rejects(
+    () => fetchGamesData(new Date('2026-03-13T12:00:00')),
+    (error: unknown) => error instanceof PublicApiError
+      && error.status === 503
+      && error.data?.code === 'BASEBALL_DATA_SYNC_PENDING',
+  );
 });
 
 test('fetchGamesRangeData는 경기 월 범위를 matches/range 단일 요청으로 조회한다', async (t) => {

@@ -80,22 +80,12 @@ const markerIconSizeClass: Record<StatusBadgeSize, string> = {
   md: 'h-[13px] w-[13px]',
 };
 
-const markerIconPath: Record<Exclude<StatusBadgeMarker, 'dot'>, ReactNode> = {
-  check: <path d="M20 6 9 17l-5-5" />,
-  x: (
-    <>
-      <path d="M18 6 6 18" />
-      <path d="m6 6 12 12" />
-    </>
-  ),
-  arrow: (
-    <>
-      <path d="M7 7h10v10" />
-      <path d="M7 17 17 7" />
-    </>
-  ),
-  diamond: <path d="M12 4 20 12 12 20 4 12Z" />,
-  dash: <path d="M5 12h14" />,
+const markerGlyph: Record<Exclude<StatusBadgeMarker, 'dot'>, string> = {
+  check: '✓',
+  x: '×',
+  arrow: '↗',
+  diamond: '◆',
+  dash: '-',
 };
 
 export function StatusBadge({
@@ -154,22 +144,16 @@ export function StatusBadge({
           <span className={cn('rounded-full bg-current shadow-none', lineVariant ? 'h-2 w-2' : dotSizeClass[size])} />
         ) : (
           <span className="relative z-10 grid h-full w-full place-items-center leading-none">
-            <svg
+            <span
               aria-hidden="true"
               className={cn(
-                'block',
+                'grid place-items-center font-black leading-none',
                 markerIconSizeClass[size],
+                marker === 'diamond' ? 'text-[8px]' : null,
               )}
-              fill={marker === 'diamond' ? 'currentColor' : 'none'}
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={marker === 'diamond' ? 0 : marker === 'check' ? 3.1 : 3}
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
             >
-              {markerIconPath[marker]}
-            </svg>
+              {markerGlyph[marker]}
+            </span>
           </span>
         )}
       </span>

@@ -110,7 +110,7 @@ export default function ReportModal({ postId, isOpen, onClose }: ReportModalProp
                     <label htmlFor="sourceUrl" className="text-body font-semibold text-gray-700 dark:text-white">원문 URL (선택)</label>
                     <Textarea
                         id="sourceUrl"
-                        placeholder="https://example.com/original"
+                        placeholder="원문 URL을 붙여넣으세요"
                         value={sourceUrl}
                         onChange={(e) => setSourceUrl(e.target.value)}
                     />

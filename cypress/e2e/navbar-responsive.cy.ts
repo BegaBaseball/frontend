@@ -147,7 +147,7 @@ const waitForNavbarReady = ({ authenticated }: { authenticated: boolean }) => {
     .should('be.visible');
 };
 
-const hasKnownNavbarLoadingShell = ($body: JQuery<HTMLBodyElement>) => (
+const hasKnownNavbarLoadingShell = ($body: JQuery<HTMLElement>) => (
   ($body[0].textContent || '').includes('페이지를 준비하고 있습니다.')
   || [...$body[0].querySelectorAll('div')].some((element) => (
     element.classList.contains('h-16')
@@ -158,23 +158,25 @@ const hasKnownNavbarLoadingShell = ($body: JQuery<HTMLBodyElement>) => (
 
 const waitForNavbarCapsuleOrLoadingShell = (
   startedAt = Date.now(),
-) => (
-  cy.get('body').then(($body) => {
+): Cypress.Chainable<JQuery<HTMLElement>> => (
+  cy.get('body').then(($body: JQuery<HTMLElement>) => {
     if ($body.find('[data-testid="navbar-capsule"]').length > 0) {
-      return $body;
+      return cy.wrap($body, { log: false });
     }
 
     const hasLoadingShell = hasKnownNavbarLoadingShell($body);
     const elapsedMs = Date.now() - startedAt;
     if (hasLoadingShell && elapsedMs >= NAVBAR_MODULE_PREWARM_TIMEOUT_MS) {
-      return $body;
+      return cy.wrap($body, { log: false });
     }
 
     if (elapsedMs >= NAVBAR_MODULE_PREWARM_TIMEOUT_MS) {
-      return $body;
+      return cy.wrap($body, { log: false });
     }
 
-    return cy.wait(NAVBAR_PREWARM_POLL_MS).then(() => waitForNavbarCapsuleOrLoadingShell(startedAt));
+    return cy.wait(NAVBAR_PREWARM_POLL_MS).then(
+      (): Cypress.Chainable<JQuery<HTMLElement>> => waitForNavbarCapsuleOrLoadingShell(startedAt)
+    );
   })
 );
 

@@ -322,11 +322,6 @@ export const useProfileEdit = ({
     }));
   };
 
-  const handleFavoriteTeamChange = (team: string) => {
-    setEditingFavoriteTeamState(normalizeFavoriteTeam(team));
-    setSaveMessage(null);
-  };
-
   // ========== Image Upload Handler ==========
   const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -447,7 +442,6 @@ export const useProfileEdit = ({
     email,
     setEmail,
     editingFavoriteTeam,
-    setEditingFavoriteTeam: handleFavoriteTeamChange,
     bio,
     setBio: handleBioChange,
     nicknameCheckState,

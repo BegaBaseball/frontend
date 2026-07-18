@@ -1,4 +1,4 @@
-import { MateLoaderIcon } from './MateIcons';
+import { MateCreateLoaderIcon as MateLoaderIcon } from './icons/MateCreateIcons';
 import TeamLogo from './TeamLogo';
 import { Button } from './ui/button';
 import { Input } from './ui/input';

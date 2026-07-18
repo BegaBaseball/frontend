@@ -17,12 +17,13 @@ import { getApiErrorMessage } from '../../utils/errorUtils';
 import { useAuthAccessActions } from '../../store/authStore';
 import VerificationRequiredDialog from '../VerificationRequiredDialog';
 import { Button } from '../ui/button';
+import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 import {
   MyPageClockIcon,
   MyPageLaptopIcon,
   MyPageShieldAlertIcon,
   MyPageSmartphoneIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface AccountSettingsSecurityRuntimeProps {
   userProvider?: string;
@@ -262,10 +263,18 @@ export default function AccountSettingsSecurityRuntime({
         {isSessionLoading ? (
           <p className="text-body text-muted-foreground">기기 정보를 불러오는 중입니다.</p>
         ) : isSessionError ? (
-          <p className="text-body text-destructive">
-            기기 정보를 불러오지 못했습니다. 다시 시도해 주세요.
-            {sessionError instanceof Error ? ` (${sessionError.message})` : ''}
-          </p>
+          <MyPageSeasonEmptyState
+            className="mypage-season-empty--flush"
+            tone="danger"
+            icon={<MyPageShieldAlertIcon className="h-5 w-5" />}
+            title="기기 정보를 불러오지 못했습니다."
+            description={(
+              <>
+                다시 시도해 주세요.
+                {sessionError instanceof Error ? ` (${sessionError.message})` : ''}
+              </>
+            )}
+          />
         ) : sortedDeviceSessions.length > 0 ? (
           <div className="space-y-3">
             {sortedDeviceSessions.map((session) => (
@@ -351,7 +360,12 @@ export default function AccountSettingsSecurityRuntime({
             )}
           </div>
         ) : (
-          <p className="text-body text-muted-foreground">기기 정보가 없습니다.</p>
+          <MyPageSeasonEmptyState
+            className="mypage-season-empty--flush"
+            icon={<MyPageLaptopIcon className="h-5 w-5" />}
+            title="기기 정보가 없습니다."
+            description="로그인 세션이 확인되면 현재 기기와 다른 기기 목록이 여기에 표시됩니다."
+          />
         )}
       </section>
 
@@ -391,9 +405,12 @@ export default function AccountSettingsSecurityRuntime({
             })}
           </div>
         ) : (
-          <p className="text-body text-muted-foreground">
-            아직 보안 활동 기록이 없습니다. 새 기기 로그인, 계정 연동 변경, 세션 정리 내역이 여기에 표시됩니다.
-          </p>
+          <MyPageSeasonEmptyState
+            className="mypage-season-empty--flush"
+            icon={<MyPageClockIcon className="h-5 w-5" />}
+            title="아직 보안 활동 기록이 없습니다."
+            description="새 기기 로그인, 계정 연동 변경, 세션 정리 내역이 여기에 표시됩니다."
+          />
         )}
       </section>
 

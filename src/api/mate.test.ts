@@ -4,6 +4,7 @@ import test from 'node:test';
 import { PrivateApiError } from './privateClient';
 import {
   fetchMatePartiesPage,
+  fetchMatePaymentCapability,
   fetchMyPartyHistoryPage,
   fetchPopularMateSearchTerms,
   fetchPartyById,
@@ -41,6 +42,33 @@ test('fetchPartyMyApplication은 404를 null로 정규화하고 전용 endpoint�
 
   assert.equal(response, null);
   assert.deepEqual(requestedUrls, ['/api/applications/party/7/mine']);
+});
+
+test('fetchMatePaymentCapability는 결제 모드 capability를 서버에서 조회한다', async (t) => {
+  const requestedUrls: string[] = [];
+
+  t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {
+    requestedUrls.push(resolveRequestUrl(input));
+    return new Response(JSON.stringify({
+      paymentMode: 'DIRECT_TRADE',
+      businessMode: 'DIRECT_TRADE',
+      provider: 'TOSS',
+      environment: 'NONE',
+      tossPaymentEnabled: false,
+      sellingPaymentRequired: false,
+      payoutEnabled: false,
+      payoutProvider: 'SIM',
+    }), {
+      headers: { 'content-type': 'application/json' },
+      status: 200,
+    });
+  });
+
+  const capability = await fetchMatePaymentCapability();
+
+  assert.deepEqual(requestedUrls, ['/api/payments/capability']);
+  assert.equal(capability.businessMode, 'DIRECT_TRADE');
+  assert.equal(capability.sellingPaymentRequired, false);
 });
 
 test('fetchMatePartiesPage는 정렬 파라미터를 목록 endpoint에 전달한다', async (t) => {

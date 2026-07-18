@@ -31,7 +31,7 @@ export default function RankingPredictionCompletionPanel({
         />
       </div>
 
-      <p className="mb-4 text-primary font-black text-2xl">
+      <p className="mb-4 text-2xl font-black text-[#2d5f4f] dark:text-emerald-200">
         1위
       </p>
 
@@ -41,13 +41,13 @@ export default function RankingPredictionCompletionPanel({
         </div>
       ) : null}
 
-      <p className="mb-4 text-body">모든 팀이 배치되었습니다!</p>
+      <p className="mb-4 text-body font-semibold text-slate-600 dark:text-white/75">모든 팀이 배치되었습니다!</p>
 
       {!isPredictionSaved && !alreadySaved ? (
         <Button
           onClick={onCompletePrediction}
           data-testid="ranking-complete-btn"
-          className="w-full bg-primary-dark text-white hover:bg-primary"
+          className="w-full bg-[#2d5f4f] text-white hover:bg-[#2f6c5c]"
         >
           예측 완료
         </Button>
@@ -57,7 +57,7 @@ export default function RankingPredictionCompletionPanel({
             onClick={onShare}
             data-testid="ranking-share-btn"
             variant="outline"
-            className="w-full border-2 border-primary text-primary hover:bg-primary/10 dark:border-primary dark:text-primary dark:hover:bg-primary/20"
+            className="w-full border border-emerald-200 text-[#2d5f4f] hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-200 dark:hover:bg-primary/20"
           >
             공유하기
           </Button>
@@ -67,7 +67,7 @@ export default function RankingPredictionCompletionPanel({
           <Button
             onClick={onSave}
             data-testid="ranking-save-btn"
-            className="w-full bg-primary-dark text-white hover:bg-primary"
+            className="w-full bg-[#2d5f4f] text-white hover:bg-[#2f6c5c]"
           >
             저장하기
           </Button>
@@ -75,7 +75,7 @@ export default function RankingPredictionCompletionPanel({
             onClick={onShare}
             data-testid="ranking-share-btn"
             variant="outline"
-            className="w-full border-2 border-primary text-primary hover:bg-primary/10 dark:border-primary dark:text-primary dark:hover:bg-primary/20"
+            className="w-full border border-emerald-200 text-[#2d5f4f] hover:bg-emerald-50 dark:border-emerald-900/60 dark:text-emerald-200 dark:hover:bg-primary/20"
           >
             공유하기
           </Button>

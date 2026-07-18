@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { MapPinIcon, XIcon } from '../icons/StadiumGuideIcons';
 import SeatViewGallery from '../SeatViewGallery';
 import type {
   SeatMapCategoryMeta,
@@ -88,10 +89,7 @@ export function SeatMapBottomSheet<TSection>({
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.accent : undefined,
           }}
         >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-            <circle cx="12" cy="10" r="3" />
-          </svg>
+          <MapPinIcon className="h-[18px] w-[18px]" />
         </div>
         <div>
           <div className="text-sm font-bold text-slate-800 dark:text-white" style={{ color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined }}>
@@ -176,9 +174,7 @@ export function SeatMapBottomSheet<TSection>({
             color: isDark ? STADIUM_SEATMAP_DARK_COLORS.muted : undefined,
           }}
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M18 6 6 18M6 6l12 12" />
-          </svg>
+          <XIcon className="h-4 w-4" />
         </button>
       </div>
 

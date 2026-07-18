@@ -13,7 +13,6 @@ const MateHistorySection = lazy(() => import('./MateHistorySection'));
 const MyCheerPostsSection = lazy(() => import('./MyCheerPostsSection'));
 const AlertsSection = lazy(() => import('./AlertsSection'));
 const MyPageSeasonLogRuntime = lazy(() => import('./MyPageSeasonLogRuntime'));
-const MyPageSettingsHomeRuntime = lazy(() => import('./MyPageSettingsHomeRuntime'));
 
 type MyPageViewRuntimeProps = {
   viewMode: ViewMode;
@@ -78,7 +77,7 @@ export default function MyPageViewRuntime({
     );
   }
 
-  if (viewMode === 'editProfile' || viewMode === 'accountSettings' || viewMode === 'blockedUsers') {
+  if (viewMode === 'settings' || viewMode === 'editProfile' || viewMode === 'accountSettings' || viewMode === 'blockedUsers') {
     return renderSection(
       <ProfileEditSection
         profileImage={profileImage}
@@ -120,20 +119,13 @@ export default function MyPageViewRuntime({
     );
   }
 
-  if (viewMode === 'settings') {
+  if (viewMode === 'stats') {
     return renderSection(
-      <MyPageSettingsHomeRuntime
-        email={email}
-        savedFavoriteTeam={savedFavoriteTeam}
-        userProvider={userProvider}
-        hasPassword={hasPassword}
-        onSetViewMode={onSetViewMode}
+      <DiaryStatistics
+        cheerPoints={cheerPoints}
+        onOpenDiaryEditor={() => onSetViewMode('diaryEditor')}
       />
     );
-  }
-
-  if (viewMode === 'stats') {
-    return renderSection(<DiaryStatistics cheerPoints={cheerPoints} />);
   }
 
   if (viewMode === 'badges') {

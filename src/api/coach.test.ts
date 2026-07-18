@@ -9,31 +9,116 @@ import {
   getCoachStreamRequestTimeoutMs,
   getCoachStreamReadTimeoutMs,
 } from './coach';
+import { baseRequest, buildStreamResponse } from './coachTestSupport';
 
-const baseRequest = {
-  home_team_id: 'HH',
-  away_team_id: 'SS',
-  request_mode: 'manual_detail' as const,
-};
+process.env.VITE_AI_EVENT_VERSION = '1';
 
-const buildStreamResponse = (chunks: string[]) => {
-  let chunkIndex = 0;
-
-  return new Response(new ReadableStream<Uint8Array>({
-    pull(controller) {
-      if (chunkIndex >= chunks.length) {
-        controller.close();
-        return;
-      }
-
-      controller.enqueue(new TextEncoder().encode(chunks[chunkIndex]));
-      chunkIndex += 1;
-    },
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'text/event-stream' },
+test('analyzeTeam은 협상된 v2 coach 이벤트를 타입으로 소비한다', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
   });
-};
+  let requestHeaders: Headers | null = null;
+  let requestBody: Record<string, unknown> | null = null;
+  t.mock.method(globalThis, 'fetch', async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
+    requestHeaders = new Headers(init?.headers);
+    requestBody = JSON.parse(String(init?.body));
+    return buildStreamResponse([
+      'event: coach.status\n',
+      'data: {"version":2,"type":"coach.status","data":{"status":"분석 중"}}\n\n',
+      'event: coach.preview.chunk\n',
+      'data: {"version":2,"type":"coach.preview.chunk","data":{"text":"미리보기","attempt":1}}\n\n',
+      'event: coach.message.delta\n',
+      'data: {"version":2,"type":"coach.message.delta","data":{"delta":"상세 분석"}}\n\n',
+      'event: coach.meta\n',
+      'data: {"version":2,"type":"coach.meta","data":{"request_mode":"manual_detail","analysis_type":"game_review","generation_mode":"evidence_fallback","data_quality":"insufficient","llm_skip_reason":"manual_data_required","manual_data_request":{"scope":"coach_analysis","missing_items":[{"key":"record","label":"경기 기록","reason":"내부 데이터 누락","expected_format":"internal record"}],"operator_message":"운영자 입력 필요","blocking":true,"code":"MANUAL_BASEBALL_DATA_REQUIRED"},"structured_response":{"headline":"분석","sentiment":"neutral","analysis_type":"game_review","key_metrics":[],"analysis":{"strengths":[],"weaknesses":[],"risks":[]},"detailed_markdown":"상세 분석","coach_note":"확인 필요"}}}\n\n',
+      'event: stream.done\n',
+      'data: {"version":2,"type":"stream.done","data":{"reason":"completed"}}\n\n',
+    ], { 'X-AI-Event-Version': '2' });
+  });
+
+  const previews: Array<{ text: string; attempt: number }> = [];
+  const statuses: string[] = [];
+  const response = await analyzeTeam(
+    { ...baseRequest, analysisType: 'game_review' },
+    undefined,
+    {
+      onPreviewChunk: (text, attempt) => previews.push({ text, attempt }),
+      onStatus: (status) => statuses.push(status),
+    },
+  );
+
+  const capturedHeaders = requestHeaders as unknown as Headers;
+  const capturedBody = requestBody as unknown as Record<string, unknown>;
+  assert.equal(capturedHeaders.get('X-AI-Event-Version'), '2');
+  assert.equal(capturedBody.analysis_type, 'game_review');
+  assert.equal(capturedBody.analysisType, undefined);
+  assert.deepEqual(statuses, ['분석 중']);
+  assert.deepEqual(previews, [{ text: '미리보기', attempt: 1 }]);
+  assert.equal(response.answer, '상세 분석');
+  assert.equal(response.analysis_type, 'game_review');
+  assert.equal(response.llm_skip_reason, 'manual_data_required');
+  assert.equal(response.manual_data_request?.code, 'MANUAL_BASEBALL_DATA_REQUIRED');
+  assert.equal(response.manual_data_request?.missingItems[0].key, 'record');
+  assert.equal(response.manual_data_request?.operatorMessage, '운영자 입력 필요');
+});
+
+test('analyzeTeam은 v2 payload-limit stream.error를 전용 오류로 승격한다', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  });
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: stream.error\n',
+    'data: {"version":2,"type":"stream.error","data":{"code":"AI_PROXY_PAYLOAD_TOO_LARGE","message":"요청 본문이 큽니다.","detail":null,"retryable":false}}\n\n',
+    'event: stream.done\n',
+    'data: {"version":2,"type":"stream.done","data":{"reason":"error"}}\n\n',
+  ], { 'X-AI-Event-Version': '2' }));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam은 v2 응답 협상 헤더 누락을 계약 오류로 처리한다', async (t) => {
+  const previousVersion = process.env.VITE_AI_EVENT_VERSION;
+  process.env.VITE_AI_EVENT_VERSION = '2';
+  t.after(() => {
+    process.env.VITE_AI_EVENT_VERSION = previousVersion;
+  });
+  t.mock.method(globalThis, 'fetch', async () => buildStreamResponse([
+    'event: stream.done\n',
+    'data: {"version":2,"type":"stream.done","data":{"reason":"completed"}}\n\n',
+  ]));
+
+  await assert.rejects(() => analyzeTeam(baseRequest), /negotiated version/);
+});
+
+test('analyzeTeam은 rollback 모드에서 v1 헤더를 명시한다', async (t) => {
+  let requestHeaders: Headers | null = null;
+  t.mock.method(globalThis, 'fetch', async (
+    _input: string | URL | Request,
+    init?: RequestInit,
+  ) => {
+    requestHeaders = new Headers(init?.headers);
+    return buildStreamResponse(['event: done\ndata: [DONE]\n\n']);
+  });
+
+  await analyzeTeam(baseRequest);
+
+  const capturedHeaders = requestHeaders as unknown as Headers;
+  assert.equal(capturedHeaders.get('X-AI-Event-Version'), '1');
+});
 
 test('analyzeTeam은 401에서 auth 전용 에러를 던진다', async (t) => {
   t.mock.method(globalThis, 'fetch', async (input: string | URL | Request) => {

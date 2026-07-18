@@ -3,6 +3,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import PlainDialog from '../ui/plain-dialog';
 import type { TrustedDeviceItem } from '../../types/profile';
+import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 import {
   MyPageAlertTriangleIcon,
   MyPageEyeIcon,
@@ -10,7 +11,7 @@ import {
   MyPageFingerprintIcon,
   MyPageShieldAlertIcon,
   MyPageTrashIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 
 interface AccountSettingsAdvancedRuntimeProps {
   showAdvancedSettingsDialog: boolean;
@@ -176,7 +177,12 @@ export default function AccountSettingsAdvancedRuntime({
                 ))}
               </div>
             ) : (
-              <p className="text-body text-muted-foreground">등록된 신뢰 기기가 없습니다.</p>
+              <MyPageSeasonEmptyState
+                className="mypage-season-empty--flush"
+                icon={<MyPageFingerprintIcon className="h-5 w-5" />}
+                title="등록된 신뢰 기기가 없습니다."
+                description="신뢰 기기로 확인된 로그인 환경이 생기면 이곳에서 해제할 수 있습니다."
+              />
             )}
           </div>
 

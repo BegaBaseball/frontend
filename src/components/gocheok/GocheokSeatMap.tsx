@@ -14,12 +14,13 @@ import {
 } from '../../data/gocheokSeatData';
 import { getGocheokOperatorVisitGuidance } from '../../data/gocheokOperatorVisitGuide';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import { formatManualBaseballDataDisplayValue } from '../../utils/manualBaseballDataContract';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import GocheokFacilityGuide from './GocheokFacilityGuide';
 import GocheokSeatMapSvg from './GocheokSeatMapSvg';
-import GocheokUploadFlowModal from './GocheokUploadFlowModal';
 import { SeatMapAttribution } from '../stadiumSeatMap/SeatMapAttribution';
 import { SeatMapBottomSheet } from '../stadiumSeatMap/SeatMapBottomSheet';
 import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
@@ -27,6 +28,7 @@ import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapPan, SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -37,6 +39,13 @@ const GOCHEOK_GUIDE_MODES: { id: GocheokGuideMode; label: string }[] = [
   { id: 'seatmap', label: '공식 좌석도' },
   { id: 'facility', label: '시설현황' },
 ];
+const MANUAL_OPERATOR_GUIDANCE_STATUS = 'MANUAL_BASEBALL_DATA_REQUIRED';
+
+const formatOperatorGuidanceValue = (value: string) => (
+  value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)
+    ? value
+    : formatManualBaseballDataDisplayValue(value)
+);
 
 const gocheokSectionAdapter: SeatMapSectionAdapter<GocheokBlock> = {
   getId: (section) => section.id,
@@ -198,6 +207,7 @@ function DetailPanel({
 
 export default function GocheokSeatMap() {
   const { resolvedTheme } = useTheme();
+  const { requireLogin } = useAuthAccessActions();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(MIN_ZOOM);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
@@ -258,11 +268,15 @@ export default function GocheokSeatMap() {
   const hoveredAccent = hoveredCategory ? (mode === 'dark' ? hoveredCategory.dark : hoveredCategory.light) : '#820024';
   const usedCategories = useMemo(() => [...new Set(GOCHEOK_BLOCKS.map((block) => block.category))], []);
 
-  const handleUploadSubmit = useCallback(() => {
-    const block = uploadFor?.block ?? '';
-    setUploadFor(null);
-    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-  }, [showToast, uploadFor]);
+  const handleOpenUpload = useCallback((section: GocheokBlock | null) => {
+    if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
+
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const handleZoomChange = useCallback((nextZoom: number) => {
     const normalizedZoom = clampZoom(nextZoom);
@@ -375,7 +389,7 @@ export default function GocheokSeatMap() {
             <div key={tile.label} className="rounded-xl bg-slate-50 p-2.5 dark:bg-slate-800">
               <div className="text-9 font-bold tracking-widest text-slate-400">{tile.label}</div>
               <div className="mt-0.5 break-words text-12 font-black text-slate-800 dark:text-white">
-                {formatManualBaseballDataDisplayValue(tile.value)}
+                {formatOperatorGuidanceValue(tile.value)}
               </div>
             </div>
           ))}
@@ -397,7 +411,7 @@ export default function GocheokSeatMap() {
             >
               <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
               <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
-                {formatManualBaseballDataDisplayValue(tile.value)}
+                {formatOperatorGuidanceValue(tile.value)}
               </div>
             </div>
           ))}
@@ -413,7 +427,7 @@ export default function GocheokSeatMap() {
           </ul>
         )}
         <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
+          {operatorGuidance.operatorDataPendingLabel}
         </p>
         <button
           type="button"
@@ -540,7 +554,7 @@ export default function GocheokSeatMap() {
       adapter={gocheokSectionAdapter}
       stadiumKey="GOCHEOK"
       onClose={handleCloseSection}
-      onUpload={() => selected && setUploadFor(selected)}
+      onUpload={() => handleOpenUpload(selected)}
       copy={{ uploadLabel: '이 구역 시야 사진 올리기' }}
       extraMeta={renderVisitCheckMeta}
       searchAction={{
@@ -576,7 +590,7 @@ export default function GocheokSeatMap() {
             adapter={gocheokSectionAdapter}
             stadiumKey="GOCHEOK"
             onClose={handleCloseSection}
-            onUpload={() => selected && setUploadFor(selected)}
+            onUpload={() => handleOpenUpload(selected)}
             copy={{ uploadLabel: '이 구역 시야 사진 올리기' }}
             extraMeta={renderVisitCheckMeta}
             searchAction={{
@@ -608,11 +622,13 @@ export default function GocheokSeatMap() {
         fullscreenSubtitle="키움 공식 좌석도 전체화면"
       />
       {uploadFor && (
-        <GocheokUploadFlowModal
-          section={uploadFor}
-          mode={mode}
+        <SeatViewDirectUploadModal
+          stadium="GOCHEOK"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? GOCHEOK_CATEGORIES[uploadFor.category].dark : GOCHEOK_CATEGORIES[uploadFor.category].light}
           onClose={() => setUploadFor(null)}
-          onSubmit={handleUploadSubmit}
+          onSubmitted={handleUploadSubmitted}
         />
       )}
     </>

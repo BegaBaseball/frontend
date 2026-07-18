@@ -5,9 +5,9 @@ import { ProfileAvatar } from '../ui/ProfileAvatar';
 import BlockButton from '../profile/BlockButton';
 import {
   MyPageBanIcon,
-  MyPageInfoIcon,
   MyPageLoaderIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
+import MyPageSeasonEmptyState from './MyPageSeasonEmptyState';
 
 export default function BlockedUsersSection() {
     const queryClient = useQueryClient();
@@ -106,18 +106,13 @@ export default function BlockedUsersSection() {
                         )}
                     </div>
                 ) : (
-                    <div className="flex flex-col items-center justify-center py-8 sm:py-10 text-center px-4">
-                    <div className="w-12 h-12 rounded-full bg-destructive/20 flex items-center justify-center mb-3">
-                            <MyPageBanIcon className="h-6 w-6 text-destructive" />
-                        </div>
-                        <p className="text-foreground font-semibold mb-1">
-                            차단한 사용자가 없습니다.
-                        </p>
-                        <p className="mt-2 text-body text-muted-foreground font-semibold inline-flex items-center gap-1 justify-center">
-                            <MyPageInfoIcon className="w-3.5 h-3.5" />
-                            상대방 프로필에서 <span className="text-primary">차단</span> 버튼으로 원하는 사용자를 차단할 수 있습니다.
-                        </p>
-                    </div>
+                    <MyPageSeasonEmptyState
+                        className="mypage-season-empty--flush"
+                        tone="danger"
+                        icon={<MyPageBanIcon />}
+                        title="차단한 사용자가 없습니다."
+                        description="차단한 사용자가 여기에 표시됩니다."
+                    />
                 )}
             </div>
         </div>

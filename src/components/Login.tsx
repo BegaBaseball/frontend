@@ -1,11 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 
-import { getSocialLoginUrl } from '../api/authPublic';
 import { useLoginForm } from '../hooks/useLoginForm';
 import { buildPasswordResetPath, buildSignUpPath } from '../utils/loginRedirect';
 import { sanitizeLoginPasswordText, sanitizeLoginText } from '../utils/validation';
 import AuthLayout from './auth/AuthLayout';
-import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from './icons/PublicShellIcons';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon } from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -37,8 +36,9 @@ export default function Login() {
   const signUpPath = buildSignUpPath(redirectPath);
   const passwordResetPath = buildPasswordResetPath(redirectPath);
 
-  const handleSocialLogin = (provider: 'kakao' | 'google' | 'naver') => {
+  const handleSocialLogin = async (provider: 'kakao' | 'google' | 'naver') => {
     if (!isLoading) {
+      const { getSocialLoginUrl } = await import('../api/authPublic');
       window.location.href = getSocialLoginUrl(provider);
     }
   };
@@ -46,7 +46,6 @@ export default function Login() {
   return (
     <AuthLayout showHomeButton={true}>
       <AuthHeader
-        eyebrow="Account Access"
         title="로그인"
         description="경기 일정, 응원, 메이트, 예측을 이어서 보려면 계정으로 들어오세요."
         data-testid="login-header"

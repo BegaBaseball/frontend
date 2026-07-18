@@ -1,7 +1,8 @@
-import { useMyPage } from '../hooks/useMyPage';
 import { lazy, Suspense, useState } from 'react';
-import { useDiaryStore } from '../store/diaryStore';
+
 import { TicketInfo } from '../api/ticket';
+import { useMyPage } from '../hooks/useMyPage';
+import { useDiaryStore } from '../store/diaryStore';
 import './mypage/MyPageSeason.css';
 
 const MyPageSidebarRuntime = lazy(() => import('./mypage/MyPageSidebarRuntime'));
@@ -25,11 +26,14 @@ export default function MyPageRuntime() {
     setViewMode,
     selectedDiaryDate,
     handleProfileUpdated,
+    isLoading: isProfileLoading,
   } = useMyPage();
 
   const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
+  const cheerPoints = profile?.cheerPoints ?? user?.cheerPoints ?? 0;
   const effectiveUserProvider = profile?.provider ?? user?.provider;
   const effectiveHasPassword = profile?.hasPassword ?? user?.hasPassword;
+  const effectiveBio = profile?.bio ?? user?.bio;
 
   const handleTicketConfirm = (data: TicketInfo) => {
     setPendingDraft({
@@ -72,52 +76,76 @@ export default function MyPageRuntime() {
     return null;
   }
 
-  return (
-    <div className="mypage-season-root">
-      <div className="mypage-season-app">
-        <Suspense fallback={<aside className="mypage-season-side text-sm text-muted-foreground">프로필을 불러오는 중...</aside>}>
-          <MyPageSidebarRuntime
-            currentUserId={user?.id ?? null}
-            profileImage={profileImage}
-            name={name}
-            handle={handle}
-            savedFavoriteTeam={savedFavoriteTeam}
-            cheerPoints={profile?.cheerPoints ?? user?.cheerPoints ?? 0}
-            viewMode={viewMode}
-            onOpenFollowers={() => openUserListModal('followers', '팔로워')}
-            onOpenFollowing={() => openUserListModal('following', '팔로잉')}
-            onSetViewMode={setViewMode}
-          />
-        </Suspense>
+  const sidebarFallback = (
+    <aside className="mypage-season-side" aria-label="마이페이지 사이드바 로딩" aria-busy="true">
+      <div className="mypage-season-id">
+        <span className="mypage-season-skeleton mypage-season-sidebar-avatar" />
+        <div className="mypage-season-id-copy">
+          <span className="mypage-season-skeleton mypage-season-sidebar-title" />
+          <span className="mypage-season-skeleton mypage-season-sidebar-subtitle" />
+        </div>
+      </div>
+      <div className="mypage-season-nav">
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+        <span className="mypage-season-skeleton mypage-season-sidebar-nav-item" />
+      </div>
+    </aside>
+  );
 
-        <main className="mypage-season-main">
-          <Suspense fallback={null}>
-            <MyPageViewRuntime
-              viewMode={viewMode}
-              profileImage={profileImage}
-              name={name}
-              email={email}
-              savedFavoriteTeam={savedFavoriteTeam}
-              cheerPoints={profile?.cheerPoints ?? user?.cheerPoints ?? 0}
-              userRole={user?.role}
-              userProvider={effectiveUserProvider}
-              initialBio={user?.bio}
-              hasPassword={effectiveHasPassword}
-              selectedDiaryDate={selectedDiaryDate}
-              onSetViewMode={setViewMode}
-              onProfileUpdated={handleProfileUpdated}
-              onOpenTicketUploadModal={openTicketUploadModal}
-            />
-          </Suspense>
-        </main>
+  return (
+    <div className="min-h-screen overflow-x-clip bg-background text-foreground transition-colors duration-200">
+      <div className="mypage-season-root">
+        <div className="mx-auto w-full min-w-0 max-w-[1240px] px-4 py-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 lg:px-8">
+          <div className="mypage-season-app" data-testid="mypage-prototype-shell">
+            <Suspense fallback={sidebarFallback}>
+              <MyPageSidebarRuntime
+                isProfileLoading={isProfileLoading}
+                currentUserId={user?.id ?? profile?.id ?? null}
+                profileImage={profileImage}
+                name={name}
+                handle={handle}
+                savedFavoriteTeam={savedFavoriteTeam}
+                cheerPoints={cheerPoints}
+                viewMode={viewMode}
+                onOpenFollowers={() => openUserListModal('followers', '팔로워')}
+                onOpenFollowing={() => openUserListModal('following', '팔로잉')}
+                onSetViewMode={setViewMode}
+              />
+            </Suspense>
+
+            <main className="mypage-season-main">
+              <div className="mypage-season-view-scope">
+                <Suspense fallback={null}>
+                  <MyPageViewRuntime
+                    viewMode={viewMode}
+                    profileImage={profileImage}
+                    name={name}
+                    email={email}
+                    savedFavoriteTeam={savedFavoriteTeam}
+                    cheerPoints={cheerPoints}
+                    userRole={user?.role}
+                    userProvider={effectiveUserProvider}
+                    initialBio={effectiveBio}
+                    hasPassword={effectiveHasPassword}
+                    selectedDiaryDate={selectedDiaryDate}
+                    onSetViewMode={setViewMode}
+                    onProfileUpdated={handleProfileUpdated}
+                    onOpenTicketUploadModal={openTicketUploadModal}
+                  />
+                </Suspense>
+              </div>
+            </main>
+          </div>
+        </div>
       </div>
 
       {user && hasMountedUserListModal && (
-                <Suspense
-                  fallback={userListModal.isOpen ? (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-muted/75 px-4 text-body font-bold text-foreground">
-                목록을 불러오는 중...
-              </div>
+        <Suspense
+          fallback={userListModal.isOpen ? (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
+              목록을 불러오는 중...
+            </div>
           ) : null}
         >
           <UserListModal
@@ -133,7 +161,7 @@ export default function MyPageRuntime() {
       {hasMountedTicketUploadModal && (
         <Suspense
           fallback={isTicketUploadOpen ? (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-muted/75 px-4 text-body font-bold text-foreground">
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 text-[16px] font-semibold text-white">
               티켓 등록 모달을 불러오는 중...
             </div>
           ) : null}

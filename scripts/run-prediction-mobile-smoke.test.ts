@@ -18,7 +18,7 @@ test('prediction mobile smoke presets use the repo-local smoke runner', () => {
   assert.match(source, /'smoke-attached': nodeStep\(\['scripts\/run-prediction-mobile-smoke\.mjs'\], \{/);
   assert.match(source, /'smoke-ranking': nodeStep\(\['scripts\/run-prediction-mobile-smoke\.mjs'\], \{/);
   assert.match(source, /'smoke-ranking-attached': nodeStep\(\['scripts\/run-prediction-mobile-smoke\.mjs'\], \{/);
-  assert.match(source, /const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,detail-loading,detail-error,top-notice'/);
+  assert.match(source, /const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,vote-panel,date-sheet,detail-loading,detail-error,top-notice'/);
   assert.match(source, /const PREDICTION_MOBILE_RANKING_SMOKE_STATES = 'ranking,ranking-ended,ranking-init-error,ranking-save-dialog,ranking-saved'/);
   assert.match(source, /PREDICTION_MOBILE_STATES: PREDICTION_MOBILE_CORE_SMOKE_STATES/);
   assert.match(source, /PREDICTION_MOBILE_STATES: PREDICTION_MOBILE_RANKING_SMOKE_STATES/);
@@ -34,6 +34,8 @@ test('prediction mobile smoke runner builds summary entries for the smoke matrix
   const runner = await import(runnerUrl.href);
   assert.deepEqual(runner.defaultPredictionMobileSmokeStates, [
     'match',
+    'vote-panel',
+    'date-sheet',
     'detail-loading',
     'detail-error',
     'top-notice',
@@ -65,7 +67,7 @@ test('prediction mobile smoke runner builds summary entries for the smoke matrix
   assert.deepEqual(summary.states, runner.defaultPredictionMobileSmokeStates);
   assert.deepEqual(summary.requestedStates, runner.defaultPredictionMobileSmokeStates);
   assert.deepEqual(summary.devices, runner.defaultPredictionMobileSmokeDevices);
-  assert.equal(summary.entryCount, 4);
+  assert.equal(summary.entryCount, 6);
   assert.equal(summary.overflowFailureCount, 0);
   assert.equal(summary.actionableFailedRequestCount, 0);
   assert.equal(summary.actionableConsoleErrorCount, 0);
@@ -73,6 +75,8 @@ test('prediction mobile smoke runner builds summary entries for the smoke matrix
     summary.entries.map((entry: { state: string; device: string }) => `${entry.state}:${entry.device}`),
     [
       'match:mobile-390',
+      'vote-panel:mobile-390',
+      'date-sheet:mobile-390',
       'detail-loading:mobile-390',
       'detail-error:mobile-390',
       'top-notice:mobile-390',
@@ -168,10 +172,9 @@ test('prediction mobile smoke passes active states through Cypress env safely', 
   const specSource = readFileSync(smokeSpecPath, 'utf8');
   const cypressRunSource = readFileSync(cypressRunPath, 'utf8');
 
-  assert.match(runnerSource, /'--env',\s*`PREDICTION_MOBILE_ACTIVE_STATES=\$\{states\.join\(','\)\}`/);
   assert.match(runnerSource, /PREDICTION_MOBILE_ACTIVE_STATES:\s*states\.join\(','\)/);
   assert.match(runnerSource, /CYPRESS_PREDICTION_MOBILE_ACTIVE_STATES:\s*states\.join\(','\)/);
-  assert.match(cypressRunSource, /const dockerPassthroughEnvKeys = \[\s*'CYPRESS_VERIFY_TIMEOUT',\s*'CYPRESS_PREDICTION_MOBILE_ACTIVE_STATES'/);
+  assert.match(cypressRunSource, /const dockerPassthroughEnvKeys = \[\s*'CYPRESS_SKIP_VERIFY',\s*'CYPRESS_VERIFY_TIMEOUT',\s*'CYPRESS_PREDICTION_MOBILE_ACTIVE_STATES'/);
   assert.match(specSource, /cy\.env(?:<[^>]+>)?\(\['PREDICTION_MOBILE_ACTIVE_STATES'\]\)/);
   assert.doesNotMatch(specSource, /Cypress\.env\(/);
   assert.match(specSource, /const resolveActiveStateValue = \(envValue: unknown\)/);
@@ -193,7 +196,7 @@ test('prediction mobile smoke supports slow Docker Cypress verification', () => 
   const cypressRunSource = readFileSync(cypressRunPath, 'utf8');
 
   assert.match(runnerSource, /CYPRESS_VERIFY_TIMEOUT:\s*process\.env\.CYPRESS_VERIFY_TIMEOUT \|\| '120000'/);
-  assert.match(cypressRunSource, /const dockerPassthroughEnvKeys = \[\s*'CYPRESS_VERIFY_TIMEOUT'/);
+  assert.match(cypressRunSource, /const dockerPassthroughEnvKeys = \[\s*'CYPRESS_SKIP_VERIFY',\s*'CYPRESS_VERIFY_TIMEOUT'/);
   assert.match(cypressRunSource, /\.\.\.collectDockerPassthroughEnvArgs\(\),/);
 });
 

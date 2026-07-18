@@ -1,12 +1,12 @@
 import { cn } from '../lib/utils';
-import { RotateCcwIcon } from './icons/PublicFeatureIcons';
 import {
-    BookmarkIcon,
-    HeartIcon,
-    MessageSquareIcon,
-    PenSquareIcon,
-    RepeatIcon,
-} from './icons/PublicShellIcons';
+    CheerCardBookmarkIcon as BookmarkIcon,
+    CheerCardHeartIcon as HeartIcon,
+    CheerCardMessageSquareIcon as MessageSquareIcon,
+    CheerCardPenSquareIcon as PenSquareIcon,
+    CheerCardRepeatIcon as RepeatIcon,
+    CheerCardRotateCcwIcon as RotateCcwIcon,
+} from './icons/CheerCardIcons';
 import PlainMenu from './ui/plain-menu';
 
 interface CheerDetailActionBarRuntimeProps {
@@ -68,7 +68,7 @@ export default function CheerDetailActionBarRuntime({
                     'flex h-10 w-full items-center justify-center gap-0.5 rounded-full border px-1.5 text-center whitespace-nowrap transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                     interactionLikedByMe
                         ? 'border-rose-200 bg-rose-50 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/15 dark:text-rose-300'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:bg-slate-950'
+                        : 'border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] text-slate-700 hover:border-slate-300 hover:bg-slate-50 dark:text-white dark:hover:bg-slate-950'
                 )}
             >
                 <HeartIcon className={cn('h-8 w-8 flex-shrink-0', interactionLikedByMe && 'fill-current')} />
@@ -81,7 +81,7 @@ export default function CheerDetailActionBarRuntime({
                 type="button"
                 onClick={onScrollToComments}
                 aria-label={`댓글 ${commentCount.toLocaleString()}`}
-                className="flex h-10 w-full items-center justify-center gap-0.5 rounded-full border border-slate-200 bg-white px-1.5 text-center text-slate-700 whitespace-nowrap transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
+                className="flex h-10 w-full items-center justify-center gap-0.5 rounded-full border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] px-1.5 text-center text-slate-700 whitespace-nowrap transition-all duration-150 hover:-translate-y-px hover:border-sky-200 hover:bg-sky-50 active:scale-[0.98] dark:text-white dark:hover:border-sky-500/20 dark:hover:bg-sky-500/10 sm:h-10 sm:gap-1"
             >
                 <MessageSquareIcon className="h-8 w-8 flex-shrink-0" />
                 <span className="whitespace-nowrap text-body font-bold leading-none sm:text-body">
@@ -113,9 +113,10 @@ export default function CheerDetailActionBarRuntime({
                         className={cn(
                             'flex h-10 w-full items-center justify-center gap-0.5 whitespace-nowrap rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                             repostButtonActive
-                                ? 'border-emerald-200 bg-emerald-50 text-emerald-600 dark:border-emerald-500/30 dark:bg-emerald-500/15 dark:text-emerald-300'
-                                : 'border-slate-200 bg-white text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-emerald-500/20 dark:hover:bg-emerald-500/10'
+                                ? 'border-[var(--cheer-repost-on)]/30 bg-emerald-50 dark:bg-emerald-500/15'
+                                : 'border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] text-slate-700 hover:border-emerald-200 hover:bg-emerald-50 dark:text-white dark:hover:border-emerald-500/20 dark:hover:bg-emerald-500/10'
                         )}
+                        style={repostButtonActive ? { color: 'var(--cheer-repost-on)' } : undefined}
                         aria-label={repostButtonActive ? `리포스트 취소 (현재 ${repostCount}회)` : `리포스트 (현재 ${repostCount}회)`}
                         aria-pressed={repostButtonActive}
                         aria-expanded={isRepostMenuOpen}
@@ -204,7 +205,7 @@ export default function CheerDetailActionBarRuntime({
                     'flex h-10 w-full items-center justify-center gap-0.5 rounded-full border px-1.5 text-center transition-all duration-150 hover:-translate-y-px active:scale-[0.98] sm:h-10 sm:gap-1',
                     interactionBookmarked
                         ? 'border-amber-200 bg-amber-50 text-amber-600 dark:border-amber-500/30 dark:bg-amber-500/15 dark:text-amber-300'
-                        : 'border-slate-200 bg-white text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:border-white/10 dark:bg-slate-950/70 dark:text-white dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
+                        : 'border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] text-slate-700 hover:border-amber-200 hover:bg-amber-50 dark:text-white dark:hover:border-amber-500/20 dark:hover:bg-amber-500/10'
                 )}
             >
                 <BookmarkIcon className={cn('h-8 w-8 flex-shrink-0', interactionBookmarked && 'fill-current')} />

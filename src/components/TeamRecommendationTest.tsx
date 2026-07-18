@@ -6,7 +6,11 @@ import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png
 import { TeamRecommendationTestProps } from '../types/teamTest';
 import { useTeamTest } from '../hooks/useTeamTest';
 import { FRANCHISE_TEAM_IDS, TEAM_DATA, getTeamDescription } from '../constants/teams';
-import { SharedChevronLeftIcon, SharedChevronRightIcon, SharedCloseIcon } from './icons/SharedLeafIcons';
+import {
+  TeamRecommendationChevronLeftIcon,
+  TeamRecommendationChevronRightIcon,
+  TeamRecommendationCloseIcon,
+} from './icons/TeamRecommendationTestIcons';
 
 const TEAM_TIE_BREAK_RANK = FRANCHISE_TEAM_IDS.reduce<Record<string, number>>((acc, teamId, index) => {
   acc[teamId] = index;
@@ -81,7 +85,7 @@ export default function TeamRecommendationTest({
           className="absolute right-0 top-0 rounded-full p-2 text-gray-400 transition hover:bg-black/5 hover:text-gray-600 dark:text-white dark:hover:bg-white/10 dark:hover:text-gray-200"
           aria-label="테스트 닫기"
         >
-          <SharedCloseIcon className="h-5 w-5" />
+          <TeamRecommendationCloseIcon className="h-5 w-5" />
         </button>
 
         {!showResult ? (
@@ -168,7 +172,7 @@ export default function TeamRecommendationTest({
 
                             {selectedAnswer === index && (
                               <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 bg-primary">
-                                <SharedChevronRightIcon className="w-4 h-4 text-white" />
+                                <TeamRecommendationChevronRightIcon className="w-4 h-4 text-white" />
                               </div>
                             )}
                           </div>
@@ -187,7 +191,7 @@ export default function TeamRecommendationTest({
                 disabled={!canGoPrevious || selectedAnswer !== null}
                 className="flex items-center gap-2 rounded-full px-4 py-2 dark:border-border dark:bg-card dark:text-white dark:hover:bg-secondary"
               >
-                <SharedChevronLeftIcon className="w-4 h-4" />
+                <TeamRecommendationChevronLeftIcon className="w-4 h-4" />
                 이전
               </Button>
               <Button

@@ -21,13 +21,9 @@ export interface FeatureCardProps {
   isActive: boolean;
   isExpanded: boolean;
   onToggle: () => void;
-  featureRef: (el: HTMLDivElement | null) => void;
 }
 
 export interface LaptopMockupProps {
   activeFeature: number;
   features: Feature[];
-  scrollProgress: number;
-  scrollDistance: number;
-  laptopRef: React.RefObject<HTMLDivElement | null>;
 }

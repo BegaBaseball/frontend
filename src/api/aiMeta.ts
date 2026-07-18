@@ -27,6 +27,8 @@ export const normalizeAiStreamMeta = (
   toolExecutionMode: payload.tool_execution_mode,
   fallbackReason: payload.fallback_reason,
   perf: payload.perf,
+  modelUsage: payload.model_usage,
+  modelUsageComplete: payload.model_usage_complete,
   dataSources: normalizeAiDataSources(payload.data_sources),
   toolCalls: normalizeAiToolCalls(payload.tool_calls),
   finish_reason: payload.finish_reason,

@@ -1,4 +1,6 @@
 // src/types/mate.ts
+import type { components } from '../api/generated/openapi';
+
 export interface Party {
   id: number;
   hostId?: number;
@@ -32,6 +34,9 @@ export interface Party {
   members?: MemberSummary[];
   createdAt: string;
 }
+
+export type MatePaymentCapability = components['schemas']['MatePaymentCapabilityResponse'];
+export type MatePaymentBusinessMode = MatePaymentCapability['businessMode'];
 
 export interface MemberSummary {
   initial: string;

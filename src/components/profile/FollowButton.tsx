@@ -8,12 +8,12 @@ import {
 import { useAuthProfileSnapshot } from '../../store/authStore';
 import { Button } from '../ui/button';
 import {
-    ProfileBellIcon,
-    ProfileBellOffIcon,
-    ProfileLoaderIcon,
-    ProfileUserMinusIcon,
-    ProfileUserPlusIcon,
-} from './ProfileIcons';
+    UserProfileBellIcon as ProfileBellIcon,
+    UserProfileBellOffIcon as ProfileBellOffIcon,
+    UserProfileSpinnerIcon as ProfileLoaderIcon,
+    UserProfileUserMinusIcon as ProfileUserMinusIcon,
+    UserProfileUserPlusIcon as ProfileUserPlusIcon,
+} from './UserProfileIcons';
 
 interface FollowButtonProps {
     handle: string;

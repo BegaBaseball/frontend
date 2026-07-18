@@ -8,6 +8,10 @@ import {
   PredictionHashIcon,
   PredictionTargetIcon,
 } from './PredictionShellIcons';
+import {
+  PREDICTION_BRAND_TEXT_CLASS,
+  PREDICTION_SURFACE_CARD_CLASS,
+} from './predictionUiTokens';
 
 const ACCURACY_GAUGE_CIRCUMFERENCE = 2 * Math.PI * 56;
 
@@ -36,12 +40,12 @@ export default function PredictionStatsPanel() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-4">
-      <Card className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm rounded-2xl overflow-hidden">
-        <div className="bg-slate-50/50 dark:bg-slate-950/50 px-4 py-2.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+    <div className="pb-4 pt-4">
+      <Card className={`${PREDICTION_SURFACE_CARD_CLASS} overflow-hidden rounded-2xl`}>
+        <div className="flex items-center justify-between border-b border-slate-100 bg-emerald-50/70 px-4 py-2.5 dark:border-border dark:bg-primary/15">
           <div className="flex items-center gap-1.5">
-            <PredictionTargetIcon className="w-4 h-4 text-indigo-500" />
-            <h3 className="text-body font-bold text-slate-800 dark:text-white">나의 예측 퍼포먼스</h3>
+            <PredictionTargetIcon className={`${PREDICTION_BRAND_TEXT_CLASS} h-4 w-4`} />
+            <h3 className="text-body font-extrabold text-slate-900 dark:text-white">나의 예측 퍼포먼스</h3>
           </div>
         </div>
 
@@ -75,7 +79,7 @@ export default function PredictionStatsPanel() {
                     - (animatedAccuracyPercent / 100) * ACCURACY_GAUGE_CIRCUMFERENCE
                   }
                   strokeLinecap="round"
-                  className="text-indigo-500 dark:text-indigo-400 transition-all duration-1200 ease-[cubic-bezier(0.22,1,0.36,1)]"
+                  className={`${PREDICTION_BRAND_TEXT_CLASS} transition-all duration-1200 ease-[cubic-bezier(0.22,1,0.36,1)]`}
                 />
               </svg>
 
@@ -87,18 +91,18 @@ export default function PredictionStatsPanel() {
               </div>
             </div>
 
-            <p className="text-body sm:text-body font-bold text-slate-500 dark:text-white leading-none">전체 적중률</p>
+            <p className="text-body font-bold leading-none text-slate-500 dark:text-white sm:text-body">전체 적중률</p>
           </div>
 
           <div className="hidden sm:block w-px h-16 bg-slate-200 dark:bg-slate-700/50 shrink-0" />
 
-          <div className="col-span-2 grid grid-cols-3 gap-3 sm:flex sm:items-center sm:gap-10 sm:shrink-0">
-            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
+          <div className="col-span-2 grid gap-2.5 sm:flex sm:shrink-0 sm:items-center sm:gap-10">
+            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-left dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex items-center gap-1 text-slate-500 dark:text-white">
                 <PredictionHashIcon className="w-3.5 h-3.5" />
                 <span className="text-body sm:text-body font-bold">총 예측</span>
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
+              <div className="mt-1 flex items-baseline gap-0.5">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">
                   {predictionStats.totalPredictions}
                 </span>
@@ -106,12 +110,12 @@ export default function PredictionStatsPanel() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
+            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-left dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex items-center gap-1 text-emerald-600 dark:text-emerald-500">
                 <PredictionCheckCircleIcon className="w-3.5 h-3.5" />
                 <span className="text-body sm:text-body font-bold">적중</span>
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
+              <div className="mt-1 flex items-baseline gap-0.5">
                 <span className="text-xl sm:text-2xl font-bold text-slate-800 dark:text-white tabular-nums leading-none">
                   {predictionStats.correctPredictions}
                 </span>
@@ -119,12 +123,12 @@ export default function PredictionStatsPanel() {
               </div>
             </div>
 
-            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-center dark:border-slate-800 dark:bg-slate-950/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0 sm:text-left">
+            <div className="min-w-0 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 text-left dark:border-border dark:bg-secondary/40 sm:border-none sm:bg-transparent sm:px-0 sm:py-0">
               <div className="flex items-center gap-1 text-orange-600 dark:text-orange-500">
                 <PredictionFlameIcon className="w-3.5 h-3.5" />
                 <span className="text-body sm:text-body font-bold">연속 적중</span>
               </div>
-              <div className="mt-1 flex items-baseline justify-center gap-0.5 sm:justify-start">
+              <div className="mt-1 flex items-baseline gap-0.5">
                 <span className="text-xl sm:text-2xl font-bold text-orange-600 dark:text-orange-400 tabular-nums leading-none">
                   {predictionStats.streak}
                 </span>

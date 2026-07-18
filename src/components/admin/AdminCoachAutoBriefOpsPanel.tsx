@@ -87,7 +87,7 @@ export function AdminCoachAutoBriefOpsPanel({
   const gateThresholds = gate?.thresholds;
 
   return (
-    <div className="rounded-2xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 via-slate-900 to-slate-900 p-5 shadow-lg shadow-amber-500/10">
+    <div className="rounded-2xl border border-amber-500/20 bg-slate-900/90 p-5 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="flex items-center gap-2 text-lg font-semibold text-white">

@@ -32,24 +32,24 @@ interface HomeMatchPanelProps {
   onToggleSecondarySection: () => void;
 }
 
-const HOME_MATCH_PANEL_COPY: Record<LeagueTab, { eyebrow: string; title: string; description: string }> = {
+const HOME_MATCH_PANEL_COPY: Record<LeagueTab, { context: string; title: string; description: string }> = {
   regular: {
-    eyebrow: 'KBO League',
+    context: 'KBO League',
     title: '오늘의 매치업',
     description: '경기 시간, 구장, 상태를 빠르게 확인하세요.',
   },
   postseason: {
-    eyebrow: 'Postseason',
+    context: 'Postseason',
     title: '포스트시즌 매치업',
     description: '가을야구 일정을 간결하게 정리했습니다.',
   },
   koreanseries: {
-    eyebrow: 'Korean Series',
+    context: 'Korean Series',
     title: '한국시리즈 매치업',
     description: '챔피언 결정전의 경기 흐름을 확인하세요.',
   },
   scheduled: {
-    eyebrow: 'Upcoming',
+    context: 'Upcoming',
     title: '다가오는 경기',
     description: '예정 경기와 일정 변동을 날짜별로 확인하세요.',
   },
@@ -69,7 +69,7 @@ function HomeScheduleBoardHeader({
   detailLabel,
   tone = 'default',
 }: {
-  copy: { eyebrow: string; title: string; description: string };
+  copy: { context: string; title: string; description: string };
   countLabel: string;
   detailLabel?: string;
   tone?: 'default' | 'warning';
@@ -82,9 +82,8 @@ function HomeScheduleBoardHeader({
     <div className="mb-4 flex flex-col gap-3 border-b border-gray-100 pb-4 dark:border-white/8 sm:flex-row sm:items-end sm:justify-between">
       <div className="min-w-0">
         <div className="mb-1 flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-primary" />
-          <span className="text-12 font-black uppercase tracking-[0.16em] text-primary dark:text-emerald-300">
-            {copy.eyebrow}
+          <span className="text-13 font-semibold text-primary dark:text-emerald-300">
+            {copy.context}
           </span>
         </div>
         <h3 className="truncate text-20 font-black tracking-tight text-gray-950 dark:text-white sm:text-2xl">
@@ -118,7 +117,7 @@ function HomeScheduleEmptyState({
 }: {
   children: ReactNode;
   style: CSSProperties;
-  copy?: { eyebrow: string; title: string; description: string };
+  copy?: { context: string; title: string; description: string };
   countLabel?: string;
   detailLabel?: string;
 }) {

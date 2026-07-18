@@ -29,6 +29,9 @@ const TEAM_OPTIONS = FRANCHISE_TEAM_IDS.map((code) => ({
 const adminNativeSelectClassName =
   'h-10 w-full rounded-xl border border-slate-700 bg-slate-800/50 px-3 text-caption text-slate-200 transition-colors focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-60';
 
+const adminFieldLabelClassName =
+  'text-caption font-semibold text-slate-400';
+
 type CsvImportReport = {
   fileName: string;
   totalRows: number;
@@ -155,7 +158,7 @@ export default function OffseasonMovementAdminPanelContent({
       )}
 
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(320px,0.9fr)]">
-        <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-500/10 via-slate-900 to-slate-900 p-5 shadow-lg shadow-emerald-500/10">
+        <div className="rounded-2xl border border-emerald-500/20 bg-slate-900/90 p-5 shadow-sm">
           <div className="flex items-start justify-between gap-4">
             <div>
               <h3 className="flex items-center gap-2 text-lg font-semibold text-white">
@@ -180,29 +183,29 @@ export default function OffseasonMovementAdminPanelContent({
 
           <div className="mt-5 grid gap-3 sm:grid-cols-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Visible Rows</p>
-              <p className="mt-2 text-3xl font-black tracking-tight text-white">{filteredMovements.length}</p>
+              <p className={adminFieldLabelClassName}>노출 행</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-white">{filteredMovements.length}</p>
               <p className="mt-1 text-caption text-slate-500">원본 조회 결과 {movements.length}건</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Summary Filled</p>
-              <p className="mt-2 text-3xl font-black tracking-tight text-emerald-300">{summaryCount}</p>
+              <p className={adminFieldLabelClassName}>요약 입력</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-emerald-300">{summaryCount}</p>
               <p className="mt-1 text-caption text-slate-500">미입력 {qualityCounts.MISSING_SUMMARY}건</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-4">
-              <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Source Linked</p>
-              <p className="mt-2 text-3xl font-black tracking-tight text-sky-300">{sourcedCount}</p>
+              <p className={adminFieldLabelClassName}>출처 연결</p>
+              <p className="mt-2 text-2xl font-black tracking-tight text-sky-300">{sourcedCount}</p>
               <p className="mt-1 text-caption text-slate-500">미입력 {qualityCounts.MISSING_SOURCE}건</p>
             </div>
           </div>
         </div>
 
         <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-5">
-          <p className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-500">Structured Coverage</p>
+          <p className={adminFieldLabelClassName}>구조화 입력률</p>
           <div className="mt-4 space-y-3">
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
               <p className="text-caption font-semibold text-slate-200">구조화 상세 입력</p>
-              <p className="mt-2 text-2xl font-black text-violet-300">{structuredCount}</p>
+              <p className="mt-2 text-2xl font-black text-amber-300">{structuredCount}</p>
               <p className="mt-1 text-caption text-slate-500">계약 기간, 금액, 옵션, 상대 구단, 반대급부 중 1개 이상</p>
             </div>
             <div className="rounded-2xl border border-slate-800 bg-slate-950/80 p-4">
@@ -313,7 +316,7 @@ export default function OffseasonMovementAdminPanelContent({
               type="button"
               data-testid="admin-offseason-open-create"
               onClick={onOpenCreateDialog}
-              className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-slate-950 hover:from-emerald-400 hover:to-cyan-400"
+              className="bg-emerald-500 text-slate-950 shadow-sm hover:bg-emerald-400"
             >
               <AdminPlusIcon className="mr-2 h-4 w-4" />
               이동 추가

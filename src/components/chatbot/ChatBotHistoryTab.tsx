@@ -3,11 +3,11 @@ import { useEffect, useState } from 'react';
 import { listChatSessions } from '../../api/chatSessions';
 import type { ChatSessionSummary } from '../../types/chatbot';
 import {
-  ChatBotHistoryIcon,
-  ChatBotPlusIcon,
-  ChatBotSpinnerIcon,
-  ChatBotTrashIcon,
-} from './ChatBotIcons';
+  ChatBotSessionHistoryIcon as ChatBotHistoryIcon,
+  ChatBotSessionPlusIcon as ChatBotPlusIcon,
+  ChatBotSessionSpinnerIcon as ChatBotSpinnerIcon,
+  ChatBotSessionTrashIcon as ChatBotTrashIcon,
+} from './ChatBotSessionIcons';
 
 interface ChatBotHistoryTabProps {
   currentSessionId: number | null;

@@ -8,6 +8,8 @@ import {
 
 type PredictionMobileSmokeState =
   | 'match'
+  | 'vote-panel'
+  | 'date-sheet'
   | 'detail-loading'
   | 'detail-error'
   | 'top-notice'
@@ -23,14 +25,19 @@ type PredictionMobileSmokeWindow = Window & {
 
 const defaultStates: PredictionMobileSmokeState[] = [
   'match',
+  'vote-panel',
+  'date-sheet',
   'detail-loading',
   'detail-error',
   'top-notice',
 ];
 
 const targetDate = '2026-02-04';
+const votePanelDate = '2099-05-01';
 const gameIdsByState: Record<PredictionMobileSmokeState, string> = {
   match: '20260204LGKT0',
+  'vote-panel': '20990501LGKT0',
+  'date-sheet': '20260204LGKT9',
   'detail-loading': '20260204LGKT1',
   'detail-error': '20260204LGKT2',
   'top-notice': '20260204LGKT3',
@@ -41,6 +48,9 @@ const gameIdsByState: Record<PredictionMobileSmokeState, string> = {
   'ranking-saved': '20260204LGKT8',
 };
 const targetGameId = gameIdsByState.match;
+const dateForState = (state: PredictionMobileSmokeState) => (
+  state === 'vote-panel' ? votePanelDate : targetDate
+);
 const rankingTeamIds = [
   'samsung',
   'lg',
@@ -107,9 +117,14 @@ const voteStatus = {
 };
 
 const pathForState = (state: PredictionMobileSmokeState) => {
+  if (state === 'date-sheet') {
+    return `/prediction?date=${targetDate}`;
+  }
+
+  const stateDate = dateForState(state);
   const params = new URLSearchParams({
     gameId: gameIdsByState[state],
-    date: targetDate,
+    date: stateDate,
   });
   return `/prediction?${params.toString()}`;
 };
@@ -122,9 +137,11 @@ const expectNoHorizontalOverflow = () => {
   });
 };
 
-const expectElementInsideViewport = (subject: Cypress.Chainable<JQuery<HTMLElement>>) => {
-  subject.should('be.visible').then(($element) => {
-    const rect = $element[0].getBoundingClientRect();
+type ViewportElementSubject = Cypress.Chainable<JQuery<HTMLElement>> | Cypress.Chainable<undefined>;
+
+const expectElementInsideViewport = (subject: ViewportElementSubject) => {
+  (subject as Cypress.Chainable<JQuery<HTMLElement>>).should('be.visible').then(($element) => {
+    const rect = ($element as JQuery<HTMLElement>)[0].getBoundingClientRect();
     cy.window().then((win) => {
       expect(rect.left, 'left edge').to.be.gte(0);
       expect(rect.right, 'right edge').to.be.lte(win.innerWidth + 1);
@@ -180,7 +197,7 @@ const runWhenStateActive = (
   state: PredictionMobileSmokeState,
   body: () => void
 ) => {
-  cy.env<unknown>(['PREDICTION_MOBILE_ACTIVE_STATES']).then((activeStateEnv) => {
+  cy.env(['PREDICTION_MOBILE_ACTIVE_STATES']).then((activeStateEnv: unknown) => {
     const activeStates = parseActiveStates(resolveActiveStateValue(activeStateEnv));
     if (!activeStates.includes(state)) {
       cy.log(`Skipping inactive prediction mobile smoke state: ${state}`);
@@ -193,17 +210,42 @@ const runWhenStateActive = (
 
 const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
   const stateGameId = gameIdsByState[state];
+  const stateDate = dateForState(state);
+  const isVotePanelState = state === 'vote-panel';
   const stateGame = {
     ...game,
     gameId: stateGameId,
+    gameDate: stateDate,
+    ...(isVotePanelState
+      ? {
+          gameStatus: 'SCHEDULED',
+          gameStatusKr: '경기 예정',
+          homeScore: null,
+          awayScore: null,
+          winner: null,
+          startTime: '18:30',
+        }
+      : {}),
   };
   const stateGameDetail = {
     ...gameDetail,
     gameId: stateGameId,
+    gameDate: stateDate,
     summary: gameDetail.summary.map((item) => ({
       ...item,
       gameId: stateGameId,
     })),
+    ...(isVotePanelState
+      ? {
+          gameStatus: 'SCHEDULED',
+          homeScore: null,
+          awayScore: null,
+          gameTimeMinutes: null,
+          inningScores: [],
+          summary: [],
+          startTime: '18:30',
+        }
+      : {}),
   };
 
   cy.viewport(390, 844);
@@ -216,7 +258,7 @@ const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
   cy.intercept('GET', '**/api/matches/day*', {
     statusCode: 200,
     body: {
-      date: targetDate,
+      date: stateDate,
       games: [stateGame],
       prevDate: null,
       nextDate: null,
@@ -299,7 +341,7 @@ const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
 
   cy.intercept('**/api/predictions/my-votes*', {
     statusCode: 200,
-    body: { votes: { [stateGameId]: null } },
+    body: { votes: { [stateGameId]: isVotePanelState ? 'home' : null } },
   }).as('getPredictionUserVotes');
 
   cy.intercept('**/api/predictions/status/*', {
@@ -307,7 +349,7 @@ const setupPredictionSmoke = (state: PredictionMobileSmokeState) => {
     body: voteStatus,
   }).as('getPredictionVoteStatus');
 
-  const shouldBootstrapDetail = state === 'match' || state === 'top-notice';
+  const shouldBootstrapDetail = state === 'match' || state === 'top-notice' || isVotePanelState;
   installPredictionBootstrapIntercept({
     games: [stateGame],
     detailByGameId: shouldBootstrapDetail ? { [stateGameId]: stateGameDetail } : {},
@@ -393,6 +435,79 @@ describe('Prediction mobile smoke', () => {
     });
   });
 
+  it('renders the mobile vote panel selected state without overflow', () => {
+    runWhenStateActive('vote-panel', () => {
+      visitSmokeState('vote-panel');
+
+      cy.get('[data-testid="prediction-vote-panel"]', { timeout: 40000 })
+        .scrollIntoView()
+        .should('be.visible')
+        .and('have.attr', 'aria-labelledby', 'prediction-vote-panel-title')
+        .and('have.attr', 'aria-describedby')
+        .and('include', 'prediction-vote-panel-helper');
+      cy.get('#prediction-vote-panel-title').should('contain.text', '승리 팀 예측');
+      cy.get('[data-testid="prediction-vote-participants"]')
+        .should('be.visible')
+        .and('contain.text', '참여 12명');
+      cy.get('[data-testid="vote-home-btn"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-pressed', 'true')
+        .and('have.attr', 'aria-label')
+        .and('include', '선택됨');
+      cy.get('[data-testid="prediction-vote-away-btn"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-pressed', 'false');
+      cy.get('[data-testid="prediction-vote-cancel-btn"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-label')
+        .and('include', '예측 취소');
+      cy.get('[data-testid="prediction-vote-cancel-btn"]').click();
+      cy.get('[data-testid="confirm-dialog"]', { timeout: 20000 })
+        .should('be.visible')
+        .and('contain.text', '투표 취소')
+        .then(($dialog) => {
+          const dialogWidth = $dialog[0].getBoundingClientRect().width;
+          cy.window().then((win) => {
+            expect(dialogWidth, 'confirm dialog mobile width').to.be.lte(Math.min(win.innerWidth - 32, 448) + 1);
+          });
+        });
+      expectElementInsideViewport(cy.get('[data-testid="confirm-dialog"]'));
+      cy.get('[data-testid="confirm-dialog"]').within(() => {
+        cy.contains('button', '취소').click();
+      });
+      cy.get('[data-testid="confirm-dialog"]').should('not.exist');
+      expectNoHorizontalOverflow();
+      cy.screenshot('prediction-mobile-smoke/vote-panel-mobile-390', {
+        capture: 'fullPage',
+        overwrite: true,
+      });
+    });
+  });
+
+  it('renders the mobile date sheet without overflow', () => {
+    runWhenStateActive('date-sheet', () => {
+      visitSmokeState('date-sheet');
+
+      cy.get('[data-testid="prediction-schedule-preview"]', { timeout: 30000 })
+        .should('be.visible');
+      cy.get('[data-testid="prediction-schedule-mobile-date-trigger"]')
+        .should('be.visible')
+        .and('have.attr', 'aria-haspopup', 'dialog')
+        .click();
+      cy.get('#prediction-mobile-date-sheet', { timeout: 20000 })
+        .should('be.visible')
+        .and('have.attr', 'role', 'dialog');
+      cy.get('[data-testid="prediction-schedule-mobile-date-button"][aria-pressed="true"]')
+        .should('be.focused');
+      expectElementInsideViewport(cy.get('#prediction-mobile-date-sheet'));
+      expectNoHorizontalOverflow();
+      captureState('date-sheet');
+      cy.focused().type('{esc}');
+      cy.get('#prediction-mobile-date-sheet').should('not.exist');
+      cy.get('[data-testid="prediction-schedule-mobile-date-trigger"]').should('be.focused');
+    });
+  });
+
   it('shows the detail loading banner while preserving the match card shell', () => {
     runWhenStateActive('detail-loading', () => {
       visitSmokeState('detail-loading');
@@ -440,6 +555,7 @@ describe('Prediction mobile smoke', () => {
         .should('be.visible')
         .and('have.attr', 'href')
         .and('include', '/prediction');
+      expectElementInsideViewport(cy.get('[data-testid="prediction-top-notice"]', { timeout: 20000 }));
       cy.get('[data-testid="prediction-scoreboard"]', { timeout: 20000 })
         .should('be.visible');
       expectNoHorizontalOverflow();

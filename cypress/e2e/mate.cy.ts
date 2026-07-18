@@ -337,6 +337,46 @@ describe('Mate Page Accuracy', () => {
     });
   });
 
+  it('recovers the list after automatic retries fail and the user retries', () => {
+    let shouldFail = true;
+    let failedResponseCount = 0;
+
+    cy.intercept('GET', '**/api/parties*', (req) => {
+      const requestUrl = new URL(req.url);
+      if (!requestUrl.pathname.endsWith('/parties') && !requestUrl.pathname.endsWith('/parties/')) return;
+
+      req.alias = shouldFail ? 'getPartiesRetryFailure' : 'getPartiesRetrySuccess';
+      if (shouldFail) {
+        req.on('response', (res) => {
+          if (res.statusCode === 500) failedResponseCount += 1;
+        });
+        req.reply({
+          statusCode: 500,
+          body: { message: 'temporary mate list failure' },
+        });
+        return;
+      }
+
+      req.reply(defaultPartiesPayload);
+    });
+
+    visitWithAuth('/mate');
+    cy.get('[role="alert"]', { timeout: 15000 }).within(() => {
+      cy.contains('파티 목록을 불러오지 못했습니다').should('be.visible');
+    });
+    cy.then(() => {
+      // StrictMode can remount the query lifecycle in dev, so the exact response count is mode-dependent.
+      // The rendered error proves retries are exhausted; this lower bound proves an automatic retry occurred.
+      expect(failedResponseCount).to.be.at.least(2);
+      shouldFail = false;
+    });
+    cy.get('[role="alert"]').contains('button', '다시 시도').click();
+
+    cy.wait('@getPartiesRetrySuccess').its('response.statusCode').should('eq', 200);
+    cy.get('[role="alert"]').should('not.exist');
+    cy.contains('잠실야구장').should('be.visible');
+  });
+
   it('surfaces decision-first signals on cards and detail summary', () => {
     cy.viewport(1440, 1000);
     cy.intercept('GET', '**/api/parties/777*', {
@@ -485,6 +525,33 @@ describe('Mate Page Accuracy', () => {
       expect(requestUrl.searchParams.has('date')).to.eq(true);
     });
     cy.contains('수원 켈틱 파크').should('be.visible');
+  });
+
+  it('resets active search filters from the empty state and restores the default list', () => {
+    setupPartiesListMock({ searchContent: [] });
+
+    visitWithAuth('/mate');
+    cy.wait('@getPartiesPage0');
+
+    getSearchInput().clear().type('결과없음');
+    cy.wait('@getPartiesSearch').then((interception) => {
+      const requestUrl = new URL(interception.request.url);
+      expect(requestUrl.searchParams.get('searchQuery')).to.eq('결과없음');
+      expect(interception.response?.body.content).to.deep.equal([]);
+    });
+
+    cy.contains('검색 조건에 맞는 파티가 없습니다').should('be.visible');
+    cy.contains('button', '필터 초기화').click();
+
+    cy.wait('@getPartiesPage0').then((interception) => {
+      const requestUrl = new URL(interception.request.url);
+      expect(requestUrl.searchParams.get('page')).to.eq('0');
+      expect(requestUrl.searchParams.has('searchQuery')).to.eq(false);
+      expect(requestUrl.searchParams.has('date')).to.eq(false);
+      expect(requestUrl.searchParams.has('teamId')).to.eq(false);
+    });
+    cy.contains('잠실야구장').should('be.visible');
+    cy.get('#mate-search').should('have.value', '');
   });
 
   it('loads detail, manage, and checkin pages from deep links with URL id', () => {

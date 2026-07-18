@@ -109,11 +109,11 @@ const parseArgs = () => {
 const printHelp = () => {
   console.log(`OAuth provider link preflight
 
-Checks local backend OAuth2 authorization redirects without following external provider URLs.
+Checks backend OAuth2 authorization redirects without following external provider URLs.
 
 Usage:
   npm run smoke:oauth:providers:preflight
-  node scripts/oauth-provider-link-preflight.mjs --backend-origin http://localhost:8080 --providers google,kakao,naver
+  node scripts/oauth-provider-link-preflight.mjs --backend-origin https://api.begabaseball.xyz --frontend-origin https://www.begabaseball.xyz --providers google,kakao,naver
 
 Environment:
   OAUTH_PROVIDER_BACKEND_ORIGIN       Backend origin. Default: http://localhost:8080
@@ -146,6 +146,22 @@ const buildProviderUrl = (backendOrigin, provider) => (
   new URL(`/oauth2/authorization/${provider}`, backendOrigin).toString()
 );
 
+const buildExpectedRedirectUri = (backendOrigin, provider) => (
+  new URL(`/login/oauth2/code/${provider}`, backendOrigin).toString()
+);
+
+const buildDiagnosticSuffix = (diagnostics) => {
+  const entries = Object.entries(diagnostics)
+    .filter(([, value]) => value !== undefined && value !== null && value !== '')
+    .map(([key, value]) => `${key}=${value}`);
+
+  return entries.length > 0 ? ` (${entries.join(', ')})` : '';
+};
+
+const failWithDiagnostics = (message, diagnostics = {}) => {
+  throw new Error(`${message}${buildDiagnosticSuffix(diagnostics)}`);
+};
+
 const inspectProviderRedirect = async (backendOrigin, provider, timeoutMs) => {
   const expectation = PROVIDER_EXPECTATIONS[provider];
   if (!expectation) {
@@ -153,6 +169,7 @@ const inspectProviderRedirect = async (backendOrigin, provider, timeoutMs) => {
   }
 
   const url = buildProviderUrl(backendOrigin, provider);
+  const expectedRedirectUri = buildExpectedRedirectUri(backendOrigin, provider);
   const response = await fetch(url, {
     redirect: 'manual',
     headers: {
@@ -163,33 +180,103 @@ const inspectProviderRedirect = async (backendOrigin, provider, timeoutMs) => {
   const location = response.headers.get('location') || '';
 
   if (!isRedirectStatus(response.status)) {
-    throw new Error(`${provider} authorization endpoint returned ${response.status}, expected 3xx redirect`);
+    failWithDiagnostics(
+      `${provider} authorization endpoint returned ${response.status}, expected 3xx redirect`,
+      {
+        authorizationUrl: url,
+        expectedHost: expectation.expectedHost,
+        expectedRedirectUri,
+      },
+    );
   }
 
   if (!location) {
-    throw new Error(`${provider} authorization endpoint returned ${response.status} without Location header`);
+    failWithDiagnostics(
+      `${provider} authorization endpoint returned ${response.status} without Location header`,
+      {
+        authorizationUrl: url,
+        expectedHost: expectation.expectedHost,
+        expectedRedirectUri,
+      },
+    );
   }
 
   let parsedLocation;
   try {
     parsedLocation = new URL(location, backendOrigin);
   } catch {
-    throw new Error(`${provider} authorization Location is not a valid URL: ${location}`);
+    failWithDiagnostics(`${provider} authorization Location is not a valid URL`, {
+      authorizationUrl: url,
+      location,
+      expectedHost: expectation.expectedHost,
+      expectedRedirectUri,
+    });
   }
 
   if (parsedLocation.hostname !== expectation.expectedHost) {
-    throw new Error(
+    failWithDiagnostics(
       `${provider} authorization Location host was ${parsedLocation.hostname}, expected ${expectation.expectedHost}`,
+      {
+        authorizationUrl: url,
+        redirectUri: parsedLocation.searchParams.get('redirect_uri') || '',
+        expectedRedirectUri,
+      },
+    );
+  }
+
+  const hasState = parsedLocation.searchParams.has('state');
+  const hasClientId = parsedLocation.searchParams.has('client_id');
+  const redirectUri = parsedLocation.searchParams.get('redirect_uri') || '';
+
+  if (!hasState) {
+    failWithDiagnostics(`${provider} authorization Location is missing state`, {
+      authorizationUrl: url,
+      authorizationHost: parsedLocation.hostname,
+      redirectUri,
+      expectedRedirectUri,
+    });
+  }
+
+  if (!hasClientId) {
+    failWithDiagnostics(
+      `${provider} authorization Location is missing client_id; check ${expectation.manualLabel} OAuth client env`,
+      {
+        authorizationUrl: url,
+        authorizationHost: parsedLocation.hostname,
+        redirectUri,
+        expectedRedirectUri,
+      },
+    );
+  }
+
+  if (!redirectUri) {
+    failWithDiagnostics(`${provider} authorization Location is missing redirect_uri`, {
+      authorizationUrl: url,
+      authorizationHost: parsedLocation.hostname,
+      expectedRedirectUri,
+    });
+  }
+
+  if (redirectUri !== expectedRedirectUri) {
+    failWithDiagnostics(
+      `${provider} redirect_uri was ${redirectUri}, expected ${expectedRedirectUri}`,
+      {
+        authorizationUrl: url,
+        authorizationHost: parsedLocation.hostname,
+      },
     );
   }
 
   return {
     provider,
+    authorizationUrl: url,
     status: response.status,
     authorizationHost: parsedLocation.hostname,
-    hasState: parsedLocation.searchParams.has('state'),
-    hasRedirectUri: parsedLocation.searchParams.has('redirect_uri'),
-    hasClientId: parsedLocation.searchParams.has('client_id'),
+    hasState,
+    hasRedirectUri: true,
+    redirectUri,
+    expectedRedirectUri,
+    hasClientId,
   };
 };
 

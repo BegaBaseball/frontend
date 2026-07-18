@@ -1,46 +1,16 @@
-import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent, type ReactNode, type SVGProps } from 'react';
+import { cloneElement, isValidElement, lazy, Suspense, useState, type MouseEvent, type ReactNode } from 'react';
 
 import { Button } from './ui/button';
 import PlainDialog from './ui/plain-dialog';
 import type { CoachDataQuality } from '../api/coach';
 import { TEAM_DATA, TEAM_LIST, getRandomTeamName } from '../constants/teams';
 import { resolveCoachAnalysisPresentation } from '../utils/predictionCoachPresentation';
+import {
+  CoachAnalysisResultLoaderIcon as CoachDialogLoaderIcon,
+  CoachAnalysisResultZapIcon as CoachDialogZapIcon,
+} from './icons/CoachAnalysisResultIcons';
 
 const CoachAnalysisDialogRuntime = lazy(() => import('./CoachAnalysisDialogRuntime'));
-
-function CoachDialogLoaderIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      {...props}
-    >
-      <path d="M21 12a9 9 0 1 1-2.64-6.36" />
-    </svg>
-  );
-}
-
-function CoachDialogZapIcon(props: SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      {...props}
-    >
-      <path d="M13 2 5 14h6l-1 8 8-12h-6l1-8Z" />
-    </svg>
-  );
-}
 
 export interface CoachAnalysisDialogProps {
   trigger?: ReactNode;
@@ -93,9 +63,9 @@ function CoachAnalysisTriggerButton({
       className="gap-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white border-0 hover:from-emerald-700 hover:to-emerald-800 shadow-lg shadow-emerald-500/20 px-8 h-12 rounded-full font-bold"
     >
       {disabled ? (
-        <CoachDialogLoaderIcon className="w-4 h-4 fill-white animate-spin" />
+        <CoachDialogLoaderIcon className="w-4 h-4 animate-spin" aria-hidden="true" />
       ) : (
-        <CoachDialogZapIcon className="w-4 h-4 fill-white" />
+        <CoachDialogZapIcon className="w-4 h-4" aria-hidden="true" />
       )}
       <span>AI 코치 상세 분석</span>
     </Button>
@@ -138,7 +108,7 @@ function CoachAnalysisDialogFallback({
     >
       <div className="flex min-h-[18rem] items-center justify-center bg-gray-50/60 dark:bg-black/40">
         <div className="inline-flex items-center gap-2 text-body font-semibold text-gray-600 dark:text-white">
-          <CoachDialogLoaderIcon className="h-4 w-4 animate-spin" />
+          <CoachDialogLoaderIcon className="h-4 w-4 animate-spin" aria-hidden="true" />
           AI 코치 분석 도구를 불러오는 중입니다.
         </div>
       </div>

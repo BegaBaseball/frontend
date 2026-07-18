@@ -6,24 +6,6 @@ import { useFocusTrap } from '../../hooks/useFocusTrap';
 const joinClassNames = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(' ');
 
-function PlainDialogCloseIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="m6 6 12 12" />
-      <path d="m18 6-12 12" />
-    </svg>
-  );
-}
-
 interface PlainDialogProps {
   open: boolean;
   onClose: () => void;
@@ -142,7 +124,7 @@ export default function PlainDialog({
                   className="h-10 w-10 p-0 text-gray-400 hover:text-gray-500"
                   onClick={onClose}
                 >
-                  <PlainDialogCloseIcon className="h-5 w-5" />
+                  <span className="text-xl font-semibold leading-none" aria-hidden="true">×</span>
                 </Button>
               )}
             </div>

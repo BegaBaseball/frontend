@@ -1,8 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchHotPosts } from '../api/cheerApi';
 import CheerCard from './CheerCard';
-import { AlertCircleIcon } from './icons/PublicFeatureIcons';
-import { FlameIcon } from './icons/PublicShellIcons';
+import { AlertCircleIcon, FlameIcon } from './icons/CheerFlowIcons';
 
 export default function CheerHot() {
     const { data, isLoading, isError, refetch } = useQuery({
@@ -16,7 +15,7 @@ export default function CheerHot() {
 
     if (isLoading) {
         return (
-            <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
+            <div className="bg-red-50/50 dark:bg-[var(--cheer-sub-card)] rounded-2xl p-5 border border-red-100 dark:border-border">
                 <div className="flex items-center gap-2 mb-4">
                     <FlameIcon className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
@@ -24,9 +23,9 @@ export default function CheerHot() {
                 <div className="space-y-3">
                     {[1, 2, 3].map((index) => (
                         <div key={index} className="rounded-lg border border-red-100 dark:border-border p-3 animate-pulse">
-                            <div className="h-3 w-16 bg-red-100 dark:bg-secondary rounded" />
-                            <div className="mt-2 h-4 w-full bg-red-100 dark:bg-secondary rounded" />
-                            <div className="mt-2 h-4 w-5/6 bg-red-100 dark:bg-secondary rounded" />
+                            <div className="h-3 w-16 bg-red-100 dark:bg-[var(--cheer-chip-bg)] rounded" />
+                            <div className="mt-2 h-4 w-full bg-red-100 dark:bg-[var(--cheer-chip-bg)] rounded" />
+                            <div className="mt-2 h-4 w-5/6 bg-red-100 dark:bg-[var(--cheer-chip-bg)] rounded" />
                         </div>
                     ))}
                 </div>
@@ -36,7 +35,7 @@ export default function CheerHot() {
 
     if (isError) {
         return (
-            <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
+            <div className="bg-red-50/50 dark:bg-[var(--cheer-sub-card)] rounded-2xl p-5 border border-red-100 dark:border-border">
                 <div className="flex items-center gap-2 mb-3">
                     <AlertCircleIcon className="w-5 h-5 text-red-500 dark:text-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
@@ -58,7 +57,7 @@ export default function CheerHot() {
 
     if (!hotPosts.length) {
         return (
-            <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
+            <div className="bg-red-50/50 dark:bg-[var(--cheer-sub-card)] rounded-2xl p-5 border border-red-100 dark:border-border">
                 <div className="flex items-center gap-2 mb-4">
                     <FlameIcon className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                     <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>
@@ -69,7 +68,7 @@ export default function CheerHot() {
     }
 
     return (
-        <div className="bg-red-50/50 dark:bg-card rounded-2xl p-5 border border-red-100 dark:border-border">
+        <div className="bg-red-50/50 dark:bg-[var(--cheer-sub-card)] rounded-2xl p-5 border border-red-100 dark:border-border">
             <div className="flex items-center gap-2 mb-4">
                 <FlameIcon className="w-5 h-5 text-red-500 fill-red-500 dark:text-red-400 dark:fill-red-400" />
                 <h2 className="text-lg font-bold text-red-500 dark:text-red-400">인기 피드</h2>

@@ -1,8 +1,7 @@
 import { useState } from 'react';
 
 import { MATE_SORT_OPTIONS, type MateSortOptionKey } from '../utils/mateSortOptions';
-import { MateCheckCircleIcon } from './MateIcons';
-import { ChevronDownIcon } from './icons/PublicShellIcons';
+import { MateCheckCircleIcon, MateChevronDownIcon as ChevronDownIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import PlainMenu from './ui/plain-menu';
 

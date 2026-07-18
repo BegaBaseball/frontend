@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 
+import { XIcon } from '../icons/StadiumGuideIcons';
 import { STADIUM_SEATMAP_DARK_COLORS } from './seatMapTheme';
 
 interface SeatMapTemplateShellProps {
@@ -199,9 +200,7 @@ export function SeatMapTemplateShell({
                   color: isDark ? STADIUM_SEATMAP_DARK_COLORS.text : undefined,
                 }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4">
-                  <path d="M18 6 6 18M6 6l12 12" />
-                </svg>
+                <XIcon className="h-4 w-4" />
               </button>
             </div>
             <div className="min-h-0 flex-1 overflow-hidden px-2 py-3 sm:px-4 sm:py-4">

@@ -5,7 +5,7 @@ import {
   getMyFavoriteStadiumIds,
   removeStadiumFavorite,
 } from '../api/stadium';
-import { HeartIcon } from './icons/PublicShellIcons';
+import { HeartIcon } from './icons/StadiumGuideIcons';
 
 type AuthenticatedStadiumFavoriteToggleProps = {
   stadiumId: string;

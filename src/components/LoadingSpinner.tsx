@@ -79,9 +79,7 @@ export default function LoadingSpinner({
       aria-live="polite"
       className={`relative min-h-screen w-full overflow-hidden bg-background ${className} flex items-center justify-center px-6 py-12`}
     >
-      <div className="pointer-events-none absolute inset-x-[-15%] -top-12 h-56 w-[130%] rounded-56 bg-gradient-to-r from-primary/25 via-primary/10 to-transparent blur-3xl opacity-40" />
-      <div className="pointer-events-none absolute right-[-15%] top-[20%] h-44 w-44 rounded-full bg-primary/20 blur-3xl" />
-      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-border bg-card/70 p-8 text-center backdrop-blur-sm shadow-[0_10px_40px_rgba(0,0,0,0.15)]">
+      <div className="relative z-10 w-full max-w-sm rounded-3xl border border-border bg-card p-8 text-center shadow-sm">
         {/* 상단 장식용 막대 */}
         <div className="mx-auto mb-5 h-2 w-12 rounded-full bg-muted/40" />
 

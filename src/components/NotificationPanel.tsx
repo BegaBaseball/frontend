@@ -23,7 +23,7 @@ import {
   NotificationStarIcon,
   NotificationTrashIcon,
   NotificationUserPlusIcon,
-} from './NotificationIcons';
+} from './icons/NotificationPanelIcons';
 
 type TabType = 'ALL' | 'MATE' | 'CHEER';
 
@@ -71,11 +71,11 @@ export default function NotificationPanel() {
       } else if (['APPLICATION_APPROVED', 'APPLICATION_REJECTED', 'PARTY_EXPIRED', 'PARTY_AUTO_COMPLETED', 'GAME_TOMORROW_REMINDER', 'GAME_DAY_REMINDER', 'REVIEW_REQUEST'].includes(notification.type)) {
         navigate(`/mate/${notification.relatedId}`);
       } else if (['POST_COMMENT', 'COMMENT_REPLY', 'POST_LIKE', 'POST_REPOST'].includes(notification.type)) {
-        navigate(`/cheer/${notification.relatedId}`);
+        navigate(`/cheer/${notification.relatedId}`, { state: { highlightCheerPost: true } });
       } else if (notification.type === 'NEW_FOLLOWER') {
         navigate(`/cheer`);
       } else if (notification.type === 'FOLLOWING_NEW_POST') {
-        navigate(`/cheer/${notification.relatedId}`);
+        navigate(`/cheer/${notification.relatedId}`, { state: { highlightCheerPost: true } });
       } else if (notification.type === 'NEW_DEVICE_LOGIN') {
         navigate('/mypage?view=accountSettings');
       }
@@ -143,7 +143,7 @@ export default function NotificationPanel() {
   // Helpers for rendering
   const renderMessageWithBold = (message: string) => {
     // Bold names ending with '님' or text inside quotes
-    // Example: "김철수님이...", "'공지사항' 게시글에..."
+    // Example: "박민재님이...", "'공지사항' 게시글에..."
     // Using a regex that captures the whole group to bold
     const parts = message.split(/([^\s]+님|'.*?')/g);
     return parts.map((part, i) => {
