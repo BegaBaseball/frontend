@@ -144,8 +144,7 @@ export function useMateListController() {
   const hasActiveFilters = Boolean(
     normalizeMateSearchText(inputValue)
     || selectedDate
-    || myTeamOnly
-    || activeTab !== 'all',
+    || myTeamOnly,
   );
 
   useEffect(() => {
