@@ -45,8 +45,9 @@ type RateLimitLikeError = Error & {
 };
 
 type ChatStreamEventLikeError = Error & {
-  detail?: string;
+  detail?: string | null;
   eventCode?: string;
+  upstreamMessage?: string;
 };
 
 let chatSessionsModulePromise: Promise<typeof import('../api/chatSessions')> | null = null;
@@ -71,8 +72,14 @@ const isRateLimitLikeError = (error: unknown): error is RateLimitLikeError =>
   && error.name === 'RateLimitError'
   && typeof (error as RateLimitLikeError).retryAfterSeconds === 'number';
 
-const isChatStreamEventLikeError = (error: unknown): error is ChatStreamEventLikeError =>
-  error instanceof Error && error.name === 'ChatStreamEventError';
+const isChatStreamEventLikeError = (error: unknown): error is ChatStreamEventLikeError => {
+  if (!(error instanceof Error) || error.name !== 'ChatStreamEventError') {
+    return false;
+  }
+  const candidate = error as ChatStreamEventLikeError;
+  return (candidate.detail == null || typeof candidate.detail === 'string')
+    && (candidate.upstreamMessage === undefined || typeof candidate.upstreamMessage === 'string');
+};
 
 const createMessageId = (): string => {
   if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
@@ -230,7 +237,7 @@ const buildAssistantPersistencePayload = (
   toolCalls: meta?.toolCalls ?? [],
 });
 
-const buildFailureText = (error: unknown): string => {
+export const resolveChatBotFailureText = (error: unknown): string => {
   if (isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)) {
     return '요청이 많아 잠시 후 다시 시도해주세요.';
   }
@@ -245,7 +252,9 @@ const buildFailureText = (error: unknown): string => {
   }
   if (isChatStreamEventLikeError(error) || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
     return isChatStreamEventLikeError(error)
-      ? error.detail || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
+      ? error.detail
+        || error.upstreamMessage
+        || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
       : '일시적인 오류가 발생했습니다. 다시 시도해주세요.';
   }
   return '응답 중 오류가 발생했습니다. 다시 시도해주세요.';
@@ -695,7 +704,7 @@ export const useChatBot = (initialOpen = false) => {
           }));
         }
       } else {
-        const failureText = buildFailureText(error);
+        const failureText = resolveChatBotFailureText(error);
         const errorCode = isRateLimitLikeError(error) || isChatStreamStatusError(error, CHATBOT_STATUS_RATE_LIMIT)
           ? 'rate_limit'
           : isChatStreamEventLikeError(error)

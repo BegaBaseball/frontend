@@ -5,7 +5,7 @@ import {
   CoachAnalyzeError,
   isCoachAnalyzeError,
 } from '../api/coach';
-import { resolveRateLimitErrorDetails } from '../api/aiStreamError';
+import { resolveCoachBriefingRateLimitFallback } from './coachRateLimitPresentation';
 import type { Game, GameDetail } from '../types/prediction';
 import { MANUAL_BASEBALL_DATA_REQUIRED_MESSAGE } from '../utils/errorUtils';
 import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
@@ -645,17 +645,17 @@ export default function CoachBriefingAutoRuntime({
         if (!matchesCurrentRequest()) {
           return;
         }
-        const rateLimitError = resolveRateLimitErrorDetails(error);
+        const rateLimitFallback = resolveCoachBriefingRateLimitFallback(error);
         if (isCoachAnalyzeError(error) && error.code === 'AUTH_EXPIRED') {
           markAuthExpired();
           return;
         }
-        if (rateLimitError) {
+        if (rateLimitFallback) {
           if (canOverrideSuccessfulBriefing()) {
             applyFallbackBriefing(
-              `${rateLimitError.message} ${rateLimitError.retryAfterSeconds}초 후 다시 시도해주세요.`,
+              rateLimitFallback.message,
               undefined,
-              { neutralMeta: true },
+              { neutralMeta: rateLimitFallback.neutralMeta },
             );
           }
           clearRetryTimer();

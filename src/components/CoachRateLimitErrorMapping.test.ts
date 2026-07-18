@@ -1,20 +1,33 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
-const readSource = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
+import { RateLimitError } from '../api/aiStreamError';
+import {
+  resolveCoachAnalysisDialogRateLimitResult,
+  resolveCoachBriefingRateLimitFallback,
+} from './coachRateLimitPresentation';
 
-const dialogRuntimeSource = readSource('./CoachAnalysisDialogRuntime.tsx');
-const autoRuntimeSource = readSource('./CoachBriefingAutoRuntime.tsx');
-
-test('CoachAnalysisDialogRuntime maps shared rate-limit message and retry timing to the result boundary', () => {
-  assert.match(dialogRuntimeSource, /resolveRateLimitErrorDetails/);
-  assert.match(dialogRuntimeSource, /rateLimitError\.message/);
-  assert.match(dialogRuntimeSource, /rateLimitError\.retryAfterSeconds/);
+const rateLimitError = new RateLimitError({
+  code: 'AI_RATE_LIMITED',
+  message: '요청이 많아 잠시 후 다시 시도해주세요.',
+  detail: null,
+  retryable: true,
+  retryAfterSeconds: 23,
+  supportedVersions: [],
 });
 
-test('CoachBriefingAutoRuntime maps shared rate-limit message and retry timing to the briefing boundary', () => {
-  assert.match(autoRuntimeSource, /resolveRateLimitErrorDetails/);
-  assert.match(autoRuntimeSource, /rateLimitError\.message/);
-  assert.match(autoRuntimeSource, /rateLimitError\.retryAfterSeconds/);
+test('CoachAnalysisDialogRuntime adapter returns the exact rate-limit result', () => {
+  assert.deepEqual(resolveCoachAnalysisDialogRateLimitResult(rateLimitError), {
+    error: '요청이 많아 잠시 후 다시 시도해주세요. 23초 후 다시 시도해주세요.',
+  });
+  assert.equal(resolveCoachAnalysisDialogRateLimitResult(new Error('not rate limited')), null);
+});
+
+test('CoachBriefingAutoRuntime adapter returns the exact rate-limit fallback and timing', () => {
+  assert.deepEqual(resolveCoachBriefingRateLimitFallback(rateLimitError), {
+    message: '요청이 많아 잠시 후 다시 시도해주세요. 23초 후 다시 시도해주세요.',
+    retryAfterSeconds: 23,
+    neutralMeta: true,
+  });
+  assert.equal(resolveCoachBriefingRateLimitFallback(new Error('not rate limited')), null);
 });
