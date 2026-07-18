@@ -1019,6 +1019,25 @@ test('policy recognizes quoted extra keys in the coverage workflow step', () => 
   assert.deepEqual(acceptedMappings, []);
 });
 
+test('policy rejects explicit mapping keys at the coverage step indentation', () => {
+  const explicitMappings = [
+    '        ? if\n        : false',
+    '        ? "continue-on-error"\n        : true',
+  ];
+  const acceptedMappings = explicitMappings.filter((mapping) => {
+    const repoRoot = writePassingPolicyFixture();
+    const workflow = passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      `        id: coverage\n${mapping}`,
+    );
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedMappings, []);
+});
+
 test('policy ignores fake steps inside explicit-indentation block scalars', () => {
   const blockIndicators = ['|2', '|2-', '|-2', '>2', '>2-', '>-2'];
 
