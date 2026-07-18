@@ -24,7 +24,7 @@ test('syncAiStreamContract copies exact bytes and records source metadata', () =
   const sourcePath = join(directory, 'source.json');
   const contractPath = join(directory, 'vendored.json');
   const metadataPath = join(directory, 'metadata.json');
-  const source = Buffer.from('{"openapi":"3.1.0"}\n');
+  const source = Buffer.from('{"openapi":"3.1.0","info":{"version":"2.1.0"}}\n');
   writeFileSync(sourcePath, source);
 
   try {
@@ -36,11 +36,54 @@ test('syncAiStreamContract copies exact bytes and records source metadata', () =
 
     assert.deepEqual(readFileSync(contractPath), source);
     assert.equal(metadata.source_repository, 'BegaBaseball/AI');
-    assert.equal(metadata.schema_version, '2.0.0');
+    assert.equal(metadata.schema_version, '2.1.0');
     assert.equal(metadata.sha256, computeSha256(source));
     assert.deepEqual(
       JSON.parse(readFileSync(metadataPath, 'utf8')),
       metadata,
+    );
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+
+test('syncAiStreamContract derives schema version from the local OpenAPI info', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'bega-ai-contract-version-'));
+  const sourcePath = join(directory, 'source.json');
+  const contractPath = join(directory, 'vendored.json');
+  const metadataPath = join(directory, 'metadata.json');
+  const source = Buffer.from(JSON.stringify({
+    openapi: '3.1.0',
+    info: { title: 'test', version: '2.1.0' },
+  }));
+  writeFileSync(sourcePath, source);
+
+  try {
+    const metadata = syncAiStreamContract({
+      sourcePath,
+      contractPath,
+      metadataPath,
+    });
+
+    assert.equal(metadata.schema_version, '2.1.0');
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+
+test('syncAiStreamContract rejects a local document without a valid info.version', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'bega-ai-contract-invalid-version-'));
+  const sourcePath = join(directory, 'source.json');
+  const contractPath = join(directory, 'vendored.json');
+  const metadataPath = join(directory, 'metadata.json');
+  writeFileSync(sourcePath, JSON.stringify({ openapi: '3.1.0', info: {} }));
+
+  try {
+    assert.throws(
+      () => syncAiStreamContract({ sourcePath, contractPath, metadataPath }),
+      /info\.version/,
     );
   } finally {
     rmSync(directory, { recursive: true, force: true });

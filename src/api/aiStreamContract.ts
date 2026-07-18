@@ -3,6 +3,7 @@ import type { SseEvent } from './sse';
 
 export type AiStreamV2Event = components['schemas']['AiStreamV2Event'];
 export type AiEventVersion = '1' | '2';
+export const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
 
 const APPROVED_TYPES = new Set<AiStreamV2Event['type']>([
   'chat.status',
