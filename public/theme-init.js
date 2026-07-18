@@ -74,6 +74,7 @@
   root.classList.add(theme);
 
   const bgColor = theme === 'dark' ? '#000000' : '#ffffff';
+  root.style.setProperty('--app-shell-bg', bgColor);
   if (theme === 'dark') {
     if (document.body) {
       document.body.style.backgroundColor = '#000000';

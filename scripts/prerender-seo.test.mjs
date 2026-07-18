@@ -64,20 +64,21 @@ test('performance shell styles load without blocking the first paint', () => {
   const html = deferPerformanceShellStyles(`<head>${stylesheet}</head>`);
 
   assert.match(html, /rel="preload" as="style" data-performance-app-style="true"/);
-  assert.match(html, /onload="this\.onload=null;this\.rel='stylesheet';this\.dataset\.performanceStyleReady='true'"/);
+  assert.doesNotMatch(html, /onload=/);
   assert.match(html, new RegExp(`<noscript>${escapeRegExp(stylesheet)}</noscript>`));
 });
 
-test('performance shell app module starts after the first paint', () => {
+test('performance shell app module starts after the first paint through a self-hosted bootstrap', () => {
   const html = deferPerformanceShellModule(
     '<body><script type="module" crossorigin src="/assets/index-test.js"></script></body>',
   );
 
   assert.doesNotMatch(html, /<script type="module"/);
-  assert.match(html, /data-performance-app-module="true"/);
-  assert.match(html, /requestAnimationFrame/);
-  assert.match(html, /setTimeout/);
-  assert.match(html, /import\("\/assets\/index-test\.js"\)/);
+  assert.match(
+    html,
+    /<script data-performance-app-module="true" data-module-src="\/assets\/index-test\.js" src="\/performance-app-bootstrap\.js"><\/script>/,
+  );
+  assert.doesNotMatch(html, /<script[^>]*data-performance-app-module="true">/);
 });
 
 test('prerender SEO head includes escaped search verification meta tags', () => {

@@ -201,7 +201,7 @@ export const buildRootMarkup = (route) => {
 export const deferPerformanceShellStyles = (html) => html.replace(
   /<link rel="stylesheet"([^>]*href="[^"]+\.css[^"]*"[^>]*)>/g,
   (stylesheetLink, attributes) => [
-    `<link rel="preload" as="style" data-performance-app-style="true"${attributes} onload="this.onload=null;this.rel='stylesheet';this.dataset.performanceStyleReady='true'">`,
+    `<link rel="preload" as="style" data-performance-app-style="true"${attributes}>`,
     `<noscript>${stylesheetLink}</noscript>`,
   ].join(''),
 );
@@ -209,11 +209,7 @@ export const deferPerformanceShellStyles = (html) => html.replace(
 export const deferPerformanceShellModule = (html) => html.replace(
   /<script\s+type="module"[^>]*\ssrc="([^"]+)"[^>]*><\/script>/,
   (_moduleScript, moduleSrc) => [
-    '<script data-performance-app-module="true">',
-    'globalThis.requestAnimationFrame(()=>{globalThis.setTimeout(()=>{',
-    `void import(${JSON.stringify(moduleSrc)});`,
-    '},0);});',
-    '</script>',
+    `<script data-performance-app-module="true" data-module-src="${moduleSrc}" src="/performance-app-bootstrap.js"></script>`,
   ].join(''),
 );
 
