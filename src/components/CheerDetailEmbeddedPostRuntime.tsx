@@ -1,7 +1,10 @@
 import type { CSSProperties } from 'react';
 import type { EmbeddedPost as EmbeddedPostType } from '../api/cheerApi';
 import EmbeddedPost from './EmbeddedPost';
-import { QuoteIcon, RepeatIcon } from './icons/CheerIcons';
+import {
+    CheerCardQuoteIcon as QuoteIcon,
+    CheerCardRepeatIcon as RepeatIcon,
+} from './icons/CheerCardIcons';
 
 interface CheerDetailEmbeddedPostRuntimeProps {
     detailAccent: string;
@@ -34,7 +37,8 @@ export default function CheerDetailEmbeddedPostRuntime({
         return (
             <EmbeddedPost
                 post={originalEmbeddedPost}
-                className="mt-0 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
+                className="mt-0 bg-[var(--cheer-sub-card)] hover:bg-[var(--cheer-card-bg)]"
+                linkedContentVariant="compact"
             />
         );
     }
@@ -58,7 +62,8 @@ export default function CheerDetailEmbeddedPostRuntime({
             {isQuoteRepost ? (
                 <EmbeddedPost
                     post={originalEmbeddedPost}
-                    className="mt-4 bg-white/80 hover:bg-white dark:bg-slate-900/80 dark:hover:bg-slate-900"
+                    className="mt-4 bg-[var(--cheer-sub-card)] hover:bg-[var(--cheer-card-bg)]"
+                    linkedContentVariant="compact"
                 />
             ) : null}
         </div>

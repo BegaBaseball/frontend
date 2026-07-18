@@ -5,16 +5,21 @@ import {
   MyPageBarChartIcon,
   MyPageBellIcon,
   MyPageCrownIcon,
+  MyPageEditIcon,
+  MyPageFlameIcon,
   MyPageSearchIcon,
-} from './MyPageIcons';
+  MyPageUsersIcon,
+} from './MyPageFlowIcons';
 
 type MyPageSidebarMoreRuntimeProps = {
   viewMode: ViewMode;
+  todayDate: string;
   onSetViewMode: (mode: ViewMode, options?: { date?: string | null }) => void;
 };
 
 export default function MyPageSidebarMoreRuntime({
   viewMode,
+  todayDate,
   onSetViewMode,
 }: MyPageSidebarMoreRuntimeProps) {
   return (
@@ -25,6 +30,32 @@ export default function MyPageSidebarMoreRuntime({
         aria-label="마이페이지 더보기"
         data-testid="mypage-season-sidebar-more"
       >
+        <button
+          type="button"
+          className={viewMode === 'diaryEditor' ? 'is-active' : undefined}
+          onClick={() => onSetViewMode('diaryEditor', { date: todayDate })}
+        >
+          <MyPageEditIcon />
+          <span>오늘 기록</span>
+        </button>
+        <button
+          type="button"
+          data-testid="mypage-mate-history-nav"
+          className={viewMode === 'mateHistory' ? 'is-active' : undefined}
+          onClick={() => onSetViewMode('mateHistory')}
+        >
+          <MyPageUsersIcon />
+          <span>메이트 내역</span>
+        </button>
+        <button
+          type="button"
+          data-testid="mypage-cheer-posts-nav"
+          className={viewMode === 'cheerPosts' ? 'is-active' : undefined}
+          onClick={() => onSetViewMode('cheerPosts')}
+        >
+          <MyPageFlameIcon />
+          <span>응원석 글</span>
+        </button>
         <Link to="/stadium">
           <MyPageSearchIcon />
           <span>구장 검색</span>

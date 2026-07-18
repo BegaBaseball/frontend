@@ -144,7 +144,7 @@ jobs:
           path: |
             reports/mate-ci/**
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 7
 
       - name: Upload mate Cypress failure artifacts
         if: ${{ always() && ((inputs.mode == 'smoke' && steps.e2e_smoke.outcome == 'failure') || (inputs.mode == 'regression' && (steps.route_regression.outcome == 'failure' || steps.create_regression.outcome == 'failure' || steps.extended_regression.outcome == 'failure'))) }}
@@ -155,7 +155,7 @@ jobs:
             cypress/screenshots/**
             cypress/videos/**
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 3
 
       - name: Upload mate visual screenshots
         if: ${{ always() && inputs.mode == 'regression' && env.RUN_EXTENDED == 'true' && inputs.upload_visual_artifacts && steps.extended_regression.outcome == 'success' }}
@@ -164,7 +164,7 @@ jobs:
           name: frontend-mate-regression-visual-artifacts
           path: cypress/screenshots/mate-visual.cy.ts/**
           if-no-files-found: warn
-          retention-days: 14
+          retention-days: 7
 
       - name: Publish mate CI summary
         if: always()

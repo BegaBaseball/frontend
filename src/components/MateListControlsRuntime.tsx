@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, type MutableRefObject, type ReactNode } from 'react';
 
 import { recordMateSearchTerm } from '../api/mate';
 import { useDebounce } from '../hooks/useDebounce';
@@ -10,7 +10,7 @@ import {
   normalizeMateSearchText,
   normalizeRecordableMateSearchTerm,
 } from '../utils/mateSearchTerms';
-import { MatePlusIcon, MateSearchIcon, MateTicketIcon } from './MateIcons';
+import { MatePlusIcon, MateSearchIcon, MateTicketIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 
@@ -32,6 +32,7 @@ type MateListController = ReturnType<typeof useMateListController>;
 
 interface MateListControlsRuntimeProps {
   controller: MateListController;
+  recordedSearchTermsRef: MutableRefObject<Set<string>>;
   children: ReactNode;
 }
 
@@ -39,7 +40,11 @@ const GUIDE_BUTTON_CLASS = 'rounded-full px-4 font-bold text-gray-700 hover:bg-p
 const CREATE_BUTTON_CLASS = 'rounded-full bg-primary px-5 font-bold text-primary-foreground shadow-lg hover:bg-primary-hover';
 const SIDEBAR_CARD_CLASS = 'rounded-2xl border border-gray-200/80 bg-white px-4 py-3.5 dark:border-white/10 dark:bg-[#000000]';
 
-export default function MateListControlsRuntime({ controller, children }: MateListControlsRuntimeProps) {
+export default function MateListControlsRuntime({
+  controller,
+  recordedSearchTermsRef,
+  children,
+}: MateListControlsRuntimeProps) {
   const {
     activeMobileFilterCount,
     activeSortKey,
@@ -71,7 +76,6 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
   } = controller;
   const addRecentSearch = useMateRecentSearchStore((state) => state.addRecentSearch);
   const { isAuthLoading, isLoggedIn } = useAuthSession();
-  const serverHandledSearchTermsRef = useRef<Set<string>>(new Set());
   const stableRecordableSearchTerm = useDebounce(
     normalizeRecordableMateSearchTerm(inputValue),
     1200,
@@ -86,11 +90,11 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
 
     addRecentSearch(term);
 
-    if (isAuthLoading || serverHandledSearchTermsRef.current.has(normalizedTermKey)) {
+    if (isAuthLoading || recordedSearchTermsRef.current.has(normalizedTermKey)) {
       return;
     }
 
-    serverHandledSearchTermsRef.current.add(normalizedTermKey);
+    recordedSearchTermsRef.current.add(normalizedTermKey);
     if (!isLoggedIn) {
       return;
     }
@@ -159,7 +163,7 @@ export default function MateListControlsRuntime({ controller, children }: MateLi
     <>
       <div className="mb-5 flex items-start justify-between gap-3 md:mb-6 md:items-end">
         <div className="min-w-0">
-          <p className="mb-1 hidden text-15 font-bold uppercase tracking-[0.2em] text-gray-500 dark:text-white sm:block">
+          <p className="mb-1 hidden text-13 font-semibold text-gray-500 dark:text-white/70 sm:block">
             Mate Flow
           </p>
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">

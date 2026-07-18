@@ -2,7 +2,7 @@ import { lazy, Suspense, type ReactNode } from 'react';
 
 import { Card } from './ui/card';
 import type { Ranking } from '../types/home';
-import { ChevronLeftIcon, ClockIcon } from './icons/PublicFeatureIcons';
+import { ChevronLeftIcon, ClockIcon } from './icons/OffseasonIcons';
 import { OffseasonPill } from './offseason/offseasonUi';
 
 type AwardData = {
@@ -57,13 +57,16 @@ export default function OffSeasonHomePrimaryRuntime({
 }: OffSeasonHomePrimaryRuntimeProps) {
   const highlightsFallback = (
     <div className="space-y-8">
-      <div className="grid grid-cols-1 gap-4 md:gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {[0, 1, 2].map((index) => (
-          <Card
-            key={`offseason-award-fallback-${index}`}
-            className="h-44 animate-pulse border-none bg-white ring-1 ring-black/5 dark:bg-background dark:ring-white/10"
-          />
-        ))}
+      <div className="grid grid-cols-1 gap-4 md:gap-6 lg:grid-cols-2">
+        <Card className="h-52 animate-pulse border-none bg-white ring-1 ring-black/5 dark:bg-background dark:ring-white/10" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-1">
+          {[1, 2].map((index) => (
+            <Card
+              key={`offseason-award-fallback-${index}`}
+              className="h-28 animate-pulse border-none bg-white ring-1 ring-black/5 dark:bg-background dark:ring-white/10"
+            />
+          ))}
+        </div>
       </div>
       <Card className="h-96 animate-pulse border border-gray-200 bg-white dark:border-border dark:bg-card" />
       <Card className="h-72 animate-pulse border border-gray-200 bg-white dark:border-border dark:bg-card" />
@@ -112,7 +115,7 @@ export default function OffSeasonHomePrimaryRuntime({
               <p className="text-base text-emerald-100/80 md:text-lg">다가오는 새로운 시즌을 준비하는 뜨거운 기록들</p>
             </div>
             <div className="w-fit rounded-xl border border-white/10 bg-black/20 p-3 text-white backdrop-blur-sm md:rounded-2xl md:p-4 md:text-right">
-              <div className="mb-1 text-caption font-bold tracking-wider text-white/60 uppercase md:text-15">OFF-SEASON STATUS</div>
+              <div className="mb-1 text-13 font-semibold text-white/65 md:text-15">오프시즌 상태</div>
               <div className="text-lg font-black md:text-2xl">
                 {statusDateLabel} 기준
               </div>

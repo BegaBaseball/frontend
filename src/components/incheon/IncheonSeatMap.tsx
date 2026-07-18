@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, ExternalLink, Eye, Minus, Plus, Trash2, X } from 'lucide-react';
+import {
+  ArrowSquareOutIcon as ExternalLink,
+  EyeIcon as Eye,
+  MinusIcon as Minus,
+  PlusIcon as Plus,
+  TrashIcon as Trash2,
+  WarningTriangleIcon as AlertTriangle,
+  XIcon as X,
+} from '../icons/StadiumGuideIcons';
 import {
   INCHEON_BLOCKS,
   INCHEON_CATEGORIES,
@@ -21,8 +28,8 @@ import {
 } from '../../data/incheonSeatData';
 import { getIncheonOperatorVisitGuidance } from '../../data/incheonOperatorVisitGuide';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
-import { useDiaryStore } from '../../store/diaryStore';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import { formatManualBaseballDataDisplayValue } from '../../utils/manualBaseballDataContract';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import IncheonSeatMapSvg from './IncheonSeatMapSvg';
@@ -32,6 +39,7 @@ import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
@@ -81,13 +89,6 @@ const INCHEON_GUIDE_INTENTS: Array<{ id: IncheonGuideIntent; label: string; test
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
-}
-
-function formatDraftDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function IncheonCompareAction({
@@ -641,13 +642,11 @@ function IncheonMobileSecondaryPanel({
 
 export default function IncheonSeatMap() {
   const { resolvedTheme } = useTheme();
-  const navigate = useNavigate();
-  const { isLoggedIn } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
-  const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
+  const [uploadFor, setUploadFor] = useState<IncheonBlock | null>(null);
   const [guideIntent, setGuideIntent] = useState<IncheonGuideIntent>('전체');
   const [guideQuery, setGuideQuery] = useState('');
   const [mobileToolTab, setMobileToolTab] = useState<IncheonMobileToolTab>('guide');
@@ -666,6 +665,8 @@ export default function IncheonSeatMap() {
     filterCats,
     filterSides,
     filterLevels,
+    toast,
+    showToast,
   } = useSeatMapSelectionState({
     sections: INCHEON_BLOCKS,
     filterGroups: INCHEON_CATEGORY_GROUPS,
@@ -832,26 +833,15 @@ export default function IncheonSeatMap() {
     setComparisonIds([]);
   }, []);
 
-  const handleShareSeatView = useCallback((section: IncheonBlock | null) => {
+  const handleOpenUpload = useCallback((section: IncheonBlock | null) => {
     if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
 
-    setPendingDraft({
-      date: formatDraftDate(new Date()),
-      stadium: 'INCHEON',
-      team: 'SSG',
-      section: section.name,
-      block: section.block,
-      seatRow: '',
-      seatNumber: '',
-    });
-
-    if (!isLoggedIn) {
-      requireLogin('/mypage');
-      return;
-    }
-
-    navigate('/mypage');
-  }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const renderIncheonExtraMeta = useCallback((section: IncheonBlock, accent: string) => (
     <>
@@ -899,8 +889,8 @@ export default function IncheonSeatMap() {
         adapter={incheonSectionAdapter}
         stadiumKey="INCHEON"
         onClose={() => selectIncheonBlock(null)}
-        onUpload={() => handleShareSeatView(selected)}
-        copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+        onUpload={() => handleOpenUpload(selected)}
+        copy={{ uploadLabel: '시야 사진 올리기' }}
         extraMeta={renderIncheonExtraMeta}
         searchAction={{
           label: '구역 검색',
@@ -1050,9 +1040,9 @@ export default function IncheonSeatMap() {
             adapter={incheonSectionAdapter}
             stadiumKey="INCHEON"
             onClose={() => selectIncheonBlock(null)}
-            onUpload={() => handleShareSeatView(selected)}
+            onUpload={() => handleOpenUpload(selected)}
             testId="incheon-seatmap-bottom-sheet"
-            copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            copy={{ uploadLabel: '시야 사진 올리기' }}
             extraMeta={renderIncheonExtraMeta}
             searchAction={{
               label: '구역 검색',
@@ -1065,6 +1055,7 @@ export default function IncheonSeatMap() {
         mobileHasSidePanel={Boolean(hasOfficialBlocks && selected)}
         desktopSecondaryPanel={desktopSecondaryPanel}
         desktopSidePanel={detailPanel}
+        toast={toast}
         isFullscreenOpen={isFullscreenOpen}
         onFullscreenClose={closeFullscreen}
         fullscreenMapContent={(
@@ -1098,6 +1089,16 @@ export default function IncheonSeatMap() {
         fullscreenTitle="인천SSG랜더스필드"
         fullscreenSubtitle="인천 SSG 공식 좌석도 전체화면"
       />
+      {uploadFor && (
+        <SeatViewDirectUploadModal
+          stadium="INCHEON"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? INCHEON_CATEGORIES[uploadFor.category].dark : INCHEON_CATEGORIES[uploadFor.category].light}
+          onClose={() => setUploadFor(null)}
+          onSubmitted={handleUploadSubmitted}
+        />
+      )}
     </>
   );
 }

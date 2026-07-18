@@ -217,18 +217,21 @@ describe('MyPage more menu backend connections', () => {
         cy.visit('/mypage?view=accountSettings', { onBeforeLoad: seedAuth });
 
         cy.wait('@getConnectedProviders');
-        cy.wait('@getDeviceSessions');
-        cy.wait('@getSecurityEvents');
         cy.contains('계정 설정', { timeout: 20000 }).should('be.visible');
         cy.contains('로그인 연동 관리').should('be.visible');
         cy.contains('Google').should('be.visible');
         cy.contains('연동됨').should('be.visible');
         cy.contains('test.google@example.com').should('be.visible');
+
+        cy.contains('기기 및 보안 활동을 불러오는 중입니다.', { timeout: 20000 })
+            .scrollIntoView();
+        cy.wait('@getDeviceSessions');
+        cy.wait('@getSecurityEvents');
         cy.contains('Mac Chrome').should('be.visible');
         cy.contains('새 기기 로그인').should('be.visible');
     });
 
-    it('routes /mypage/:handle to the public profile backend flow', () => {
+    it('redirects /mypage/:handle to the public /profile/:handle backend flow', () => {
         cy.intercept('GET', /\/api\/users\/profile\/(%40|@)?connected-user(?:\?.*)?$/, {
             statusCode: 200,
             body: {
@@ -251,6 +254,7 @@ describe('MyPage more menu backend connections', () => {
 
         cy.visit('/mypage/connected-user', { onBeforeLoad: seedAuth });
 
+        cy.location('pathname').should('eq', '/profile/@connected-user');
         cy.wait('@getPublicProfile');
         cy.wait('@getPublicPosts');
         cy.contains('Connected User', { timeout: 20000 }).should('be.visible');

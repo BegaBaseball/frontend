@@ -70,18 +70,21 @@ describe('Home navigation auth persistence', () => {
         seedCypressAuthState(win, user, token, { skipPublicBootstrap: true });
       },
     });
-    cy.wait('@getMeForHomeNavigation');
     cy.contains('TestUser', { timeout: 20000 }).should('be.visible');
   });
 
-  it('keeps the authenticated UI when the MyPage Home tab is clicked', () => {
+  const navigateHomeFromMyPage = () => {
+    cy.contains('[data-testid="navbar-capsule"] button', 'BEGA').click();
+    cy.location('pathname').should('eq', '/home');
+  };
+
+  it('keeps the authenticated UI when the navbar logo returns home from MyPage', () => {
     cy.window().then((win) => {
       (win as Window & { __homeNavReloadSentinel?: boolean }).__homeNavReloadSentinel = true;
     });
 
-    cy.get('nav[aria-label="마이페이지 메뉴"]').contains('홈').click();
+    navigateHomeFromMyPage();
 
-    cy.location('pathname').should('eq', '/home');
     cy.window().its('__homeNavReloadSentinel').should('eq', true);
     cy.contains('TestUser 님', { timeout: 20000 }).should('be.visible');
     cy.contains('button', '로그인').should('not.exist');
@@ -89,5 +92,19 @@ describe('Home navigation auth persistence', () => {
     cy.window().then((win) => {
       expect(win.localStorage.getItem('accessToken')).to.eq(token);
     });
+  });
+
+  it('routes the top-right MyPage control to internal mypage, not the public cheer profile', () => {
+    cy.intercept('GET', '**/api/users/profile/**').as('getPublicProfile');
+
+    navigateHomeFromMyPage();
+
+    cy.get('[data-testid="navbar-auth-controls"] button[aria-label="TestUser 마이페이지로 이동"]', { timeout: 20000 })
+      .should('be.visible')
+      .click();
+
+    cy.location('pathname').should('eq', '/mypage');
+    cy.get('[data-testid="mypage-season-sidebar"]', { timeout: 20000 }).should('be.visible');
+    cy.get('@getPublicProfile.all').should('have.length', 0);
   });
 });

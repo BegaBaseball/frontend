@@ -66,12 +66,15 @@ test('마이페이지 계정 설정은 auth providers 백엔드 흐름으로 연
   assert.match(mypageControllerSource, /@DeleteMapping\("\/providers\/\{provider\}"\)/);
 });
 
-test('/mypage/:handle은 현재 사용자 마이페이지가 아니라 handle 기반 프로필 화면으로 라우팅된다', () => {
+test('/mypage/:handle은 공개 프로필 전용 /profile/:handle로만 리다이렉트된다', () => {
   const appRoutesSource = readSource('src/components/AppRoutes.tsx');
   const profilePublicApiSource = readSource('src/api/profilePublic.ts');
   const userControllerSource = readSource('../bega_backend/BEGA_PROJECT/src/main/java/com/example/auth/controller/UserController.java');
 
-  assert.match(appRoutesSource, /path="\/mypage\/:handle"\s+element=\{<UserProfilePage \/>\}/);
+  assert.match(appRoutesSource, /path="\/profile\/:handle"\s+element=\{<UserProfilePage \/>\}/);
+  assert.match(appRoutesSource, /path="\/mypage\/:handle"\s+element=\{<LegacyMyPageProfileRedirect \/>\}/);
+  assert.match(appRoutesSource, /<Navigate to=\{`\/profile\/\$\{normalizedHandle\}`\} replace \/>/);
+  assert.doesNotMatch(appRoutesSource, /path="\/mypage\/:handle"\s+element=\{<UserProfilePage \/>\}/);
   assert.match(profilePublicApiSource, /\/users\/profile\/\$\{encodeURIComponent\(handle\)\}/);
   assert.match(userControllerSource, /@GetMapping\("\/profile\/\{handle\}"\)/);
 });

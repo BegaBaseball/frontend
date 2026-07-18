@@ -3,11 +3,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { analyzeTicket, TicketInfo } from '@/api/ticket';
 import {
-    SharedCheckCircleIcon,
-    SharedLoaderIcon,
-    SharedTicketIcon,
-    SharedUploadIcon,
-} from '@/components/icons/SharedLeafIcons';
+    TicketUploadCheckCircleIcon as SharedCheckCircleIcon,
+    TicketUploadLoaderIcon as SharedLoaderIcon,
+    TicketUploadTicketIcon as SharedTicketIcon,
+    TicketUploadUploadIcon as SharedUploadIcon,
+} from '@/components/icons/TicketUploadIcons';
 import { toast } from 'sonner';
 import PlainDialog from '@/components/ui/plain-dialog';
 

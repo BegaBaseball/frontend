@@ -13,6 +13,7 @@ yarn-error.log*
 .env.*
 !.env.example
 *.log
+*.tsbuildinfo
 /cypress/videos
 /cypress/screenshots
 /cypress/results
@@ -35,3 +36,7 @@ yarn-error.log*
 /reports
 /.claude
 /.playwright-cli
+/.worktrees
+/.superpowers/sdd/progress.md
+/.superpowers/sdd/*-brief.md
+/.superpowers/sdd/review-*.diff

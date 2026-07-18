@@ -3,7 +3,10 @@ import { formatStadiumDisplayName } from '../utils/stadiumDisplay';
 import { Button } from './ui/plain-button';
 import PlainDialog from './ui/plain-dialog';
 import SeatViewGallery from './SeatViewGallery';
-import { MateInfoIcon, MateMapPinIcon } from './MateIcons';
+import {
+  MateDetailInfoIcon as MateInfoIcon,
+  MateDetailMapPinIcon as MateMapPinIcon,
+} from './icons/MateDetailIcons';
 
 interface MateDetailSeatPanelProps {
   open: boolean;

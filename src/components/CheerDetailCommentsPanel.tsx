@@ -364,7 +364,7 @@ export default function CheerDetailCommentsPanel({
   return (
     <div
       id="cheer-comments-section"
-      className="mt-4 border-t border-slate-200/70 pt-4 dark:border-white/10"
+      className="mt-4 border-t border-[var(--cheer-line-10)] pt-4"
     >
       <div className="mb-2">
         <div>
@@ -376,7 +376,7 @@ export default function CheerDetailCommentsPanel({
 
       {isLoggedIn ? (
         <div
-          className="mb-2 rounded-18 border bg-white/85 p-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-3"
+          className="mb-2 rounded-18 border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-2.5 shadow-sm sm:p-3"
           style={primaryBorderStyle}
         >
           <div className="flex gap-3">
@@ -396,7 +396,7 @@ export default function CheerDetailCommentsPanel({
                   placeholder="오늘의 응원 한마디를 남겨보세요."
                   disabled={sendingComment}
                   aria-label="댓글 입력"
-                  className="min-h-[54px] rounded-2xl border-slate-200 bg-slate-50/90 px-3 py-2 text-body font-semibold leading-5 dark:border-white/10 dark:bg-slate-950/70"
+                  className="min-h-[54px] rounded-2xl border-[var(--cheer-line-10)] bg-[var(--cheer-chip-bg)] px-3 py-2 text-body font-semibold leading-5"
                 />
                 <div className="mt-1.5 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <p className="text-body font-bold text-slate-500 dark:text-white">
@@ -437,7 +437,7 @@ export default function CheerDetailCommentsPanel({
       )}
 
       {commentsError ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-3 text-body font-semibold text-slate-600 dark:border-white/10 dark:bg-slate-900 dark:text-white">
+        <div className="rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-card-bg)] p-3 text-body font-semibold text-slate-600 dark:text-white">
             <p className="font-bold">{commentsError}</p>
           <Button
             variant="outline"
@@ -454,13 +454,13 @@ export default function CheerDetailCommentsPanel({
             {[1, 2].map((item) => (
               <div
                 key={item}
-                className="flex animate-pulse gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2 dark:border-white/10 dark:bg-slate-900/70"
+                className="flex animate-skeleton-pulse gap-2 rounded-2xl border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] p-2"
               >
-              <div className="h-7 w-7 rounded-full bg-slate-200 dark:bg-slate-800" />
+              <div className="h-7 w-7 rounded-full bg-[var(--cheer-chip-bg)]" />
               <div className="flex-1 space-y-1.5">
-                <div className="h-3 w-24 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-3 w-full rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-3 w-5/6 rounded bg-slate-200 dark:bg-slate-800" />
+                <div className="h-3 w-24 rounded bg-[var(--cheer-chip-bg)]" />
+                <div className="h-3 w-full rounded bg-[var(--cheer-chip-bg)]" />
+                <div className="h-3 w-5/6 rounded bg-[var(--cheer-chip-bg)]" />
               </div>
             </div>
           ))}
@@ -480,7 +480,7 @@ export default function CheerDetailCommentsPanel({
             className="mb-3"
           />
             <div
-            className="rounded-18 border p-3 text-center text-body font-bold text-slate-500 dark:border-white/10 dark:bg-slate-900/80 dark:text-white"
+            className="rounded-18 border p-3 text-center text-body font-bold text-slate-500 dark:text-white"
             style={{
               ...primaryBorderStyle,
               ...surfaceTintStyle,
@@ -514,7 +514,7 @@ export default function CheerDetailCommentsPanel({
               <div
                 key={comment.id}
                 role="listitem"
-                className="rounded-18 border border-slate-200 bg-white/85 px-3 py-2.5 shadow-sm dark:border-white/10 dark:bg-slate-900/80"
+                className="rounded-18 border border-[var(--cheer-line-10)] bg-[var(--cheer-sub-card)] px-3 py-2.5 shadow-sm"
               >
                 <CommentItem
                   comment={comment}

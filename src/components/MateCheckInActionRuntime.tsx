@@ -1,6 +1,11 @@
 import { cn } from '../lib/utils';
-import { mateInsetPanelClass, mateMobileBarClass, mateSectionCardClass } from '../utils/mateFlowUi';
-import { MateCheckCircleIcon, MateLoaderIcon } from './MateIcons';
+import {
+  mateInsetPanelClass,
+  mateMetaLabelClass,
+  mateMobileBarClass,
+  mateSectionCardClass,
+} from '../utils/mateFlowUi';
+import { MateCheckCircleIcon, MateLoaderIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 
@@ -47,8 +52,8 @@ export default function MateCheckInActionRuntime({
     <>
       <Card className={`hidden p-5 lg:flex lg:sticky lg:top-6 ${mateSectionCardClass}`}>
         <div>
-          <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
-            Next Action
+          <p className={mateMetaLabelClass}>
+            우선 작업
           </p>
           <h3 className="mt-2 text-lg font-black text-gray-900 dark:text-white">지금 해야 할 일</h3>
           <p className="mt-2 text-body leading-6 text-gray-600 dark:text-white">
@@ -123,7 +128,7 @@ export default function MateCheckInActionRuntime({
         <div className={`${mateMobileBarClass} lg:hidden`}>
           <div className="mx-auto max-w-6xl">
             <div className="min-w-0">
-              <p className="text-body font-semibold uppercase tracking-[0.16em] text-gray-400 dark:text-white">
+              <p className={mateMetaLabelClass}>
                 체크인 요약
               </p>
               <p className="mt-1 text-body font-semibold text-gray-900 dark:text-white">

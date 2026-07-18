@@ -1,24 +1,41 @@
 // hooks/useLoginForm.ts
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { loginUser } from '../api/authPublic';
-import { useAuthAuthenticationActions } from '../store/authStore';
 import { validateLoginField, validateLoginForm } from '../utils/validation';
 import { LoginFormData } from '../types/auth';
-import { getApiErrorMessage } from '../utils/errorUtils';
 import { resolveLoginCompletionPath } from '../utils/authFlow';
 import { getLoginQueryErrorMessage } from '../utils/loginError';
-import { sanitizeLoginRedirect } from '../utils/loginRedirect';
-import { useAuthRedirectState } from '../store/authStore';
+import {
+  clearStoredLoginRedirect,
+  getStoredLoginRedirect,
+  sanitizeLoginRedirect,
+  setStoredLoginRedirect,
+} from '../utils/loginRedirect';
 
 const SAVED_EMAIL_KEY = 'savedEmail';
+
+let authPublicModulePromise: Promise<typeof import('../api/authPublic')> | null = null;
+let authStoreModulePromise: Promise<typeof import('../store/authStore')> | null = null;
+let errorUtilsModulePromise: Promise<typeof import('../utils/errorUtils')> | null = null;
+
+const loadAuthPublicModule = () => {
+  authPublicModulePromise ??= import('../api/authPublic');
+  return authPublicModulePromise;
+};
+
+const loadAuthStoreModule = () => {
+  authStoreModulePromise ??= import('../store/authStore');
+  return authStoreModulePromise;
+};
+
+const loadErrorUtilsModule = () => {
+  errorUtilsModulePromise ??= import('../utils/errorUtils');
+  return errorUtilsModulePromise;
+};
 
 export const useLoginForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
-
-  const { login, fetchProfileAndAuthenticate } = useAuthAuthenticationActions();
-  const { pendingLoginRedirect, setPendingLoginRedirect, clearPendingLoginRedirect } = useAuthRedirectState();
 
   const getSavedEmail = () => {
     try {
@@ -46,14 +63,14 @@ export const useLoginForm = () => {
   useEffect(() => {
     const redirect = sanitizeLoginRedirect(new URLSearchParams(location.search).get('redirect'));
     if (redirect) {
-      setPendingLoginRedirect(redirect);
+      setStoredLoginRedirect(redirect);
       return;
     }
 
-    if (pendingLoginRedirect) {
-      clearPendingLoginRedirect();
+    if (getStoredLoginRedirect()) {
+      clearStoredLoginRedirect();
     }
-  }, [clearPendingLoginRedirect, location.search, pendingLoginRedirect, setPendingLoginRedirect]);
+  }, [location.search]);
 
   const handleFieldChange = (field: keyof LoginFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -91,6 +108,8 @@ export const useLoginForm = () => {
 
     try {
       const queryRedirect = new URLSearchParams(location.search).get('redirect');
+      const pendingLoginRedirect = getStoredLoginRedirect();
+      const { loginUser } = await loadAuthPublicModule();
       const response = await loginUser({
         email: formData.email,
         password: formData.password,
@@ -102,6 +121,9 @@ export const useLoginForm = () => {
       } else {
         localStorage.removeItem(SAVED_EMAIL_KEY);
       }
+
+      const { useAuthStore } = await loadAuthStoreModule();
+      const { login, fetchProfileAndAuthenticate } = useAuthStore.getState();
 
       // login(email: string, name: string, profileImageUrl?: string, role?: string)
       login(
@@ -121,10 +143,11 @@ export const useLoginForm = () => {
         queryRedirect,
         pendingRedirect: pendingLoginRedirect,
       });
-      clearPendingLoginRedirect();
+      clearStoredLoginRedirect();
       navigate(redirectTarget, { replace: true });
     } catch (err: unknown) {
       console.error('로그인 실패:', err);
+      const { getApiErrorMessage } = await loadErrorUtilsModule();
       setError(getApiErrorMessage(err, '로그인에 실패했습니다. 다시 시도해주세요.'));
     } finally {
       setIsLoading(false);

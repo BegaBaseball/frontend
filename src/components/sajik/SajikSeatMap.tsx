@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import {
   SAJIK_CATEGORIES,
   SAJIK_CATEGORY_GROUPS,
@@ -20,8 +19,8 @@ import {
   type SajikCanonicalBlock,
 } from '../../data/sajikCanonicalSeatMap';
 import { useTheme } from '../../hooks/useTheme';
-import { useAuthAccessActions, useAuthSession } from '../../store/authStore';
-import { useDiaryStore } from '../../store/diaryStore';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import SeatViewGallery from '../SeatViewGallery';
 import SeatMapHoverPreview from '../SeatMapHoverPreview';
 import SajikSeatMapSvg from './SajikSeatMapSvg';
@@ -32,6 +31,7 @@ import { SeatMapDetailPanel } from '../stadiumSeatMap/SeatMapDetailPanel';
 import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -73,13 +73,6 @@ const SAJIK_GUIDE_INTENTS: Array<{ id: SajikGuideIntent; label: string }> = [
 
 function clampZoom(value: number) {
   return Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, Number(value.toFixed(2))));
-}
-
-function formatDraftDate(date: Date): string {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function SajikFirstVisitGuide({
@@ -206,7 +199,7 @@ function DetailPanel({
         <div className="flex min-h-[220px] flex-col items-center justify-center p-6 text-center">
           <p className="text-sm font-bold text-slate-700 dark:text-white">구역을 선택하세요</p>
           <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-white">
-            공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인하고 다이어리에서 시야 사진을 공유할 수 있습니다.
+            공식 좌석도에서 블록을 선택하면 실제 시야 사진을 확인하고 시야 사진을 올릴 수 있습니다.
           </p>
         </div>
       </div>
@@ -280,7 +273,7 @@ function DetailPanel({
           className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border-0 px-4 py-3 text-sm font-bold text-white transition-opacity hover:opacity-90"
           style={{ background: accent }}
         >
-          다이어리에서 시야 사진 공유하기
+          시야 사진 올리기
         </button>
       </div>
     </div>
@@ -289,13 +282,11 @@ function DetailPanel({
 
 export default function SajikSeatMap() {
   const { resolvedTheme } = useTheme();
-  const navigate = useNavigate();
-  const { isLoggedIn } = useAuthSession();
   const { requireLogin } = useAuthAccessActions();
-  const setPendingDraft = useDiaryStore((state) => state.setPendingDraft);
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState<SeatMapPan>({ x: 0, y: 0 });
+  const [uploadFor, setUploadFor] = useState<SajikCanonicalBlock | null>(null);
   const [guideIntent, setGuideIntent] = useState<SajikGuideIntent>('all');
   const [guideQuery, setGuideQuery] = useState('');
   const [isSectionFinderOpen, setIsSectionFinderOpen] = useState(true);
@@ -310,6 +301,8 @@ export default function SajikSeatMap() {
     setFilterId,
     filterCats,
     activeFilterGroup,
+    toast,
+    showToast,
   } = useSeatMapSelectionState({
     sections: SAJIK_CANONICAL_BLOCKS,
     filterGroups: SAJIK_CATEGORY_GROUPS,
@@ -418,26 +411,15 @@ export default function SajikSeatMap() {
     setSectionFinderAutoFocus(false);
   }, [setSelected]);
 
-  const handleShareSeatView = useCallback((section: SajikBlock | null) => {
+  const handleOpenUpload = useCallback((section: SajikBlock | null) => {
     if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section as SajikCanonicalBlock);
+  }, [requireLogin]);
 
-    setPendingDraft({
-      date: formatDraftDate(new Date()),
-      stadium: 'SAJIK',
-      team: '롯데',
-      section: section.name,
-      block: section.block,
-      seatRow: '',
-      seatNumber: '',
-    });
-
-    if (!isLoggedIn) {
-      requireLogin('/mypage');
-      return;
-    }
-
-    navigate('/mypage');
-  }, [isLoggedIn, navigate, requireLogin, setPendingDraft]);
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   const renderMapSvg = (enableAutoCenter = true, allowFullscreen = true) => (
     <SajikSeatMapSvg
@@ -537,8 +519,8 @@ export default function SajikSeatMap() {
       adapter={sajikSectionAdapter}
       stadiumKey="SAJIK"
       onClose={handleCloseSection}
-      onUpload={() => handleShareSeatView(selected)}
-      copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+      onUpload={() => handleOpenUpload(selected)}
+      copy={{ uploadLabel: '시야 사진 올리기' }}
       searchAction={{
         label: '구역 검색',
         ariaLabel: '사직 구역 검색 열기',
@@ -586,8 +568,8 @@ export default function SajikSeatMap() {
             adapter={sajikSectionAdapter}
             stadiumKey="SAJIK"
             onClose={handleCloseSection}
-            onUpload={() => handleShareSeatView(selected)}
-            copy={{ uploadLabel: '다이어리에서 시야 사진 공유하기' }}
+            onUpload={() => handleOpenUpload(selected)}
+            copy={{ uploadLabel: '시야 사진 올리기' }}
             searchAction={{
               label: '구역 검색',
               ariaLabel: '사직 구역 검색 열기',
@@ -599,6 +581,7 @@ export default function SajikSeatMap() {
         mobileHasSidePanel={Boolean(hasInteractiveSeatMap && selected)}
         desktopSecondaryPanel={secondaryPanel}
         desktopSidePanel={detailPanel}
+        toast={toast}
         isFullscreenOpen={isFullscreenOpen}
         onFullscreenClose={closeFullscreen}
         fullscreenMapContent={(
@@ -615,6 +598,16 @@ export default function SajikSeatMap() {
         fullscreenTitle="부산 사직야구장"
         fullscreenSubtitle="사직 기준 좌석도 전체화면"
       />
+      {uploadFor && (
+        <SeatViewDirectUploadModal
+          stadium="SAJIK"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? SAJIK_CATEGORIES[uploadFor.category].dark : SAJIK_CATEGORIES[uploadFor.category].light}
+          onClose={() => setUploadFor(null)}
+          onSubmitted={handleUploadSubmitted}
+        />
+      )}
     </>
   );
 }

@@ -1,4 +1,5 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { Button } from './ui/plain-button';
@@ -8,12 +9,13 @@ import { Alert, AlertDescription } from './ui/alert';
 import { StatusBadge } from './ui/status-badge';
 import { useMateDetailController } from '../hooks/useMateDetailController';
 import {
-  MateAlertTriangleIcon,
-  MateChevronLeftIcon,
-  MateRefreshIcon,
-  MateShareIcon,
-} from './MateIcons';
+  MateDetailAlertTriangleIcon as MateAlertTriangleIcon,
+  MateDetailChevronLeftIcon as MateChevronLeftIcon,
+  MateDetailRefreshIcon as MateRefreshIcon,
+  MateDetailShareIcon as MateShareIcon,
+} from './icons/MateDetailIcons';
 import { getMateStatusBadgeMeta } from '../utils/statusBadgeMeta';
+import { createCheerLinkedEntryAction } from './cheer/CheerLinkedEntryActions';
 import ViewportDeferred from './ViewportDeferred';
 
 const LazyMateDetailQrRuntime = lazy(() => import('./MateDetailQrRuntime'));
@@ -29,6 +31,9 @@ export default function MateDetailRuntime({
   variant?: 'page' | 'panel';
   onClose?: () => void;
 } = {}) {
+  const navigate = useNavigate();
+  const cheerEntryActionRef = useRef(createCheerLinkedEntryAction());
+  const [isShareToCheerPending, setIsShareToCheerPending] = useState(false);
   const {
     canAccessCheckIn,
     currentUserHandle,
@@ -55,6 +60,11 @@ export default function MateDetailRuntime({
     showQrPanel,
     showSeatViewGuide,
   } = useMateDetailController({ id: idProp, variant, onClose });
+  useEffect(() => {
+    cheerEntryActionRef.current.invalidate();
+    setIsShareToCheerPending(false);
+    return () => cheerEntryActionRef.current.invalidate();
+  }, [party?.id]);
 
   if (isPartyLoading && !party) {
     return (
@@ -124,6 +134,22 @@ export default function MateDetailRuntime({
     }
   };
 
+  const handleShareToCheer = () => {
+    void cheerEntryActionRef.current.run({
+      target: { kind: 'party', id: party.id },
+      lookup: async (params) => {
+        const { fetchLinkedPostTarget } = await import('../api/cheerApi');
+        return fetchLinkedPostTarget(params);
+      },
+      navigate,
+      onLoadingChange: setIsShareToCheerPending,
+      onError: (error) => {
+        console.error('메이트 응원석 공유 조회 중 오류:', error);
+        toast.error('응원석 공유 정보를 확인하지 못했습니다. 다시 시도해주세요.');
+      },
+    });
+  };
+
   const statusMeta = getMateStatusBadgeMeta(party.status);
 
   return (
@@ -173,6 +199,8 @@ export default function MateDetailRuntime({
               onOpenSeatViewGuide={() => setShowSeatViewGuide(true)}
               onOpenQrPanel={() => setShowQrPanel(true)}
               onShare={handleShare}
+              onShareToCheer={handleShareToCheer}
+              isShareToCheerPending={isShareToCheerPending}
             />
           </Suspense>
         </ViewportDeferred>

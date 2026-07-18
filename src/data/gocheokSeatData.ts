@@ -4,7 +4,11 @@ export type GocheokSide = 'FIRST_BASE' | 'THIRD_BASE' | 'CENTER' | 'OUTFIELD';
 export type GocheokFanRole = 'HOME' | 'AWAY' | 'NEUTRAL';
 export type GocheokLevel = '1F' | '2F' | '3F' | '4F' | 'OUTFIELD';
 export type GocheokSourceConfidence = 'OFFICIAL' | 'UNVERIFIED';
-export type GocheokSeatMapAssetStatus = 'OFFICIAL' | 'MANUAL_BASEBALL_DATA_REQUIRED';
+export type GocheokSeatMapAssetStatus =
+  | 'OFFICIAL'
+  | 'MANUAL_BASEBALL_DATA_REQUIRED'
+  | 'OPERATOR_REFERENCE_PENDING_ASSET'
+  | 'EXTERNAL_REFERENCE_PENDING_ASSET';
 
 export interface GocheokImageGeometry {
   d: string;

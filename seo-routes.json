@@ -1,10 +1,12 @@
 {
+  "defaultOgImagePath": "/og/bega-og.png",
   "indexableRoutes": [
     {
       "path": "/",
       "title": "BEGA | KBO 야구 플랫폼",
       "description": "KBO 경기일정, 응원, 전력분석, 구장가이드를 한 곳에서 확인하세요.",
       "heading": "KBO 야구 팬을 위한 BEGA",
+      "performanceShell": true,
       "schemaType": "home",
       "changefreq": "daily",
       "priority": "1.0"
@@ -14,6 +16,7 @@
       "title": "KBO 경기일정·순위 | BEGA",
       "description": "오늘의 KBO 경기일정, 팀 순위, 시즌 흐름을 빠르게 확인하세요.",
       "heading": "KBO 경기일정과 팀 순위",
+      "performanceShell": true,
       "schemaType": "page",
       "changefreq": "daily",
       "priority": "0.9"
@@ -41,6 +44,7 @@
       "title": "응원 커뮤니티 | BEGA",
       "description": "야구 팬들과 응원글을 공유하고 경기를 함께 즐겨보세요.",
       "heading": "응원 커뮤니티",
+      "performanceShell": true,
       "schemaType": "page",
       "changefreq": "daily",
       "priority": "0.8"

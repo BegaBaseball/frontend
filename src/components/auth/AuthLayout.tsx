@@ -5,8 +5,7 @@ import begaCharacter from '../../assets/27f7b8ac0aacea2470847e809062c7bbf0e4163f
 import grassDecor from '../../assets/3aa01761d11828a81213baa8e622fec91540199d.webp';
 import './auth-layout.css';
 import '../common/autofill-input.css';
-import { OptimizedImage } from '../common/OptimizedImage';
-import { HomeIcon } from '../icons/PublicShellIcons';
+import { HomeIcon } from '../icons/AuthFlowIcons';
 import { Button } from '../ui/button';
 import {
   AuthFormPanel,
@@ -32,20 +31,33 @@ export default function AuthLayout({ children, showHomeButton = false }: AuthLay
         <div className="auth-backdrop-orb auth-backdrop-orb-four" />
       </div>
 
-      <img src={grassDecor} alt="" className="auth-ground" />
+      <img
+        src={grassDecor}
+        alt=""
+        className="auth-ground"
+        width={2000}
+        height={2000}
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
+      />
 
       <AuthStage data-testid="auth-stage">
         <div className="auth-stage-grid">
           <AuthHeroPanel data-testid="auth-hero-panel">
             <div className="relative z-10 text-center">
-              <OptimizedImage
+              <img
                 src={begaCharacter}
                 alt="BEGA Character"
                 className="mx-auto mb-8 h-auto w-56 drop-shadow-2xl sm:w-64 lg:w-72"
-                priority={true}
+                width={4776}
+                height={5000}
+                loading="eager"
+                decoding="sync"
+                fetchPriority="high"
+                sizes="(max-width: 640px) 224px, (max-width: 1024px) 256px, 288px"
               />
               <div className="space-y-3">
-                <p className="auth-eyebrow mx-auto">KBO Fan Guide</p>
                 <div className="space-y-2">
                   <h2 className="text-5xl font-bold tracking-[-0.08em] text-white sm:text-6xl">
                     BEGA

@@ -1,4 +1,4 @@
-import { MateCheckCircleIcon, MateCloseIcon } from './MateIcons';
+import { MateCheckCircleIcon, MateCloseIcon } from './icons/MateFlowIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 

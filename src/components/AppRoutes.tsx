@@ -1,20 +1,34 @@
 import { lazy } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useParams } from 'react-router-dom';
 
 import { loadPredictionPage } from './lazyRouteLoaders';
 import RootEntryRoute from './RootEntryRoute';
 
 const initialPathname = typeof window === 'undefined' ? '' : window.location.pathname;
 const shouldPreloadInitialHomeRoute = /^\/home\/?$/.test(initialPathname);
-const initialLayoutModulePromise = shouldPreloadInitialHomeRoute ? import('./Layout') : null;
+const shouldPreloadInitialPredictionRoute = /^\/prediction(?:\/matches\/[^/]+)?\/?$/.test(initialPathname);
+const shouldPreloadInitialCheerRoute = /^\/cheer(?:\/write)?\/?$/.test(initialPathname);
+const shouldPreloadInitialMateRoute = /^\/mate\/?$/.test(initialPathname);
+const shouldPreloadInitialPublicLayoutRoute = shouldPreloadInitialHomeRoute || shouldPreloadInitialPredictionRoute || shouldPreloadInitialCheerRoute || shouldPreloadInitialMateRoute;
+const shouldPreloadInitialAppQueryProviderRoute = shouldPreloadInitialCheerRoute;
+const initialLayoutModulePromise = shouldPreloadInitialPublicLayoutRoute ? import('./Layout') : null;
+const initialAppQueryProviderModulePromise = shouldPreloadInitialAppQueryProviderRoute ? import('./AppQueryProvider') : null;
 const initialHomeModulePromise = shouldPreloadInitialHomeRoute ? import('./Home') : null;
+const initialPredictionModulePromise = shouldPreloadInitialPredictionRoute ? loadPredictionPage() : null;
+const initialCheerModulePromise = shouldPreloadInitialCheerRoute ? import('./Cheer') : null;
+const initialMateModulePromise = shouldPreloadInitialMateRoute ? import('./MatePage') : null;
 
 if (shouldPreloadInitialHomeRoute) {
   void import('./home/HomeMatchPanel');
 }
 
+if (shouldPreloadInitialCheerRoute) {
+  void import('./CheerRuntime');
+  void import('./CheerComposerRuntime');
+}
+
 const Layout = lazy(() => initialLayoutModulePromise ?? import('./Layout'));
-const AppQueryProvider = lazy(() => import('./AppQueryProvider'));
+const AppQueryProvider = lazy(() => initialAppQueryProviderModulePromise ?? import('./AppQueryProvider'));
 const ProtectedRoute = lazy(() => import('./ProtectedRoute'));
 const AdminRoute = lazy(() => import('./AdminRoute'));
 const Home = lazy(() => initialHomeModulePromise ?? import('./Home'));
@@ -27,12 +41,12 @@ const PasswordReset = lazy(() => import('./PasswordReset'));
 const PasswordResetConfirm = lazy(() => import('./PasswordResetConfirm'));
 const AccountDeletionRecovery = lazy(() => import('./AccountDeletionRecovery'));
 const StadiumGuide = lazy(() => import('./StadiumGuide'));
-const Prediction = lazy(loadPredictionPage);
-const Cheer = lazy(() => import('./Cheer'));
+const Prediction = lazy(() => initialPredictionModulePromise ?? loadPredictionPage());
+const Cheer = lazy(() => initialCheerModulePromise ?? import('./Cheer'));
 const CheerBookmarksPage = lazy(() => import('./CheerBookmarksPage'));
 const CheerDetailPage = lazy(() => import('./CheerDetailPage'));
 const CheerEditPage = lazy(() => import('./CheerEditPage'));
-const MatePage = lazy(() => import('./MatePage'));
+const MatePage = lazy(() => initialMateModulePromise ?? import('./MatePage'));
 const MateCreatePage = lazy(() => import('./MateCreatePage'));
 const MateDetail = lazy(() => import('./MateDetail'));
 const MateApplyPage = lazy(() => import('./MateApplyPage'));
@@ -50,6 +64,9 @@ const TermsOfService = lazy(() => import('./TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./PrivacyPolicy'));
 const OAuthCallback = lazy(() => import('./OAuthCallback'));
 const TestError = lazy(() => import('./TestError'));
+const ModuleFederationDesignSystemProbe = import.meta.env.DEV || import.meta.env.VITE_MF_DESIGN_SYSTEM_ENTRY
+  ? lazy(() => import('./moduleFederation/ModuleFederationDesignSystemProbe'))
+  : null;
 const GwangjuSeatMapEditor = import.meta.env.DEV
   ? lazy(() => import('./gwangju/GwangjuSeatMapEditor'))
   : null;
@@ -58,6 +75,13 @@ const SajikSeatMapEditor = import.meta.env.DEV
   : null;
 const NotFound = lazy(() => import('./NotFound'));
 const LeaderboardPage = lazy(() => import('../pages/LeaderboardPage'));
+
+function LegacyMyPageProfileRedirect() {
+  const { handle = '' } = useParams<{ handle: string }>();
+  const normalizedHandle = handle.startsWith('@') ? handle : `@${handle}`;
+
+  return <Navigate to={`/profile/${normalizedHandle}`} replace />;
+}
 
 export default function AppRoutes() {
   return (
@@ -75,25 +99,26 @@ export default function AppRoutes() {
 
       <Route element={<Layout authenticated={false} />}>
         <Route path="/home" element={<Home />} />
+        <Route path="/prediction" element={<Prediction />} />
+        <Route path="/prediction/matches/:gameId" element={<Prediction />} />
+        <Route path="/mate" element={<MatePage />} />
       </Route>
 
       <Route element={<AppQueryProvider />}>
         <Route element={<Layout authenticated={false} />}>
-          <Route path="/prediction" element={<Prediction />} />
-          <Route path="/prediction/matches/:gameId" element={<Prediction />} />
           <Route path="/offseason" element={<OffSeasonHomePage />} />
           <Route path="/offseason/list" element={<OffSeasonListPage />} />
           <Route path="/cheer" element={<Cheer />} />
           <Route path="/cheer/write" element={<Cheer openComposerOnMount />} />
           <Route path="/cheer/:postId" element={<CheerDetailPage />} />
           <Route path="/profile/:handle" element={<UserProfilePage />} />
+          <Route path="/mypage/:handle" element={<LegacyMyPageProfileRedirect />} />
           <Route path="/predictions/ranking/share/:shareId/:seasonYear" element={<RankingPredictionSharePage />} />
           <Route path="/notice" element={<NoticePage />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
           <Route path="/stadium" element={<StadiumGuide />} />
-          <Route path="/mate" element={<MatePage />} />
         </Route>
 
         <Route element={<Layout authenticated={true} />}>
@@ -107,7 +132,6 @@ export default function AppRoutes() {
             <Route path="/mate/:id/chat" element={<MateChatPage />} />
             <Route path="/mate/:id/manage" element={<MateManagePage />} />
             <Route path="/mypage" element={<MyPage />} />
-            <Route path="/mypage/:handle" element={<UserProfilePage />} />
             <Route path="/messages" element={<DmInboxPage />} />
             <Route path="/messages/:handle" element={<DirectMessagePage />} />
           </Route>
@@ -124,6 +148,9 @@ export default function AppRoutes() {
       )}
       {import.meta.env.DEV && GwangjuSeatMapEditor && (
         <Route path="/internal/gwangju-seatmap-editor" element={<GwangjuSeatMapEditor />} />
+      )}
+      {ModuleFederationDesignSystemProbe && (
+        <Route path="/internal/module-federation-design-system" element={<ModuleFederationDesignSystemProbe />} />
       )}
 
       <Route path="*" element={<NotFound />} />

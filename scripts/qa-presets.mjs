@@ -11,7 +11,7 @@ const printMode = cliArgs.includes('--print');
 const [group, preset, ...rawArgs] = cliArgs.filter((arg) => arg !== '--print');
 const passthroughArgs = rawArgs.filter((arg) => arg !== '--');
 
-const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,detail-loading,detail-error,top-notice';
+const PREDICTION_MOBILE_CORE_SMOKE_STATES = 'match,vote-panel,date-sheet,detail-loading,detail-error,top-notice';
 const PREDICTION_MOBILE_RANKING_SMOKE_STATES = 'ranking,ranking-ended,ranking-init-error,ranking-save-dialog,ranking-saved';
 
 const CYPRESS_SPECS = {
@@ -54,8 +54,25 @@ const E2E_SPECS = {
     'cypress/e2e/mypage.cy.ts',
     'cypress/e2e/stadium.cy.ts',
   ],
+  pages: [
+    'cypress/e2e/first-slice-ui.cy.ts',
+    'cypress/e2e/auth.cy.ts',
+    'cypress/e2e/prediction-mobile-smoke.cy.ts',
+    'cypress/e2e/cheer-mobile-nav.cy.ts',
+    'cypress/e2e/mate-mobile-smoke.cy.ts',
+    'cypress/e2e/mypage-tab-health.cy.ts',
+    'cypress/e2e/dm-inbox.cy.ts',
+    'cypress/e2e/dm.cy.ts',
+    'cypress/e2e/profile.cy.ts',
+    'cypress/e2e/offseason.cy.ts',
+    'cypress/e2e/leaderboard.cy.ts',
+    'cypress/e2e/stadium.cy.ts',
+    'cypress/e2e/admin.cy.ts',
+    'cypress/e2e/page-route-coverage.cy.ts',
+  ],
   diary: [
     'cypress/e2e/diary.cy.ts',
+    'cypress/e2e/cheer-linked-entry-actions.cy.ts',
   ],
   admin: [
     'cypress/e2e/admin.cy.ts',
@@ -91,6 +108,7 @@ const E2E_SPECS = {
     'cypress/e2e/mate-detail-states.cy.ts',
     'cypress/e2e/mate-list-url-state.cy.ts',
     'cypress/e2e/mate-execution-flow.cy.ts',
+    'cypress/e2e/cheer-linked-entry-actions.cy.ts',
   ],
   mateRoute: [
     'cypress/e2e/mate.cy.ts',
@@ -345,6 +363,7 @@ const PRESETS = {
     'auth-dev': buildE2ePreset('auth', 'dev'),
     'auth-prodlike': buildE2ePreset('auth', 'prodlike'),
     'smoke-dev': buildE2ePreset('smoke', 'dev'),
+    'pages-dev': buildE2ePreset('pages', 'dev'),
     'smoke-prodlike': buildE2ePreset('smoke', 'prodlike'),
     'smoke-prodlike-docker': buildE2ePreset('smoke', 'prodlike-docker'),
     'smoke-prodlike-mac': buildE2ePreset('smoke', 'prodlike-mac'),

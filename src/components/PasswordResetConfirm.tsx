@@ -10,7 +10,7 @@ import {
   EyeIcon,
   EyeOffIcon,
   LockIcon,
-} from './icons/PublicShellIcons';
+} from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -58,7 +58,6 @@ export default function PasswordResetConfirm() {
           </button>
 
           <AuthHeader
-            eyebrow="Reset Password"
             title="새 비밀번호 설정"
             description="새로운 비밀번호를 입력하고 확인해 주세요."
             data-testid="password-reset-confirm-header"
@@ -178,7 +177,6 @@ export default function PasswordResetConfirm() {
       ) : (
         <>
           <AuthHeader
-            eyebrow="Password Updated"
             title="비밀번호 변경 완료"
             description="비밀번호가 성공적으로 변경되었습니다. 새로운 비밀번호로 로그인해주세요."
             data-testid="password-reset-confirm-header"

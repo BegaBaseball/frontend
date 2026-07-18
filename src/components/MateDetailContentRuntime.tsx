@@ -52,6 +52,8 @@ interface MateDetailContentRuntimeProps {
   onOpenSeatViewGuide: () => void;
   onOpenQrPanel: () => void;
   onShare: () => void;
+  onShareToCheer: () => void;
+  isShareToCheerPending: boolean;
 }
 
 const resolveMateDetailErrorMessage = (error: unknown, fallback: string): string => {
@@ -104,6 +106,8 @@ export default function MateDetailContentRuntime({
   onOpenSeatViewGuide,
   onOpenQrPanel,
   onShare,
+  onShareToCheer,
+  isShareToCheerPending,
 }: MateDetailContentRuntimeProps) {
   const { confirm } = useConfirmDialog();
   const queryClient = useQueryClient();
@@ -459,8 +463,11 @@ export default function MateDetailContentRuntime({
             isAwaitingApproval={isAwaitingApproval}
             primaryMobileAction={primaryMobileAction}
             canAccessCheckIn={canAccessCheckIn}
+            isHost={isHost}
             onOpenQrPanel={onOpenQrPanel}
             onShare={onShare}
+            onShareToCheer={onShareToCheer}
+            isShareToCheerPending={isShareToCheerPending}
             onBrowsePartyList={onBrowsePartyList}
           />
         </Suspense>

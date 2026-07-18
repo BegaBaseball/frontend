@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { SharedSearchIcon } from './icons/SharedLeafIcons';
+import { EmojiPickerSearchIcon } from './icons/EmojiPickerIcons';
 
 const RECENT_EMOJI_STORAGE_KEY = 'bega_recent_emojis';
 const MAX_RECENT_EMOJIS = 18;
@@ -174,7 +174,7 @@ export default function LazyEmojiPicker({
               : 'border-slate-200 bg-slate-50 text-slate-500'
           }`}
         >
-          <SharedSearchIcon className="h-4 w-4" />
+          <EmojiPickerSearchIcon className="h-4 w-4" />
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}

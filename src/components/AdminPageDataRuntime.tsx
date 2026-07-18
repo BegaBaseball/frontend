@@ -78,7 +78,7 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
   return (
     <>
       {successMessage && (
-        <div className="mb-6 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 backdrop-blur-sm animate-fade-in-up">
+        <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-emerald-300">
           <div className="flex items-center gap-2">
             <AdminActivityIcon className="w-5 h-5" />
             {successMessage}
@@ -87,7 +87,7 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
       )}
 
       {displayedError && (
-        <div className="mb-6 p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 backdrop-blur-sm animate-fade-in-up">
+        <div className="mb-6 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-red-300">
           <div className="flex items-center gap-2">
             <AdminTrendingUpIcon className="w-5 h-5 rotate-180" />
             {displayedError}
@@ -95,15 +95,17 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <StatCard icon={AdminUsersIcon} label="Total Users" value={stats.totalUsers} color="amber" delay={100} />
-        <StatCard icon={AdminMessageSquareIcon} label="Total Posts" value={stats.totalPosts} color="emerald" delay={200} />
-        <StatCard icon={AdminCalendarIcon} label="Mate Gatherings" value={stats.totalMates} color="sky" delay={300} />
+      <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2">
+        <StatCard icon={AdminUsersIcon} label="전체 사용자" value={stats.totalUsers} color="amber" />
+        <div className="grid gap-6">
+          <StatCard icon={AdminMessageSquareIcon} label="전체 게시글" value={stats.totalPosts} color="emerald" />
+          <StatCard icon={AdminCalendarIcon} label="메이트 모임" value={stats.totalMates} color="sky" />
+        </div>
       </div>
 
       {hasMountedCommunityRuntime && (
         <div className={COMMUNITY_TABS.has(activeTab) ? 'block' : 'hidden'}>
-          <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400 mx-6">커뮤니티 관리 로딩 중...</div>}>
+          <Suspense fallback={<div className="mx-6 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">커뮤니티 관리 로딩 중...</div>}>
             <AdminCommunityRuntime
               activeTab={activeTab}
               onErrorChange={setError}
@@ -116,7 +118,7 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
 
       {hasMountedModerationRuntime && (
         <div className={MODERATION_TABS.has(activeTab) ? 'block' : 'hidden'}>
-          <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400 mx-6">모더레이션 패널 로딩 중...</div>}>
+          <Suspense fallback={<div className="mx-6 rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">모더레이션 패널 로딩 중...</div>}>
             <AdminModerationRuntime
               activeTab={activeTab}
               onErrorChange={setError}
@@ -128,7 +130,7 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
 
       {hasMountedStadiumsRuntime && (
         <div className={activeTab === 'stadiums' ? 'p-6' : 'hidden'}>
-          <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">구장 관리 로딩 중...</div>}>
+          <Suspense fallback={<div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">구장 관리 로딩 중...</div>}>
             <AdminStadiumsRuntime />
           </Suspense>
         </div>
@@ -136,7 +138,7 @@ export default function AdminPageDataRuntime({ activeTab }: AdminPageDataRuntime
 
       {hasMountedAiRuntime && (
         <div className={activeTab === 'ai' ? 'p-6' : 'hidden'}>
-          <Suspense fallback={<div className="rounded-2xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">AI 운영 패널 로딩 중...</div>}>
+          <Suspense fallback={<div className="rounded-xl border border-slate-800 bg-slate-900/70 px-4 py-16 text-center text-slate-400">AI 운영 패널 로딩 중...</div>}>
             <AdminAiOperationsRuntime />
           </Suspense>
         </div>

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { submitCheerPost } from './cheerSubmit';
+import {
+  removeOptimisticCheerPostFromFeed,
+  submitCheerPost,
+} from './cheerSubmit';
 
 const buildJsonResponse = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -27,12 +30,13 @@ const installImageTestDoubles = (t: test.TestContext) => {
       }
     },
   });
-  t.mock.method(URL, 'createObjectURL', () => 'blob:mock-cheer');
+  const createObjectUrlMock = t.mock.method(URL, 'createObjectURL', () => 'blob:mock-cheer');
   t.mock.method(URL, 'revokeObjectURL', () => {});
   t.after(() => {
     delete (globalThis as { document?: unknown }).document;
     delete (globalThis as { Image?: unknown }).Image;
   });
+  return { createObjectUrlMock };
 };
 
 test('submitCheerPost는 direct upload key를 create post payload images에 포함한다', async (t) => {
@@ -124,4 +128,196 @@ test('submitCheerPost는 direct upload key를 create post payload images에 포�
 
   const createBody = JSON.parse(String(requestBodies[3]));
   assert.deepEqual(createBody.images, ['media/cheer/1/61.webp']);
+});
+
+test('submitCheerPost preserves linked post types and source IDs', async (t) => {
+  const requestBodies: unknown[] = [];
+  const responseTypes = ['CHECKIN', 'RECRUITMENT'];
+  let callIndex = 0;
+
+  t.mock.method(globalThis, 'fetch', async (_input: string | URL | Request, init?: RequestInit) => {
+    requestBodies.push(JSON.parse(String(init?.body)));
+    const postType = responseTypes[callIndex++];
+    return buildJsonResponse({
+      id: callIndex,
+      teamId: 'LG',
+      content: 'linked post',
+      author: 'Writer',
+      authorHandle: '@writer',
+      createdAt: '2026-04-14T00:00:00Z',
+      updatedAt: '2026-04-14T00:00:00Z',
+      commentCount: 0,
+      likeCount: 0,
+      bookmarkCount: 0,
+      repostCount: 0,
+      views: 0,
+      liked: false,
+      isBookmarked: false,
+      isOwner: true,
+      repostedByMe: false,
+      isHot: false,
+      postType,
+      imageUrls: [],
+    }, 201);
+  });
+
+  await submitCheerPost({
+    teamId: 'LG',
+    content: 'checked in',
+    files: [],
+    postType: 'CHECKIN',
+    diaryId: 17,
+  });
+  await submitCheerPost({
+    teamId: 'LG',
+    content: 'join us',
+    files: [],
+    postType: 'RECRUITMENT',
+    partyId: 29,
+  });
+
+  assert.deepEqual(requestBodies, [
+    {
+      teamId: 'LG',
+      content: 'checked in',
+      images: [],
+      postType: 'CHECKIN',
+      diaryId: 17,
+    },
+    {
+      teamId: 'LG',
+      content: 'join us',
+      images: [],
+      postType: 'RECRUITMENT',
+      partyId: 29,
+    },
+  ]);
+});
+
+test('submitCheerPost rejects present empty and unknown post types before fetch', async (t) => {
+  installImageTestDoubles(t);
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return buildJsonResponse({}, 201);
+  });
+
+  const invalidPayloads = [
+    {
+      teamId: 'LG',
+      content: 'empty',
+      files: [new File(['stub'], 'invalid.png', { type: 'image/png' })],
+      postType: '',
+    },
+    { teamId: 'LG', content: 'unknown', files: [], postType: 'FUTURE_TYPE' },
+  ] as unknown as Array<Parameters<typeof submitCheerPost>[0]>;
+
+  for (const payload of invalidPayloads) {
+    await assert.rejects(() => submitCheerPost(payload), /UNKNOWN_CHEER_POST_TYPE:/);
+  }
+  assert.equal(fetchCalls, 0);
+});
+
+test('submitCheerPost rejects invalid linked-ID shapes before upload or create', async (t) => {
+  const { createObjectUrlMock } = installImageTestDoubles(t);
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return buildJsonResponse({}, 201);
+  });
+
+  const file = new File(['stub'], 'invalid-linked.png', { type: 'image/png' });
+  const invalidPayloads = [
+    { teamId: 'LG', content: 'missing checkin ID', files: [file], postType: 'CHECKIN' },
+    { teamId: 'LG', content: 'wrong checkin ID', files: [file], postType: 'CHECKIN', partyId: 29 },
+    { teamId: 'LG', content: 'both checkin IDs', files: [file], postType: 'CHECKIN', diaryId: 17, partyId: 29 },
+    { teamId: 'LG', content: 'missing recruitment ID', files: [file], postType: 'RECRUITMENT' },
+    { teamId: 'LG', content: 'wrong recruitment ID', files: [file], postType: 'RECRUITMENT', diaryId: 17 },
+    { teamId: 'LG', content: 'both recruitment IDs', files: [file], postType: 'RECRUITMENT', diaryId: 17, partyId: 29 },
+    { teamId: 'LG', content: 'legacy normal with ID', files: [file], diaryId: 17 },
+    { teamId: 'LG', content: 'normal with ID', files: [file], postType: 'NORMAL', diaryId: 17 },
+    { teamId: 'LG', content: 'notice with ID', files: [file], postType: 'NOTICE', partyId: 29 },
+  ] as unknown as Array<Parameters<typeof submitCheerPost>[0]>;
+
+  for (const payload of invalidPayloads) {
+    await assert.rejects(() => submitCheerPost(payload), /INVALID_LINKED_POST_TARGET/);
+  }
+  assert.equal(createObjectUrlMock.mock.callCount(), 0);
+  assert.equal(fetchCalls, 0);
+});
+
+test('submitCheerPost rejects a whitespace-only body before upload or create', async (t) => {
+  const { createObjectUrlMock } = installImageTestDoubles(t);
+  let fetchCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    fetchCalls += 1;
+    return buildJsonResponse({}, 201);
+  });
+
+  await assert.rejects(
+    () => submitCheerPost({
+      teamId: 'LG',
+      content: ' \n\t ',
+      files: [new File(['stub'], 'blank.png', { type: 'image/png' })],
+      postType: 'CHECKIN',
+      diaryId: 17,
+    }),
+    /CHEER_POST_CONTENT_REQUIRED/,
+  );
+
+  assert.equal(createObjectUrlMock.mock.callCount(), 0);
+  assert.equal(fetchCalls, 0);
+});
+
+test('linked success removes only its optimistic cache entry before navigation', () => {
+  const optimisticPost = { id: -101, content: 'optimistic linked post' };
+  const existingPost = { id: 91, content: 'server linked post' };
+  const original = {
+    pages: [{ content: [optimisticPost, existingPost] }],
+    pageParams: [0],
+  } as NonNullable<Parameters<typeof removeOptimisticCheerPostFromFeed>[0]>;
+
+  const updated = removeOptimisticCheerPostFromFeed(original, -101);
+
+  assert.deepEqual(updated?.pages[0].content?.map((post) => post.id), [91]);
+  assert.deepEqual(original.pages[0].content?.map((post) => post.id), [-101, 91]);
+});
+
+test('HTTP 200 duplicate creation returns the existing linked post ID', async (t) => {
+  let createCalls = 0;
+  t.mock.method(globalThis, 'fetch', async () => {
+    createCalls += 1;
+    return buildJsonResponse({
+      id: 91,
+      teamId: 'LG',
+      content: 'already linked',
+      author: 'Writer',
+      authorHandle: '@writer',
+      createdAt: '2026-07-14T00:00:00Z',
+      updatedAt: '2026-07-14T00:00:00Z',
+      commentCount: 0,
+      likeCount: 0,
+      bookmarkCount: 0,
+      repostCount: 0,
+      views: 0,
+      liked: false,
+      isBookmarked: false,
+      isOwner: true,
+      repostedByMe: false,
+      isHot: false,
+      postType: 'CHECKIN',
+      imageUrls: [],
+    }, 200);
+  });
+
+  const result = await submitCheerPost({
+    teamId: 'LG',
+    content: 'already linked',
+    files: [],
+    postType: 'CHECKIN',
+    diaryId: 17,
+  });
+
+  assert.equal(createCalls, 1);
+  assert.equal(result.created.id, 91);
 });

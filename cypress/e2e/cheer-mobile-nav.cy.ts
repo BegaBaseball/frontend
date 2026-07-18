@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+export {};
+
 const authToken =
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkNoZWVyVXNlciIsImlhdCI6MTUxNjIzOTAyMn0.fake-signature';
 
@@ -138,6 +140,44 @@ describe('Cheer mobile bottom navigation', () => {
       cy.get('button[aria-label*="좋아요"]').first().should(($button) => assertMinTarget($button, 'like action'));
       cy.get('button[aria-label="북마크"]').first().should(($button) => assertMinTarget($button, 'bookmark action'));
     });
+  });
+
+  it('searches cheer posts with the existing search API', () => {
+    const searchResult = {
+      ...makePost(),
+      id: 22,
+      content: '해시태그 검색 결과 게시글',
+    };
+    cy.intercept('GET', '**/api/cheer/posts/search*', (req) => {
+      expect(req.query.q).to.eq('직관인증');
+      req.reply({ statusCode: 200, body: pageResponse([searchResult]) });
+    }).as('searchPosts');
+
+    cy.visit('/cheer', {
+      onBeforeLoad: seedLoggedInUser,
+    });
+    cy.wait('@getPosts');
+
+    cy.get('input[aria-label="응원글 검색"]').type('직관인증{enter}');
+    cy.wait('@searchPosts');
+    cy.location('search').should('include', 'q=%EC%A7%81%EA%B4%80%EC%9D%B8%EC%A6%9D');
+    cy.contains(searchResult.content).should('be.visible');
+    cy.get('button[aria-label="검색어 지우기"]').click();
+    cy.contains(makePost().content).should('be.visible');
+    cy.get('[data-testid="cheer-recent-searches"]').should('be.visible').and('contain.text', '직관인증');
+  });
+
+  it('opens the live surface without showing the post composer', () => {
+    cy.visit('/cheer', {
+      onBeforeLoad: seedLoggedInUser,
+    });
+    cy.wait('@getPosts');
+
+    cy.contains('button', '라이브').click();
+    cy.wait('@getHomeSchedule');
+    cy.location('search').should('include', 'tab=live');
+    cy.contains('오늘 진행 중인 경기가 없습니다.').should('be.visible');
+    cy.get('textarea[placeholder*="응원"]').should('not.exist');
   });
 
   it('keeps the same nav and only marks bookmarks active on the bookmarks page', () => {

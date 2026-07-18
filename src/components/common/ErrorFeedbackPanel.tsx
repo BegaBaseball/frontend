@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import type { ErrorRetryHandler, ErrorSource } from '../../types/error';
-import { submitClientErrorFeedback } from '../../utils/clientErrorReporter';
 
 interface ErrorFeedbackPanelProps {
   errorId?: string | null;
@@ -48,6 +47,7 @@ export default function ErrorFeedbackPanel({
     setStatus('idle');
 
     try {
+      const { submitClientErrorFeedback } = await import('../../utils/clientErrorReporter');
       const submitted = await submitClientErrorFeedback({
         eventId: errorId,
         comment: trimmedComment,

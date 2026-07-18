@@ -1,4 +1,4 @@
-export type MediaDomain = 'PROFILE' | 'DIARY' | 'CHEER' | 'CHAT';
+export type MediaDomain = 'PROFILE' | 'DIARY' | 'SEAT_VIEW' | 'CHEER' | 'CHAT';
 
 export interface InitMediaUploadRequest {
   domain: MediaDomain;

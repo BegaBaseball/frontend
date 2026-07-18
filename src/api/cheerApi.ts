@@ -1,9 +1,71 @@
 import { getTeamColorByAnyKey, TEAM_DATA } from '../constants/teams';
 import { buildPostChangesQuery } from '../utils/cheerPolling';
 import { getApiErrorMessage } from '../utils/errorUtils';
+import { normalizePageResponseMeta, type PageResponseLike } from '../utils/pageResponsePagination';
 import { formatTimeAgo } from '../utils/time';
+import type { components } from './generated/openapi';
 import { privateDelete, privateGet, privatePost, privatePut } from './privateClient';
 import { publicGet } from './publicClient';
+
+export type CheerPostType = 'NORMAL' | 'NOTICE' | 'CHECKIN' | 'RECRUITMENT';
+type CreatePostWireRequest = components['schemas']['CreatePostReq'];
+type UpdatePostWireRequest = components['schemas']['UpdatePostReq'];
+type PostSummaryWire = components['schemas']['PostSummaryRes'];
+type PostDetailWire = components['schemas']['PostDetailRes'];
+type EmbeddedPostWire = components['schemas']['EmbeddedPostDto'];
+type LinkedContentWire = components['schemas']['LinkedContentRes'];
+type CheckinLinkedContentWire = components['schemas']['CheckinLinkedContentRes'];
+type RecruitmentLinkedContentWire = components['schemas']['RecruitmentLinkedContentRes'];
+type LinkedLookupWire = components['schemas']['LinkedPostLookupRes'];
+
+export type ShareMode = NonNullable<CreatePostWireRequest['shareMode']>;
+export type SourceInfo = components['schemas']['SourceInfoRes'];
+
+type LinkedContentUnavailableReason = NonNullable<LinkedContentWire['unavailableReason']>;
+
+export type LinkedContent =
+  | {
+    kind: 'CHECKIN';
+    available: true;
+    checkin: CheckinLinkedContentWire;
+    recruitment: null;
+    unavailableReason: null;
+  }
+  | {
+    kind: 'RECRUITMENT';
+    available: true;
+    recruitment: RecruitmentLinkedContentWire;
+    checkin: null;
+    unavailableReason: null;
+  }
+  | {
+    kind: 'CHECKIN' | 'RECRUITMENT';
+    available: false;
+    unavailableReason: LinkedContentUnavailableReason;
+    checkin: null;
+    recruitment: null;
+  };
+
+type CreatePostBase = Omit<
+  CreatePostWireRequest,
+  'postType' | 'teamId' | 'diaryId' | 'partyId'
+> & {
+  teamId: string;
+};
+
+export type CreatePostPayload =
+  | (CreatePostBase & { postType?: 'NORMAL'; diaryId?: never; partyId?: never })
+  | (CreatePostBase & { postType: 'NOTICE'; diaryId?: never; partyId?: never })
+  | (CreatePostBase & { postType: 'CHECKIN'; diaryId: number; partyId?: never })
+  | (CreatePostBase & { postType: 'RECRUITMENT'; diaryId?: never; partyId: number });
+
+export type LinkedPostLookupParams =
+  | { diaryId: number; partyId?: never }
+  | { diaryId?: never; partyId: number };
+
+export type LinkedPostLookup = Omit<LinkedLookupWire, 'preview'> & {
+  preview?: LinkedContent;
+};
 
 export function getTeamNameById(teamId: string | null): string {
   if (!teamId) return '전체';
@@ -22,7 +84,7 @@ export interface CheerPost {
   id: number;
   teamId: string;
   team: string;
-  postType: 'NORMAL' | 'NOTICE';
+  postType: CheerPostType;
   author: string;
   authorId?: number;
   authorHandle: string;
@@ -51,6 +113,7 @@ export interface CheerPost {
   originalDeleted?: boolean;
   shareMode?: ShareMode;
   sourceInfo?: SourceInfo;
+  linkedContent?: LinkedContent;
 }
 
 export interface PageResponse<T> {
@@ -66,7 +129,7 @@ export type PostSummaryRes = CheerPost;
 
 export interface FetchPostsParams {
   teamId?: string | null;
-  postType?: 'NORMAL' | 'NOTICE' | null;
+  postType?: CheerPostType | null;
   page?: number;
   size?: number;
   sort?: string;
@@ -112,6 +175,7 @@ export interface EmbeddedPost {
   id: number;
   teamId: string;
   teamColor: string;
+  postType: CheerPostType;
   content: string;
   author: string;
   authorHandle: string;
@@ -122,24 +186,7 @@ export interface EmbeddedPost {
   likeCount?: number;
   commentCount?: number;
   repostCount?: number;
-}
-
-export type ShareMode =
-  | 'INTERNAL_REPOST'
-  | 'INTERNAL_QUOTE'
-  | 'EXTERNAL_LINK'
-  | 'EXTERNAL_COPY'
-  | 'EXTERNAL_EMBED'
-  | 'EXTERNAL_SUMMARY';
-
-export interface SourceInfo {
-  title?: string;
-  author?: string;
-  url?: string;
-  license?: string;
-  licenseUrl?: string;
-  changedNote?: string;
-  snapshotType?: string;
+  linkedContent?: LinkedContent;
 }
 
 export type RepostType = 'SIMPLE' | 'QUOTE';
@@ -156,44 +203,6 @@ export interface Comment {
   authorHandle?: string;
   authorTeamId?: string;
   replies?: Comment[];
-}
-
-interface PostDTO {
-  id: number;
-  teamId: string;
-  teamColor?: string;
-  content: string;
-  author: string;
-  authorId?: number;
-  authorHandle: string;
-  authorProfileImageUrl?: string;
-  authorTeamId?: string;
-  createdAt: string;
-  updatedAt: string;
-  comments: number;
-  likes: number;
-  likeCount: number;
-  commentCount: number;
-  bookmarkCount?: number;
-  repostCount: number;
-  views: number;
-  liked: boolean;
-  likedByMe?: boolean;
-  bookmarkedByMe?: boolean;
-  isBookmarked?: boolean;
-  isOwner?: boolean;
-  repostedByMe?: boolean;
-  isHot?: boolean;
-  postType?: string;
-  imageUrls?: string[];
-  imageUploadFailed?: boolean;
-  repostOfId?: number;
-  repostType?: RepostType;
-  originalPost?: PostDTO;
-  originalDeleted?: boolean;
-  deleted?: boolean;
-  shareMode?: ShareMode;
-  sourceInfo?: SourceInfo;
 }
 
 interface CommentDTO {
@@ -247,81 +256,207 @@ interface CheerPrivateRequestOptions extends CheerPublicRequestOptions {
   skipAuthSessionHandling?: boolean;
 }
 
-const normalizePostType = (postType?: string): CheerPost['postType'] =>
-  postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
+const isCheerPostType = (value: string): value is CheerPostType =>
+  value === 'NORMAL' ||
+  value === 'NOTICE' ||
+  value === 'CHECKIN' ||
+  value === 'RECRUITMENT';
 
-const normalizeCreatePostType = (postType?: string): 'NORMAL' | 'NOTICE' =>
-  postType === 'NOTICE' ? 'NOTICE' : 'NORMAL';
+export const normalizeCheerPostType = (value?: string | null): CheerPostType => {
+  if (value == null) return 'NORMAL';
+  if (isCheerPostType(value)) return value;
+  throw new Error(`UNKNOWN_CHEER_POST_TYPE:${value}`);
+};
 
-function transformEmbeddedPost(post: PostDTO): EmbeddedPost {
+type CheerPostTarget =
+  | { postType: 'NORMAL' | 'NOTICE' }
+  | { postType: 'CHECKIN'; diaryId: number }
+  | { postType: 'RECRUITMENT'; partyId: number };
+
+const isValidLinkedId = (value: unknown): value is number =>
+  typeof value === 'number' && Number.isSafeInteger(value) && value > 0;
+
+export const normalizeCheerPostTarget = (
+  value: string | null | undefined,
+  diaryId: unknown,
+  partyId: unknown,
+): CheerPostTarget => {
+  const postType = normalizeCheerPostType(value);
+
+  if (postType === 'CHECKIN' && isValidLinkedId(diaryId) && partyId === undefined) {
+    return { postType, diaryId };
+  }
+  if (postType === 'RECRUITMENT' && diaryId === undefined && isValidLinkedId(partyId)) {
+    return { postType, partyId };
+  }
+  if ((postType === 'NORMAL' || postType === 'NOTICE') && diaryId === undefined && partyId === undefined) {
+    return { postType };
+  }
+
+  throw new Error('INVALID_LINKED_POST_TARGET');
+};
+
+const normalizeShareMode = (value?: string | null): ShareMode | undefined => {
+  switch (value) {
+    case 'INTERNAL_REPOST':
+    case 'INTERNAL_QUOTE':
+    case 'EXTERNAL_LINK':
+    case 'EXTERNAL_COPY':
+    case 'EXTERNAL_EMBED':
+    case 'EXTERNAL_SUMMARY':
+      return value;
+    default:
+      return undefined;
+  }
+};
+
+const normalizeRepostType = (value?: string | null): RepostType | undefined => {
+  if (value === 'SIMPLE' || value === 'QUOTE') return value;
+  return undefined;
+};
+
+const isLinkedContentUnavailableReason = (
+  value: unknown,
+): value is LinkedContentUnavailableReason =>
+  value === 'SOURCE_MISSING' ||
+  value === 'SOURCE_INELIGIBLE' ||
+  value === 'MANUAL_BASEBALL_DATA_REQUIRED';
+
+export const normalizeLinkedContent = (value?: LinkedContentWire | null): LinkedContent | undefined => {
+  if (value == null) return undefined;
+
+  const requiredKeys = ['kind', 'available', 'unavailableReason', 'checkin', 'recruitment'] as const;
+  if (!requiredKeys.every((key) => Object.prototype.hasOwnProperty.call(value, key))) {
+    throw new Error('INVALID_LINKED_CONTENT');
+  }
+
+  const checkin = value.checkin as CheckinLinkedContentWire | null | undefined;
+  const recruitment = value.recruitment as RecruitmentLinkedContentWire | null | undefined;
+  const unavailableReason = value.unavailableReason as unknown;
+
+  if (
+    value.available === true &&
+    value.kind === 'CHECKIN' &&
+    checkin != null &&
+    recruitment === null &&
+    unavailableReason === null
+  ) {
+    return {
+      kind: 'CHECKIN',
+      available: true,
+      unavailableReason: null,
+      checkin,
+      recruitment: null,
+    };
+  }
+  if (
+    value.available === true &&
+    value.kind === 'RECRUITMENT' &&
+    recruitment != null &&
+    checkin === null &&
+    unavailableReason === null
+  ) {
+    return {
+      kind: 'RECRUITMENT',
+      available: true,
+      unavailableReason: null,
+      checkin: null,
+      recruitment,
+    };
+  }
+  if (
+    value.available === false &&
+    (value.kind === 'CHECKIN' || value.kind === 'RECRUITMENT') &&
+    isLinkedContentUnavailableReason(unavailableReason) &&
+    checkin === null &&
+    recruitment === null
+  ) {
+    return {
+      kind: value.kind,
+      available: false,
+      unavailableReason,
+      checkin: null,
+      recruitment: null,
+    };
+  }
+
+  throw new Error('INVALID_LINKED_CONTENT');
+};
+
+export function normalizeEmbeddedPost(post: EmbeddedPostWire): EmbeddedPost {
+  const teamId = post.teamId ?? '';
   return {
-    id: post.id,
-    teamId: post.teamId,
-    teamColor: post.teamColor || getTeamColorByAnyKey(post.teamId),
+    id: post.id ?? 0,
+    teamId,
+    teamColor: post.teamColor || getTeamColorByAnyKey(teamId),
+    postType: normalizeCheerPostType(post.postType),
     content: post.content || '',
-    author: post.author,
-    authorHandle: post.authorHandle,
+    author: post.author ?? '',
+    authorHandle: post.authorHandle ?? '',
     authorProfileImageUrl: post.authorProfileImageUrl,
-    createdAt: post.createdAt,
+    createdAt: post.createdAt ?? '',
     imageUrls: post.imageUrls || [],
     deleted: post.deleted ?? false,
     likeCount: post.likeCount ?? 0,
     commentCount: post.commentCount ?? 0,
     repostCount: post.repostCount ?? 0,
+    linkedContent: normalizeLinkedContent(post.linkedContent),
   };
 }
 
-function transformPost(post: PostDTO): CheerPost {
+export function normalizeCheerPost(post: PostSummaryWire | PostDetailWire): CheerPost {
+  const teamId = post.teamId ?? '';
+  const createdAt = post.createdAt ?? '';
   return {
-    id: post.id,
-    teamId: post.teamId,
-    team: post.teamId,
-    teamColor: getTeamColorByAnyKey(post.teamId),
+    id: post.id ?? 0,
+    teamId,
+    team: teamId,
+    teamColor: getTeamColorByAnyKey(teamId),
     content: post.content || '',
-    author: post.author,
+    author: post.author ?? '',
     authorHandle: post.authorHandle || '',
     authorProfileImageUrl: post.authorProfileImageUrl,
-    authorTeamId: post.authorTeamId,
-    timeAgo: formatTimeAgo(post.createdAt),
-    likeCount: post.likeCount ?? post.likes ?? 0,
-    commentCount: post.commentCount ?? post.comments ?? 0,
+    authorTeamId: 'authorTeamId' in post ? post.authorTeamId : undefined,
+    timeAgo: formatTimeAgo(createdAt),
+    likeCount: post.likes ?? 0,
+    commentCount: post.comments ?? 0,
     bookmarkCount: post.bookmarkCount ?? 0,
     repostCount: post.repostCount ?? 0,
-    views: post.views,
-    liked: post.liked ?? post.likedByMe ?? false,
-    bookmarked: post.bookmarkedByMe ?? post.isBookmarked ?? false,
+    views: post.views ?? 0,
+    liked: 'liked' in post
+      ? post.liked ?? false
+      : 'likedByMe' in post
+        ? post.likedByMe ?? false
+        : false,
+    bookmarked: post.isBookmarked ?? false,
     imageUrls: post.imageUrls || [],
     isOwner: post.isOwner ?? false,
     repostedByMe: post.repostedByMe ?? false,
-    isHot: post.isHot ?? false,
-    postType: normalizePostType(post.postType),
-    createdAt: post.createdAt,
-    updatedAt: post.updatedAt,
-    imageUploadFailed: post.imageUploadFailed,
+    isHot: 'isHot' in post ? post.isHot ?? false : false,
+    postType: normalizeCheerPostType(post.postType),
+    createdAt,
+    updatedAt: createdAt,
     repostOfId: post.repostOfId,
-    repostType: post.repostType,
-    originalPost: post.originalPost ? transformEmbeddedPost(post.originalPost) : undefined,
+    repostType: normalizeRepostType(post.repostType),
+    originalPost: post.originalPost ? normalizeEmbeddedPost(post.originalPost) : undefined,
     originalDeleted: post.originalDeleted ?? false,
-    shareMode: post.shareMode,
+    shareMode: normalizeShareMode(post.shareMode),
     sourceInfo: post.sourceInfo,
+    linkedContent: normalizeLinkedContent(post.linkedContent),
   };
 }
 
-function transformPostPage(data: {
-  content: PostDTO[];
-  last: boolean;
-  totalPages: number;
-  totalElements: number;
-  size: number;
-  number: number;
-}): PageResponse<CheerPost> {
+function transformPostPage(data: PageResponseLike & { content?: PostSummaryWire[] }): PageResponse<CheerPost> {
+  const content = Array.isArray(data.content) ? data.content : [];
+  const pageMeta = normalizePageResponseMeta(data, content.length);
+
   return {
-    content: data.content.map(transformPost),
-    last: data.last,
-    totalPages: data.totalPages,
-    totalElements: data.totalElements,
-    size: data.size,
-    number: data.number,
+    content: content.map(normalizeCheerPost),
+    last: pageMeta.last,
+    totalPages: pageMeta.totalPages,
+    totalElements: pageMeta.totalElements,
+    size: pageMeta.size,
+    number: pageMeta.number,
   };
 }
 
@@ -366,7 +501,7 @@ const normalizeUploadedImageUrls = (data: unknown): string[] => {
 
 export const fetchPosts = async (params: FetchPostsParams = {}): Promise<PageResponse<CheerPost>> => {
   const { teamId, postType, page = 0, size = 20, sort } = params;
-  const response = await publicGet<PageResponse<PostDTO>>('/cheer/posts', {
+  const response = await publicGet<PageResponse<PostSummaryWire>>('/cheer/posts', {
     params: {
       page,
       size,
@@ -383,7 +518,7 @@ export const fetchHotPosts = async (
   requestOptions: CheerPublicRequestOptions = {},
 ): Promise<PageResponse<CheerPost>> => {
   const { page = 0, size = 20, algorithm } = params;
-  const response = await publicGet<PageResponse<PostDTO>>('/cheer/posts/hot', {
+  const response = await publicGet<PageResponse<PostSummaryWire>>('/cheer/posts/hot', {
     ...requestOptions,
     params: {
       page,
@@ -398,7 +533,7 @@ export const fetchFollowingPosts = async (
   params: FetchPostsParams = {},
 ): Promise<PageResponse<CheerPost>> => {
   const { page = 0, size = 20 } = params;
-  const response = await privateGet<PageResponse<PostDTO>>('/cheer/posts/following', {
+  const response = await privateGet<PageResponse<PostSummaryWire>>('/cheer/posts/following', {
     params: { page, size },
   });
   return transformPostPage(response);
@@ -408,7 +543,7 @@ export const fetchMyCheerPosts = async (
   params: FetchPostsParams = {},
 ): Promise<PageResponse<CheerPost>> => {
   const { page = 0, size = 20, sort } = params;
-  const response = await privateGet<PageResponse<PostDTO>>('/cheer/me/posts', {
+  const response = await privateGet<PageResponse<PostSummaryWire>>('/cheer/me/posts', {
     params: { page, size, sort },
   });
   return transformPostPage(response);
@@ -424,7 +559,7 @@ export const fetchPostChanges = async (params: {
 
 export const searchPosts = async (params: SearchPostsParams): Promise<PageResponse<CheerPost>> => {
   const { q, teamId, page = 0, size = 20, sort } = params;
-  const response = await publicGet<PageResponse<PostDTO>>('/cheer/posts/search', {
+  const response = await publicGet<PageResponse<PostSummaryWire>>('/cheer/posts/search', {
     params: {
       q,
       page,
@@ -438,54 +573,37 @@ export const searchPosts = async (params: SearchPostsParams): Promise<PageRespon
 
 export async function fetchPostDetail(id: number): Promise<CheerPost> {
   try {
-    const response = await publicGet<PostDTO>(`/cheer/posts/${id}`);
-    return transformPost(response);
+    const response = await publicGet<PostDetailWire>(`/cheer/posts/${id}`);
+    return normalizeCheerPost(response);
   } catch (error) {
     throw new Error(getApiErrorMessage(error, '게시글을 불러오지 못했습니다.'));
   }
 }
 
 export async function createPost(
-  data: {
-    teamId: string;
-    content: string;
-    images?: string[];
-    postType?: string;
-    shareMode?: ShareMode;
-    sourceUrl?: string;
-    sourceTitle?: string;
-    sourceAuthor?: string;
-    sourceLicense?: string;
-    sourceLicenseUrl?: string;
-    sourceChangedNote?: string;
-    sourceSnapshotType?: string;
-  },
+  data: CreatePostPayload,
   requestOptions: CheerPrivateRequestOptions = {},
 ) {
-  const response = await privatePost<PostDTO, typeof data>('/cheer/posts', {
-    ...data,
-    postType: normalizeCreatePostType(data.postType),
-  }, requestOptions);
-  return transformPost(response);
+  const { diaryId, partyId, postType, ...postData } = data;
+  const target = normalizeCheerPostTarget(postType, diaryId, partyId);
+  const payload: CreatePostWireRequest = {
+    ...postData,
+    ...target,
+  };
+  const response = await privatePost<PostDetailWire, CreatePostWireRequest>(
+    '/cheer/posts',
+    payload,
+    requestOptions,
+  );
+  return normalizeCheerPost(response);
 }
 
 export async function updatePost(
   id: number,
-  data: {
-    content: string;
-    images?: string[];
-    shareMode?: ShareMode;
-    sourceUrl?: string;
-    sourceTitle?: string;
-    sourceAuthor?: string;
-    sourceLicense?: string;
-    sourceLicenseUrl?: string;
-    sourceChangedNote?: string;
-    sourceSnapshotType?: string;
-  },
+  data: UpdatePostWireRequest,
 ) {
-  const response = await privatePut<PostDTO, typeof data>(`/cheer/posts/${id}`, data);
-  return transformPost(response);
+  const response = await privatePut<PostDetailWire, UpdatePostWireRequest>(`/cheer/posts/${id}`, data);
+  return normalizeCheerPost(response);
 }
 
 export async function deletePost(id: number) {
@@ -501,22 +619,21 @@ export async function fetchComments(
   page = 0,
   size = 20,
   requestOptions: CheerPublicRequestOptions = {},
-) {
-  const data = await publicGet<{
-    content: CommentDTO[];
-    totalElements: number;
-    last?: boolean;
-    totalPages?: number;
-    size?: number;
-    number?: number;
-  }>(`/cheer/posts/${postId}/comments`, {
+): Promise<PageResponse<Comment>> {
+  const data = await publicGet<PageResponseLike & { content?: CommentDTO[] }>(`/cheer/posts/${postId}/comments`, {
     ...requestOptions,
     params: { page, size },
   });
+  const content = Array.isArray(data.content) ? data.content : [];
+  const pageMeta = normalizePageResponseMeta(data, content.length);
 
   return {
-    ...data,
-    content: data.content.map(transformComment),
+    content: content.map(transformComment),
+    last: pageMeta.last,
+    totalPages: pageMeta.totalPages,
+    totalElements: pageMeta.totalElements,
+    size: pageMeta.size,
+    number: pageMeta.number,
   };
 }
 
@@ -534,11 +651,11 @@ export async function toggleCommentLike(commentId: number): Promise<LikeToggleRe
 }
 
 export async function fetchBookmarks(page = 0, size = 20): Promise<{ content: CheerPost[]; hasNext: boolean }> {
-  const data = await privateGet<PageResponse<PostDTO>>('/cheer/bookmarks', {
+  const data = await privateGet<PageResponse<PostSummaryWire>>('/cheer/bookmarks', {
     params: { page, size },
   });
   return {
-    content: (data.content ?? []).map(transformPost),
+    content: (data.content ?? []).map(normalizeCheerPost),
     hasNext: !data.last,
   };
 }
@@ -556,8 +673,27 @@ export async function cancelRepost(repostId: number): Promise<RepostToggleRespon
 }
 
 export async function createQuoteRepost(postId: number, content: string) {
-  const response = await privatePost<PostDTO, { content: string }>(`/cheer/posts/${postId}/quote`, { content });
-  return transformPost(response);
+  const response = await privatePost<PostDetailWire, { content: string }>(`/cheer/posts/${postId}/quote`, { content });
+  return normalizeCheerPost(response);
+}
+
+export async function fetchLinkedPostTarget(
+  params: LinkedPostLookupParams,
+): Promise<LinkedPostLookup> {
+  const { diaryId, partyId } = params;
+  if (
+    !(
+      (isValidLinkedId(diaryId) && partyId === undefined) ||
+      (diaryId === undefined && isValidLinkedId(partyId))
+    )
+  ) {
+    throw new Error('INVALID_LINKED_POST_LOOKUP');
+  }
+  const response = await privateGet<LinkedLookupWire>('/cheer/posts/linked', { params });
+  return {
+    ...response,
+    preview: normalizeLinkedContent(response.preview),
+  };
 }
 
 export enum ReportReason {

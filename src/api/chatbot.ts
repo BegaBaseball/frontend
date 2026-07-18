@@ -1,9 +1,15 @@
-import { ChatMeta, ChatQueueStatus, ChatRequest, VoiceResponse } from '../types/chatbot';
+import { ChatMeta, ChatQueueStatus, VoiceResponse } from '../types/chatbot';
 import { AiStreamMetaPayload } from '../types/ai';
+import type { components as AiStreamComponents } from './generated/aiStreamV2';
 import { getMockRateLimitSeconds } from '../mock/chatbotRateLimitMock';
 import { normalizeAiStreamMeta } from './aiMeta';
 import { privatePost } from './privateClient';
 import { consumeSseStream } from './sse';
+import {
+  AiStreamContractError,
+  decodeAiStreamV2Event,
+  getAiEventVersion,
+} from './aiStreamContract';
 import {
   DEFAULT_STREAM_TIMEOUT_MS,
   DEFAULT_STREAM_TIMEOUT_RETRY_ATTEMPTS,
@@ -47,6 +53,43 @@ export class ChatStreamEventError extends Error {
 }
 
 const DEFAULT_RETRY_AFTER_SECONDS = 10;
+const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
+
+type ChatMetaV2 = AiStreamComponents['schemas']['ChatMetaData'];
+type ChatStreamRequestWire = AiStreamComponents['schemas']['ChatStreamRequest'];
+export type ChatStreamRequest = Pick<
+  ChatStreamRequestWire,
+  'question' | 'cache_bypass' | 'filters' | 'style'
+> & {
+  history: AiStreamComponents['schemas']['ChatHistoryMessage'][] | null;
+} & Record<string, unknown>;
+
+const toLegacyChatMetaPayload = (data: ChatMetaV2): AiStreamMetaPayload => ({
+  verified: data.verified ?? undefined,
+  cached: data.cached ?? undefined,
+  intent: data.intent ?? undefined,
+  strategy: data.strategy ?? undefined,
+  style: data.style ?? undefined,
+  planner_mode: data.planner_mode ?? undefined,
+  planner_cache_hit: data.planner_cache_hit ?? undefined,
+  tool_execution_mode: data.tool_execution_mode ?? undefined,
+  fallback_reason: data.fallback_reason ?? undefined,
+  perf: data.perf,
+  model_usage: data.model_usage,
+  model_usage_complete: data.model_usage_complete ?? undefined,
+  data_sources: data.data_sources?.map((source) => ({
+    title: source.title ?? undefined,
+    url: source.url ?? undefined,
+    content: source.content ?? undefined,
+  })),
+  tool_calls: data.tool_calls?.map((toolCall) => ({
+    tool_name: toolCall.tool_name,
+    parameters: toolCall.parameters,
+  })),
+  finish_reason: data.finish_reason ?? undefined,
+  cancelled: data.cancelled ?? undefined,
+  error: data.error ?? undefined,
+});
 
 export type { ChatQueueStatus };
 
@@ -68,7 +111,7 @@ const parseRetryAfterSeconds = (retryAfterHeader: string | null): number | null 
 };
 
 export async function sendChatMessageStream(
-  data: ChatRequest,
+  data: ChatStreamRequest,
   onDelta: (delta: string) => void,
   onMeta?: (meta: ChatMeta) => void,
   options?: {
@@ -80,6 +123,7 @@ export async function sendChatMessageStream(
   const READ_TIMEOUT_MS = DEFAULT_STREAM_TIMEOUT_MS;
   const mockMode = import.meta.env?.VITE_MOCK_CHATBOT_RATE_LIMIT;
   const mockSeconds = getMockRateLimitSeconds(mockMode);
+  const eventVersion = getAiEventVersion();
 
   if (mockSeconds !== null) {
     throw new RateLimitError(mockSeconds);
@@ -95,6 +139,7 @@ export async function sendChatMessageStream(
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          [AI_EVENT_VERSION_HEADER]: eventVersion,
         },
         body: JSON.stringify(data),
         timeoutMs: DEFAULT_STREAM_TIMEOUT_MS,
@@ -160,11 +205,62 @@ export async function sendChatMessageStream(
     throw new Error('Failed to connect to server after retries.');
   }
 
+  if (
+    eventVersion === '2'
+    && response.headers.get(AI_EVENT_VERSION_HEADER) !== '2'
+  ) {
+    throw new AiStreamContractError(
+      'AI stream negotiated version header is missing or mismatched.',
+    );
+  }
+
   try {
     const { sawDone } = await consumeSseStream(response.body, {
       timeoutMs: READ_TIMEOUT_MS,
       signal: options?.signal,
       onEvent: ({ event, data }) => {
+        if (eventVersion === '2') {
+          const decoded = decodeAiStreamV2Event({ event, data });
+          switch (decoded.type) {
+            case 'chat.status':
+              return;
+            case 'chat.queue':
+              options?.onQueueStatus?.({
+                state: decoded.data.state,
+                queuePosition: decoded.data.queue_position,
+                estimatedWaitTime: decoded.data.estimated_wait_time,
+                rpmLimit: decoded.data.rpm_limit,
+              });
+              return;
+            case 'chat.message.delta':
+              onDelta(decoded.data.delta);
+              return;
+            case 'chat.meta':
+              if (onMeta) {
+                onMeta({
+                  ...normalizeAiStreamMeta(toLegacyChatMetaPayload(decoded.data)),
+                  style: decoded.data.style ?? 'markdown',
+                });
+              }
+              return;
+            case 'stream.error':
+              throw new ChatStreamEventError(
+                decoded.data.code,
+                decoded.data.detail ?? decoded.data.message,
+              );
+            case 'stream.done':
+              return;
+            case 'coach.status':
+            case 'coach.preview.chunk':
+            case 'coach.preview.reset':
+            case 'coach.message.delta':
+            case 'coach.meta':
+              throw new AiStreamContractError(
+                `Unexpected coach event on chat stream: ${decoded.type}`,
+              );
+          }
+        }
+
         let parsed: AiStreamMetaPayload & {
           delta?: string;
           message?: string;
@@ -208,6 +304,9 @@ export async function sendChatMessageStream(
           });
         }
       },
+      isTerminalEvent: eventVersion === '2'
+        ? ({ event }) => event === 'stream.done'
+        : undefined,
     });
 
     if (!sawDone) {

@@ -59,37 +59,14 @@ const interceptStadiumApis = () => {
   cy.intercept('GET', '**/api/diary/seat-views*', { statusCode: 200, body: [] }).as('getSeatViews');
 };
 
-const interceptDiaryDraftApis = () => {
-  cy.intercept('GET', '**/api/diary/entries*', {
-    statusCode: 200,
-    body: [],
-  }).as('getDiaryEntries');
-
-  cy.intercept('GET', '**/api/diary/games*', {
-    statusCode: 200,
-    body: [],
-  }).as('getDiaryGames');
-
-  cy.intercept('GET', '**/api/diary/statistics*', {
-    statusCode: 200,
-    body: {
-      totalGames: 0,
-      wins: 0,
-      losses: 0,
-      draws: 0,
-    },
-  }).as('getDiaryStatistics');
-};
-
-describe('Stadium Changwon Diary Draft Flow', () => {
+describe('Stadium Changwon Direct Seat View Upload Flow', () => {
   beforeEach(() => {
     cy.intercept('GET', 'https://dapi.kakao.com/**', { forceNetworkError: true }).as('kakaoSdkFail');
   });
 
-  it('창원 좌석 CTA가 로그인 사용자 다이어리 draft로 연결된다', () => {
+  it('창원 좌석 CTA가 로그인 사용자 direct 업로드 모달로 연결된다', () => {
     interceptLoggedInSession();
     interceptStadiumApis();
-    interceptDiaryDraftApis();
 
     cy.visit('/stadium');
     cy.wait('@getStadiums');
@@ -102,10 +79,13 @@ describe('Stadium Changwon Diary Draft Flow', () => {
     cy.contains('125 3루 내야석').should('be.visible');
     cy.contains('button', '시야 사진 올리기').click();
 
-    cy.location('pathname').should('eq', '/mypage');
-    cy.contains('창원 좌석 정보가 반영되었습니다').should('be.visible');
-    cy.get('input[placeholder="구역 (예: 1루 레드석)"]').should('have.value', '3루 내야석');
-    cy.get('input[placeholder="블록 (예: 101블록)"]').should('have.value', '125');
+    cy.location('pathname').should('eq', '/stadium');
+    cy.get('[data-testid="seat-view-direct-upload-modal"]', { timeout: 10000 })
+      .should('be.visible')
+      .and('contain', '시야 사진 올리기')
+      .and('contain', 'CHANGWON')
+      .and('contain', '3루 내야석')
+      .and('contain', '사진 선택');
   });
 
   it('모바일 검색 결과 선택 후 필터를 전체로 되돌리고 선택 블록 bottom sheet를 유지한다', () => {
@@ -141,7 +121,7 @@ describe('Stadium Changwon Diary Draft Flow', () => {
     });
   });
 
-  it('창원 좌석 CTA가 게스트 pending draft와 로그인 후 /mypage 복귀를 유지한다', () => {
+  it('창원 좌석 CTA가 게스트에게 현재 좌석도 경로 로그인 redirect를 남긴다', () => {
     interceptGuestSession();
     interceptStadiumApis();
 
@@ -160,21 +140,10 @@ describe('Stadium Changwon Diary Draft Flow', () => {
     cy.window()
       .its('sessionStorage')
       .invoke('getItem', 'pendingLoginRedirect')
-      .should('eq', '/mypage');
+      .should('eq', '/stadium');
     cy.window()
       .its('sessionStorage')
       .invoke('getItem', 'diary-draft-storage')
-      .then((rawDraft) => {
-        const parsedDraft = JSON.parse(String(rawDraft));
-        expect(parsedDraft.state.pendingDraft).to.include({
-          stadium: 'CHANGWON',
-          team: 'NC',
-          section: '3루 내야석',
-          block: '125',
-          seatRow: '',
-          seatNumber: '',
-        });
-        expect(parsedDraft.state.pendingDraft.date).to.match(/^\d{4}-\d{2}-\d{2}$/);
-      });
+      .should('eq', null);
   });
 });

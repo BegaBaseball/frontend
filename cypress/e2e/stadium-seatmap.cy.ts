@@ -17,6 +17,7 @@ const STADIUM_PLACE_ALIASES: Record<string, string> = {
   SAJIK: '@getSajikPlaces',
   SUWON: '@getSuwonPlaces',
 };
+type CypressWaitAlias = `@${string}`;
 
 describe('Stadium SeatMap — Split Spec Smoke', () => {
   beforeEach(() => {
@@ -40,7 +41,7 @@ describe('Stadium SeatMap — Split Spec Smoke', () => {
     ALL_STADIUMS.forEach((stadium) => {
       cy.get('#stadium-guide-select').select(stadium.stadiumId);
 
-      const placeAlias = STADIUM_PLACE_ALIASES[stadium.stadiumId];
+      const placeAlias = STADIUM_PLACE_ALIASES[stadium.stadiumId] as CypressWaitAlias | undefined;
       if (!isFirstIteration && placeAlias) {
         cy.wait(placeAlias);
       }

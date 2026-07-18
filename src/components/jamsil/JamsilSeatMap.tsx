@@ -12,8 +12,9 @@ import {
 } from '../../data/jamsilSeatData';
 import { getJamsilOperatorVisitGuidance } from '../../data/jamsilOperatorVisitGuide';
 import JamsilSeatMapSvg from './JamsilSeatMapSvg';
-import JamsilUploadFlowModal from './JamsilUploadFlowModal';
 import { useTheme } from '../../hooks/useTheme';
+import { useAuthAccessActions } from '../../store/authStore';
+import { getCurrentRelativeUrl } from '../../utils/loginRedirect';
 import {
   MANUAL_BASEBALL_DATA_REQUIRED_CODE,
   formatManualBaseballDataDisplayValue,
@@ -26,6 +27,7 @@ import { SeatMapFilterBar } from '../stadiumSeatMap/SeatMapFilterBar';
 import { SeatMapLegend } from '../stadiumSeatMap/SeatMapLegend';
 import { SeatMapSectionFinder } from '../stadiumSeatMap/SeatMapSectionFinder';
 import { SeatMapTemplateShell } from '../stadiumSeatMap/SeatMapTemplateShell';
+import SeatViewDirectUploadModal from '../stadiumSeatMap/SeatViewDirectUploadModal';
 import { useSeatMapSelectionState } from '../stadiumSeatMap/useSeatMapSelectionState';
 import { useSeatMapTemplateShellState } from '../stadiumSeatMap/useSeatMapTemplateShellState';
 import type { SeatMapSectionAdapter } from '../stadiumSeatMap/seatMapCommonTypes';
@@ -35,6 +37,12 @@ const MAX_ZOOM = 2.5;
 const ZOOM_STEP = 0.25;
 const FINDER_FOCUS_ZOOM = 1.35;
 const MANUAL_OPERATOR_GUIDANCE_STATUS = MANUAL_BASEBALL_DATA_REQUIRED_CODE;
+
+const formatOperatorGuidanceValue = (value: string) => (
+  value.includes(MANUAL_OPERATOR_GUIDANCE_STATUS)
+    ? value
+    : formatManualBaseballDataDisplayValue(value)
+);
 
 interface SeatMapPan {
   x: number;
@@ -133,7 +141,7 @@ function JamsilOperatorVisitMeta({
           >
             <div className="text-10 font-black tracking-widest text-slate-400">{tile.label}</div>
             <div className="mt-1 break-words text-12 font-bold leading-relaxed text-slate-700 dark:text-white">
-              {formatManualBaseballDataDisplayValue(tile.value)}
+              {formatOperatorGuidanceValue(tile.value)}
             </div>
           </div>
         ))}
@@ -153,7 +161,7 @@ function JamsilOperatorVisitMeta({
           data-testid="jamsil-operator-data-status"
           className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-11 font-bold leading-relaxed text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
         >
-          {formatManualBaseballDataDisplayValue(operatorGuidance.operatorDataPendingLabel)}
+          {operatorGuidance.operatorDataPendingLabel}
         </p>
       )}
     </div>
@@ -162,6 +170,7 @@ function JamsilOperatorVisitMeta({
 
 export default function JamsilSeatMap() {
   const { resolvedTheme } = useTheme();
+  const { requireLogin } = useAuthAccessActions();
   const mode: 'light' | 'dark' = resolvedTheme === 'dark' ? 'dark' : 'light';
 
   const [zoom, setZoom] = useState(1);
@@ -209,11 +218,15 @@ export default function JamsilSeatMap() {
     }
   }, [selected]);
 
-  const handleUploadSubmit = useCallback(() => {
-    const block = uploadFor?.block ?? '';
-    setUploadFor(null);
-    showToast(`✓ 리뷰가 등록되었습니다 (블록 ${block})`);
-  }, [showToast, uploadFor]);
+  const handleOpenUpload = useCallback((section: JamsilBlock | null) => {
+    if (!section) return;
+    if (!requireLogin(getCurrentRelativeUrl())) return;
+    setUploadFor(section);
+  }, [requireLogin]);
+
+  const handleUploadSubmitted = useCallback(() => {
+    showToast('시야 사진이 검수 대기열에 등록되었습니다.');
+  }, [showToast]);
 
   useEffect(() => {
     if (zoom <= MIN_ZOOM && (pan.x !== 0 || pan.y !== 0)) {
@@ -377,7 +390,7 @@ export default function JamsilSeatMap() {
         adapter={jamsilSectionAdapter}
         stadiumKey="JAMSIL"
         onClose={handleCloseSection}
-        onUpload={() => setUploadFor(selected)}
+        onUpload={() => handleOpenUpload(selected)}
         testId="jamsil-seatmap-bottom-sheet"
         extraMeta={renderOperatorVisitMeta}
         searchAction={{
@@ -397,7 +410,7 @@ export default function JamsilSeatMap() {
       adapter={jamsilSectionAdapter}
       stadiumKey="JAMSIL"
       onClose={handleCloseSection}
-      onUpload={() => displaySection && setUploadFor(displaySection)}
+      onUpload={() => handleOpenUpload(displaySection)}
       extraMeta={renderOperatorVisitMeta}
       searchAction={{
         label: '구역 검색',
@@ -453,11 +466,13 @@ export default function JamsilSeatMap() {
       />
 
       {uploadFor && (
-        <JamsilUploadFlowModal
-          section={uploadFor}
-          mode={mode}
+        <SeatViewDirectUploadModal
+          stadium="JAMSIL"
+          section={uploadFor.name}
+          block={uploadFor.block}
+          accentColor={mode === 'dark' ? JAMSIL_CATEGORIES[uploadFor.category].dark : JAMSIL_CATEGORIES[uploadFor.category].light}
           onClose={() => setUploadFor(null)}
-          onSubmit={handleUploadSubmit}
+          onSubmitted={handleUploadSubmitted}
         />
       )}
     </>

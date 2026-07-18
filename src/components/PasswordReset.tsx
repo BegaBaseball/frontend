@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { usePasswordReset } from '../hooks/usePasswordReset';
 import { buildLoginPath, getStoredLoginRedirect } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
-import { ArrowLeftIcon, CheckIcon, MailIcon } from './icons/PublicShellIcons';
+import { ArrowLeftIcon, CheckIcon, MailIcon } from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -47,7 +47,6 @@ export default function PasswordReset() {
           </button>
 
           <AuthHeader
-            eyebrow="Password Recovery"
             title="비밀번호 재설정"
             description="가입하신 이메일 주소를 입력하면 비밀번호 재설정 링크를 보내드립니다."
             data-testid="password-reset-header"
@@ -103,7 +102,6 @@ export default function PasswordReset() {
       ) : (
         <>
           <AuthHeader
-            eyebrow="Check Your Inbox"
             title="이메일을 확인해주세요"
             description={`${successMessage} 메일을 받지 못했다면 잠시 후 다시 시도해주세요.`}
             data-testid="password-reset-header"

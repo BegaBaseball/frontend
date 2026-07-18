@@ -4,10 +4,15 @@ import { Button } from './ui/button';
 import { Card } from './ui/card';
 import TeamLogo from './TeamLogo';
 import LoadingSpinner from './LoadingSpinner';
-import { LogInIcon, RotateCcwIcon } from './icons/PublicFeatureIcons';
+import { RankingLogInIcon, RankingRotateCcwIcon } from './ranking/RankingPredictionIcons';
 import RankingItem from './ranking/RankingItem';
 import { useRankingPrediction } from '../hooks/useRankingPrediction';
 import { buildLoginPath, getCurrentRelativeUrl } from '../utils/loginRedirect';
+import {
+  PREDICTION_BRAND_TEXT_CLASS,
+  PREDICTION_SOFT_CHIP_CLASS,
+  PREDICTION_SURFACE_CARD_CLASS,
+} from './prediction/predictionUiTokens';
 
 const RankingPredictionSaveDialog = lazy(() => import('./RankingPredictionSaveDialog'));
 const RankingPredictionCompletionPanel = lazy(() => import('./RankingPredictionCompletionPanel'));
@@ -115,21 +120,22 @@ export default function RankingPrediction() {
   if (!isLoggedIn) {
     return (
       <Card
-        className="p-8 md:p-12 text-center bg-white dark:bg-card border border-gray-200 dark:border-border shadow-sm"
+        className={`${PREDICTION_SURFACE_CARD_CLASS} rounded-2xl p-8 text-center md:p-12`}
         data-testid="ranking-root"
       >
-        <div className="bg-gray-100 dark:bg-card p-4 rounded-full w-fit mx-auto mb-4">
-          <LogInIcon className="w-8 h-8 text-gray-400 dark:text-white" />
+        <div className="mx-auto mb-4 w-fit rounded-full bg-emerald-50 p-4 dark:bg-primary/20">
+          <RankingLogInIcon className={`${PREDICTION_BRAND_TEXT_CLASS} h-8 w-8`} />
         </div>
-        <h3 className="text-xl font-bold text-gray-700 dark:text-white mb-2">
+        <h3 className="mb-2 text-xl font-extrabold text-slate-950 dark:text-white">
           로그인이 필요합니다
         </h3>
-        <p className="text-gray-500 dark:text-white mb-6">
+        <p className="mb-6 text-slate-500 dark:text-white/75">
           순위 예측에 참여하려면 로그인해주세요.
         </p>
         <Button
+          variant="brand"
           onClick={() => navigate(buildLoginPath(getCurrentRelativeUrl()))}
-          className="text-white bg-primary-dark hover:bg-primary px-6 py-2"
+          className="px-6 py-2"
         >
           로그인하기
         </Button>
@@ -140,13 +146,13 @@ export default function RankingPrediction() {
   if (!isPredictionPeriod) {
     return (
       <Card
-        className="rounded-2xl border border-slate-200/70 bg-white/90 px-5 py-10 text-center shadow-sm dark:bg-card dark:border-border sm:px-8 sm:py-16"
+        className={`${PREDICTION_SURFACE_CARD_CLASS} rounded-2xl px-5 py-10 text-center sm:px-8 sm:py-16`}
         data-testid="ranking-root"
       >
-        <h2 className="mb-3 text-2xl font-bold text-primary">
+        <h2 className={`${PREDICTION_BRAND_TEXT_CLASS} mb-3 text-2xl font-extrabold`}>
           순위 예측 종료
         </h2>
-        <p className="mx-auto max-w-sm text-body leading-relaxed text-gray-600 dark:text-white sm:text-base">
+        <p className="mx-auto max-w-sm text-body leading-relaxed text-slate-600 dark:text-white/75 sm:text-base">
           순위 예측은 11월 1일부터 5월 31일까지 가능합니다.
         </p>
       </Card>
@@ -156,18 +162,19 @@ export default function RankingPrediction() {
   if (initState === 'error') {
     return (
       <Card
-        className="rounded-2xl border border-amber-200/70 bg-white/90 px-5 py-10 text-center shadow-sm dark:bg-card dark:border-border sm:px-8 sm:py-16"
+        className="rounded-2xl border border-amber-200/70 bg-white px-5 py-10 text-center shadow-sm dark:border-border dark:bg-card sm:px-8 sm:py-16"
         data-testid="ranking-root"
       >
-        <h2 className="mb-3 text-2xl font-bold text-primary" data-testid="ranking-error-state">
+        <h2 className={`${PREDICTION_BRAND_TEXT_CLASS} mb-3 text-2xl font-extrabold`} data-testid="ranking-error-state">
           순위 예측을 불러오지 못했습니다
         </h2>
-        <p className="mx-auto mb-6 max-w-md text-body leading-relaxed text-gray-600 dark:text-white sm:text-base">
+        <p className="mx-auto mb-6 max-w-md text-body leading-relaxed text-slate-600 dark:text-white/75 sm:text-base">
           {initErrorMessage || '잠시 후 다시 시도해주세요.'}
         </p>
         <Button
+          variant="brand"
           onClick={() => void retryInitialize()}
-          className="text-white bg-primary-dark hover:bg-primary px-6 py-2"
+          className="px-6 py-2"
         >
           다시 시도
         </Button>
@@ -188,18 +195,18 @@ export default function RankingPrediction() {
         </Suspense>
       ) : null}
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6" data-testid="ranking-root">
-        <div className="lg:col-span-2">
+      <div className="grid gap-4 md:grid-cols-2 md:gap-5 lg:grid-cols-3" data-testid="ranking-root">
+        <div className={`${PREDICTION_SURFACE_CARD_CLASS} rounded-2xl p-4 lg:col-span-2`}>
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-primary font-bold text-lg">예상 순위</h2>
+            <h2 className={`${PREDICTION_BRAND_TEXT_CLASS} text-lg font-extrabold`}>예상 순위</h2>
             {!alreadySaved && (
               <Button
                 onClick={handleResetRankings}
                 data-testid="ranking-reset-btn"
-                className="flex items-center gap-2 border-2 border-primary text-primary dark:border-primary dark:text-primary dark:bg-transparent hover:bg-primary/10 dark:hover:bg-primary/20"
+                className="flex items-center gap-2 border border-emerald-200 bg-white text-primary hover:bg-emerald-50 dark:border-emerald-900/60 dark:bg-card dark:text-primary-light dark:hover:bg-primary/20"
                 variant="outline"
               >
-                <RotateCcwIcon className="w-4 h-4" />
+                <RankingRotateCcwIcon className="w-4 h-4" />
                 초기화
               </Button>
             )}
@@ -235,26 +242,26 @@ export default function RankingPrediction() {
           </div>
         </div>
 
-        <div className="mt-6 md:mt-[60px]">
+        <div className={`${PREDICTION_SURFACE_CARD_CLASS} rounded-2xl p-4`}>
           {alreadySaved && (
             <div
-              className="mb-4 animate-fade-in-up rounded-lg bg-green-50 px-6 py-8 text-primary shadow-[0_0_0_1px_rgba(34,197,94,0.08),0_14px_32px_rgba(34,197,94,0.12)] motion-reduce:animate-none dark:bg-green-900/20 dark:text-primary"
+              className={`${PREDICTION_SOFT_CHIP_CLASS} mb-4 animate-fade-in-up rounded-xl px-6 py-6 shadow-sm motion-reduce:animate-none`}
               data-testid="ranking-saved-badge"
             >
-              <p className="text-base font-bold text-center">
+              <p className="text-center text-base font-extrabold">
                 저장된 예측입니다
               </p>
             </div>
           )}
 
-          <h2 className="mb-4 text-primary font-bold text-lg">
+          <h2 className={`${PREDICTION_BRAND_TEXT_CLASS} mb-4 text-lg font-extrabold`}>
             팀 선택
-            <span className="text-body text-gray-500 dark:text-white ml-2 font-semibold">
+            <span className="ml-2 text-body font-semibold text-slate-500 dark:text-white/70">
               ({availableTeams.length}/10)
             </span>
           </h2>
 
-          <div className="rounded-xl border-2 border-primary dark:border-primary bg-white dark:bg-card overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-emerald-100 bg-white dark:border-border dark:bg-card">
             {availableTeams.length > 0 ? (
               <div>
                 {availableTeams.map((team) => (
@@ -264,20 +271,20 @@ export default function RankingPrediction() {
                     onClick={() => handleTeamClick(team)}
                     disabled={alreadySaved}
                     data-testid={`ranking-team-option-${team.id}`}
-                    className={`w-full border-b border-gray-100 p-2 text-left transition-[background-color,transform] duration-150 ease-out motion-reduce:transition-none dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:translate-x-0.5 hover:bg-gray-50 active:scale-[0.99] motion-reduce:hover:translate-x-0 dark:hover:bg-primary/10'
+                    className={`w-full border-b border-slate-100 p-2 text-left transition-[background-color,transform] duration-150 ease-out motion-reduce:transition-none dark:border-border/70 last:border-b-0 ${!alreadySaved && 'hover:translate-x-0.5 hover:bg-emerald-50/70 active:scale-[0.99] motion-reduce:hover:translate-x-0 dark:hover:bg-primary/10'
                       } ${alreadySaved && 'opacity-50 cursor-not-allowed'}`}
                   >
                     <div className="flex items-center gap-2.5">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gray-50 dark:bg-card border border-gray-100 dark:border-border flex-shrink-0">
+                      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-slate-100 bg-slate-50 dark:border-border dark:bg-secondary/40">
                         <TeamLogo team={team.shortName} size={32} />
                       </div>
-                      <span className="font-semibold text-gray-900 dark:text-white">{team.name}</span>
+                      <span className="font-bold text-slate-900 dark:text-white">{team.name}</span>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 px-4 text-gray-400 dark:text-white">
+              <div className="px-4 py-8 text-center text-slate-400 dark:text-white">
                 <Suspense fallback={null}>
                   <RankingPredictionCompletionPanel
                     topTeamShortName={rankings[0]?.shortName}

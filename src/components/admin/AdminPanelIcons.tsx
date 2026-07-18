@@ -1,22 +1,30 @@
 import type { ReactNode, SVGProps } from 'react';
 
-type IconProps = SVGProps<SVGSVGElement>;
+type AdminPanelIconProps = SVGProps<SVGSVGElement> & {
+  size?: number | string;
+  weight?: string;
+};
 
-function BaseIcon({
-  className,
+function AdminPanelSvgIcon({
+  size = 24,
   children,
+  weight: _weight,
+  'aria-hidden': ariaHidden = true,
+  focusable = false,
   ...props
-}: IconProps & { children: ReactNode }) {
+}: AdminPanelIconProps & { children: ReactNode }) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      aria-hidden={ariaHidden}
+      focusable={focusable}
       fill="none"
+      height={size}
       stroke="currentColor"
-      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
       {...props}
     >
       {children}
@@ -24,155 +32,129 @@ function BaseIcon({
   );
 }
 
-export function AdminActivityIcon(props: IconProps) {
+export function AdminActivityIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M3 12h4l2-5 4 10 2-5h6" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M3 12h4l2.5-7 5 14 2.5-7h4" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminBotIcon(props: IconProps) {
+export function AdminBotIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <rect x="5" y="7" width="14" height="10" rx="2" />
-      <path d="M12 3v4" />
-      <path d="M8 17v3" />
-      <path d="M16 17v3" />
-      <path d="M5 10H3" />
-      <path d="M21 10h-2" />
-      <circle cx="10" cy="12" r="1" />
-      <circle cx="14" cy="12" r="1" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <rect x="4" y="7" width="16" height="13" rx="2" />
+      <path d="M9 12h.01M15 12h.01M9 16h6M12 3v4M8 3h8" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminBugIcon(props: IconProps) {
+export function AdminBugIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M9 9h6" />
-      <path d="M10 4h4" />
-      <path d="M12 4v2" />
-      <rect x="7" y="6" width="10" height="12" rx="5" />
-      <path d="M3 13h4" />
-      <path d="M17 13h4" />
-      <path d="M5 8 7.5 9.5" />
-      <path d="M19 8 16.5 9.5" />
-      <path d="M5 18 7.5 16.5" />
-      <path d="M19 18 16.5 16.5" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M8 2l1.5 2M16 2l-1.5 2M3 13h4M17 13h4M5 8l2 1M19 8l-2 1M5 18l2-1M19 18l-2-1" />
+      <rect x="7" y="4" width="10" height="16" rx="5" />
+      <path d="M12 4v16" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminCalendarIcon(props: IconProps) {
+export function AdminCalendarIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
+    <AdminPanelSvgIcon {...props}>
       <rect x="3" y="5" width="18" height="16" rx="2" />
-      <path d="M16 3v4" />
-      <path d="M8 3v4" />
-      <path d="M3 10h18" />
-    </BaseIcon>
+      <path d="M16 3v4M8 3v4M3 10h18" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminCameraIcon(props: IconProps) {
+export function AdminCameraIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M4 8h4l2-2h4l2 2h4a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z" />
-      <circle cx="12" cy="14" r="4" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M14.5 4 16 7h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h3l1.5-3h5Z" />
+      <circle cx="12" cy="13" r="3" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminMapPinIcon(props: IconProps) {
+export function AdminMapPinIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M12 21s6-4.35 6-10a6 6 0 1 0-12 0c0 5.65 6 10 6 10Z" />
-      <circle cx="12" cy="11" r="2.5" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+      <circle cx="12" cy="10" r="2.5" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminMessageSquareIcon(props: IconProps) {
+export function AdminMessageSquareIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M7 10h10" />
-      <path d="M7 14h6" />
-      <path d="M21 12a8.96 8.96 0 0 1-2.64 6.36A8.96 8.96 0 0 1 12 21a8.96 8.96 0 0 1-4.24-1.06L3 21l1.06-4.76A8.96 8.96 0 0 1 3 12a9 9 0 1 1 18 0Z" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+      <path d="M8 9h8M8 13h5" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminNewspaperIcon(props: IconProps) {
+export function AdminNewspaperIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M5 6h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a3 3 0 0 1-3-3V7a1 1 0 0 1 1-1Z" />
-      <path d="M8 10h8" />
-      <path d="M8 14h8" />
-      <path d="M8 18h5" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M4 4h14v16H5a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2Z" />
+      <path d="M18 8h2a2 2 0 0 1 2 2v7a3 3 0 0 1-3 3h-1M7 8h7M7 12h7M7 16h4" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminSearchIcon(props: IconProps) {
+export function AdminSearchIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
+    <AdminPanelSvgIcon {...props}>
       <circle cx="11" cy="11" r="7" />
-      <path d="m20 20-3.5-3.5" />
-    </BaseIcon>
+      <path d="m20 20-4-4" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminShieldAlertIcon(props: IconProps) {
+export function AdminShieldAlertIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M12 3 5 6v5c0 5 2.9 8.84 7 10 4.1-1.16 7-5 7-10V6l-7-3Z" />
-      <path d="M12 8v4" />
-      <path d="M12 16h.01" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+      <path d="M12 8v4M12 16h.01" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminTrashIcon(props: IconProps) {
+export function AdminTrashIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M3 6h18" />
-      <path d="M8 6V4h8v2" />
-      <path d="M19 6l-1 13a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-      <path d="M10 11v6" />
-      <path d="M14 11v6" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 10v7M14 10v7" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminTrendingUpIcon(props: IconProps) {
+export function AdminTrendingUpIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M3 17h18" />
-      <path d="m6 14 4-4 3 3 5-6" />
-      <path d="M14 7h4v4" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <path d="m3 17 6-6 4 4 8-8" />
+      <path d="M15 7h6v6" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminUserCogIcon(props: IconProps) {
+export function AdminUserCogIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <circle cx="10" cy="8" r="4" />
-      <path d="M4 20a6 6 0 0 1 12 0" />
-      <circle cx="18" cy="16" r="2" />
-      <path d="m18 12 .6 1.2 1.3.2-.9.9.2 1.3-1.2-.6-1.2.6.2-1.3-.9-.9 1.3-.2Z" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M3 21v-2a6 6 0 0 1 9.5-4.9" />
+      <circle cx="17" cy="17" r="3" />
+      <path d="M17 12.5v1M17 20.5v1M12.5 17h1M20.5 17h1M13.8 13.8l.7.7M19.5 19.5l.7.7M20.2 13.8l-.7.7M14.5 19.5l-.7.7" />
+    </AdminPanelSvgIcon>
   );
 }
 
-export function AdminUsersIcon(props: IconProps) {
+export function AdminUsersIcon(props: AdminPanelIconProps) {
   return (
-    <BaseIcon {...props}>
-      <path d="M16 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-      <path d="M10 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z" />
-      <path d="M20 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </BaseIcon>
+    <AdminPanelSvgIcon {...props}>
+      <circle cx="9" cy="8" r="4" />
+      <path d="M2 21v-2a6 6 0 0 1 12 0v2M16 4.5a4 4 0 0 1 0 7M17 15a6 6 0 0 1 5 6" />
+    </AdminPanelSvgIcon>
   );
 }

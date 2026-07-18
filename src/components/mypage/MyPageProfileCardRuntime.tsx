@@ -8,7 +8,7 @@ import {
   MyPageTicketIcon,
   MyPageUserPlusIcon,
   MyPageUsersIcon,
-} from './MyPageIcons';
+} from './MyPageFlowIcons';
 import TeamLogo from '../TeamLogo';
 import { Button } from '../ui/button';
 import { Card } from '../ui/card';
@@ -65,9 +65,9 @@ const formatCount = (count: number): string => {
 };
 
 const secondaryActionButtonClass =
-  'h-10 min-w-0 gap-1.5 px-3 text-body font-semibold bg-card border-2 border-border text-primary hover:bg-muted';
+  'h-10 min-w-0 shrink-0 gap-1.5 px-3 text-body font-semibold bg-card border-2 border-border text-primary hover:bg-muted';
 const primaryActionButtonClass =
-  'h-10 min-w-0 gap-1.5 px-3 text-body font-semibold text-primary-foreground bg-primary hover:bg-primary';
+  'h-10 min-w-0 shrink-0 gap-1.5 px-3 text-body font-semibold text-primary-foreground bg-primary hover:bg-primary';
 
 function LoadingProfileCard() {
   return (
@@ -206,17 +206,17 @@ function ActionButtons({
   onOpenEditProfile,
 }: ActionButtonsProps) {
   return (
-    <div className="grid w-full grid-cols-2 gap-2 lg:flex lg:w-auto lg:flex-nowrap lg:justify-end">
+    <div className="grid w-full grid-cols-2 gap-2 2xl:flex 2xl:flex-wrap 2xl:justify-end">
       <Button
         onClick={onOpenEditProfile}
-        className={`${primaryActionButtonClass} order-1 col-span-2 lg:order-4 lg:col-span-1`}
+        className={`${primaryActionButtonClass} order-1 col-span-2 2xl:order-4 2xl:col-span-1`}
       >
         <MyPageEditIcon className="h-4 w-4 flex-shrink-0" />
         <span className="min-w-0 truncate">내 정보 수정</span>
       </Button>
       <Button
         onClick={onOpenMateHistory}
-        className={`${secondaryActionButtonClass} order-2 lg:order-1`}
+        className={`${secondaryActionButtonClass} order-2 2xl:order-1`}
       >
         <MyPageUsersIcon className="h-4 w-4 flex-shrink-0" />
         <span className="min-w-0 truncate">메이트 내역</span>
@@ -224,14 +224,14 @@ function ActionButtons({
       <Button
         onClick={onToggleStats}
         data-testid="mypage-toggle-stats"
-        className={`${secondaryActionButtonClass} order-3 lg:order-2 lg:w-32`}
+        className={`${secondaryActionButtonClass} order-3 2xl:order-2 2xl:w-32`}
       >
         <MyPageBarChartIcon className="h-4 w-4 flex-shrink-0" />
         <span className="min-w-0 truncate">{isStatsView ? '다이어리 보기' : '통계 보기'}</span>
       </Button>
       <Button
         onClick={onOpenTicketUploadModal}
-        className={`${secondaryActionButtonClass} order-4 col-span-2 lg:order-3 lg:col-span-1`}
+        className={`${secondaryActionButtonClass} order-4 col-span-2 2xl:order-3 2xl:col-span-1`}
       >
         <MyPageTicketIcon className="h-4 w-4 flex-shrink-0" />
         <span className="min-w-0 truncate">티켓 등록</span>
@@ -271,7 +271,7 @@ export default function MyPageProfileCardRuntime({
       {isProfileLoading ? (
         <LoadingProfileCard />
       ) : (
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,_1fr)_auto] lg:items-start">
+        <div className="grid gap-4 2xl:grid-cols-[minmax(0,_1fr)_minmax(0,_560px)] 2xl:items-start">
           <ProfileIdentity
             profileImage={profileImage}
             name={name}
@@ -280,7 +280,7 @@ export default function MyPageProfileCardRuntime({
             savedFavoriteTeam={savedFavoriteTeam}
             cheerPoints={cheerPoints}
           />
-          <div className="flex w-full flex-col gap-3 lg:w-auto lg:min-w-[440px] lg:items-end">
+          <div className="flex w-full min-w-0 flex-col gap-3 2xl:items-end">
             <FollowStats
               followerCount={followCounts?.followerCount || 0}
               followingCount={followCounts?.followingCount || 0}

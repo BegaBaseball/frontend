@@ -1,6 +1,7 @@
 import { SERVER_BASE_URL } from '../constants/config';
 import { parseError } from '../utils/errorUtils';
 import { sanitizeLoginRedirect } from '../utils/loginRedirect';
+import { getApiBaseUrl } from './apiBase';
 import {
   PublicApiError,
   publicGet,
@@ -351,13 +352,95 @@ export const signupUser = async (data: SignUpRequest): Promise<SignUpResponse> =
   }
 };
 
-const OAUTH_LOGIN_BASE_URL = SERVER_BASE_URL;
+type SocialLoginProvider = 'kakao' | 'google' | 'naver';
 
-export const getSocialLoginUrl = (
-  provider: 'kakao' | 'google' | 'naver',
-  params?: { mode?: 'link'; linkToken?: string },
+type SocialLoginParams = {
+  mode?: 'link';
+  linkToken?: string;
+};
+
+const normalizeBaseUrl = (value: string): string => value.trim().replace(/\/+$/, '');
+
+const isAbsoluteHttpUrl = (value: string): boolean => /^https?:\/\//i.test(value);
+
+const LOOPBACK_OAUTH_HOSTS = new Set([
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '0:0:0:0:0:0:0:1',
+]);
+
+const BEGA_PUBLIC_HOST_SUFFIX = 'begabaseball.xyz';
+const BEGA_PUBLIC_BACKEND_HOST = 'api.begabaseball.xyz';
+
+const getRuntimeOrigin = (): string => (
+  typeof window !== 'undefined' ? window.location.origin : ''
+);
+
+const isLoopbackOAuthBaseUrl = (value: string): boolean => {
+  if (!isAbsoluteHttpUrl(value)) {
+    return false;
+  }
+
+  try {
+    return LOOPBACK_OAUTH_HOSTS.has(new URL(value).hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+};
+
+const resolveBegaPublicBackendOrigin = (runtimeOrigin: string): string | null => {
+  if (!runtimeOrigin || !isAbsoluteHttpUrl(runtimeOrigin)) {
+    return null;
+  }
+
+  try {
+    const parsed = new URL(runtimeOrigin);
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname === BEGA_PUBLIC_HOST_SUFFIX || hostname.endsWith(`.${BEGA_PUBLIC_HOST_SUFFIX}`)) {
+      return `${parsed.protocol}//${BEGA_PUBLIC_BACKEND_HOST}`;
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+};
+
+export const resolveOAuthLoginBaseUrl = (
+  apiBaseUrl = getApiBaseUrl(),
+  serverBaseUrl = SERVER_BASE_URL,
+  runtimeOrigin = getRuntimeOrigin(),
 ): string => {
-  const url = `${OAUTH_LOGIN_BASE_URL}/oauth2/authorization/${provider}`;
+  const normalizedApiBaseUrl = normalizeBaseUrl(apiBaseUrl || '');
+
+  if (isAbsoluteHttpUrl(normalizedApiBaseUrl)) {
+    try {
+      const parsed = new URL(normalizedApiBaseUrl);
+      const servicePath = parsed.pathname
+        .replace(/\/+$/, '')
+        .replace(/\/api$/i, '');
+      return normalizeBaseUrl(`${parsed.origin}${servicePath}`);
+    } catch {
+      // Fall back to the direct backend URL below.
+    }
+  }
+
+  const normalizedServerBaseUrl = normalizeBaseUrl(serverBaseUrl);
+  const publicBackendOrigin = resolveBegaPublicBackendOrigin(runtimeOrigin);
+  if (publicBackendOrigin && (!normalizedServerBaseUrl || isLoopbackOAuthBaseUrl(normalizedServerBaseUrl))) {
+    return publicBackendOrigin;
+  }
+
+  return normalizedServerBaseUrl;
+};
+
+export const buildSocialLoginUrl = (
+  provider: SocialLoginProvider,
+  params?: SocialLoginParams,
+  oauthLoginBaseUrl = resolveOAuthLoginBaseUrl(),
+): string => {
+  const url = `${normalizeBaseUrl(oauthLoginBaseUrl)}/oauth2/authorization/${provider}`;
   if (params) {
     const query = new URLSearchParams();
     if (params.mode) query.append('mode', params.mode);
@@ -366,6 +449,11 @@ export const getSocialLoginUrl = (
   }
   return url;
 };
+
+export const getSocialLoginUrl = (
+  provider: SocialLoginProvider,
+  params?: SocialLoginParams,
+): string => buildSocialLoginUrl(provider, params);
 
 export const requestPasswordReset = async (
   email: string,

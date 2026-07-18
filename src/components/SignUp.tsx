@@ -6,7 +6,7 @@ import { VALIDATION_RULES } from '../constants/validation';
 import { useSignUpForm } from '../hooks/useSignUpForm';
 import { buildLoginPath } from '../utils/loginRedirect';
 import AuthLayout from './auth/AuthLayout';
-import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from './icons/PublicShellIcons';
+import { EyeIcon, EyeOffIcon, LockIcon, MailIcon, UserIcon } from './icons/AuthFlowIcons';
 import {
   AuthActionGroup,
   AuthFieldGroup,
@@ -109,7 +109,6 @@ export default function SignUp() {
   return (
     <AuthLayout>
       <AuthHeader
-        eyebrow="New Account"
         title="회원가입"
         description="응원팀과 프로필 정보를 설정해 BEGA 경험을 바로 시작하세요."
       />
@@ -136,7 +135,7 @@ export default function SignUp() {
               onChange={(event) => handleFieldChange('name', event.target.value)}
               onBlur={() => handleFieldBlur('name')}
               className={`auth-input auth-autofill-input ${fieldErrors.name ? 'auth-input-error' : ''}`}
-              placeholder="홍길동"
+              placeholder="잠실직관러"
               disabled={isFormLocked}
             />
             {fieldErrors.name ? <p className="auth-error-text">* {fieldErrors.name}</p> : null}
@@ -158,7 +157,7 @@ export default function SignUp() {
               onChange={(event) => handleFieldChange('handle', event.target.value)}
               onBlur={() => handleFieldBlur('handle')}
               className={`auth-input auth-autofill-input ${fieldErrors.handle ? 'auth-input-error' : ''}`}
-              placeholder="@username"
+              placeholder="@jamsil_rookie"
               disabled={isFormLocked}
             />
             {fieldErrors.handle ? <p className="auth-error-text">* {fieldErrors.handle}</p> : (
@@ -187,7 +186,7 @@ export default function SignUp() {
               onChange={(event) => handleFieldChange('email', event.target.value)}
               onBlur={() => handleFieldBlur('email')}
               className={`auth-input auth-autofill-input ${fieldErrors.email ? 'auth-input-error' : ''}`}
-              placeholder="example@email.com"
+              placeholder="fan@begabaseball.kr"
               disabled={isFormLocked}
             />
             {fieldErrors.email ? <p className="auth-error-text">* {fieldErrors.email}</p> : (

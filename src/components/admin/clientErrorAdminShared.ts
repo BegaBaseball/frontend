@@ -7,7 +7,7 @@ export const bucketBadgeClass: Record<'api' | 'runtime' | 'feedback', string> = 
 export const sourceBadgeClass: Record<'api' | 'runtime' | 'unhandled_rejection' | 'unknown', string> = {
   api: 'bg-sky-500/15 text-sky-300 border-sky-500/30',
   runtime: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  unhandled_rejection: 'bg-fuchsia-500/15 text-fuchsia-300 border-fuchsia-500/30',
+  unhandled_rejection: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
   unknown: 'bg-slate-700 text-slate-300 border-slate-600',
 };
 

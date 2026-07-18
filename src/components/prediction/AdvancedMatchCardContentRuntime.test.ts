@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { registerHooks } from 'node:module';
+import * as moduleApi from 'node:module';
 import test from 'node:test';
 
 import { createElement } from 'react';
@@ -10,6 +10,13 @@ import AdvancedMatchCardSupplementaryRuntime from './AdvancedMatchCardSupplement
 import { shouldRenderPredictionCoachBriefing } from '../../utils/predictionCoachVisibility';
 import { getPredictionManualDataUiState } from '../../utils/predictionManualDataCopy';
 import type { AdvancedMatchCardContentRuntimeProps } from './AdvancedMatchCardContentRuntime';
+
+type ModuleNextLoad = (url: string, context: unknown) => unknown;
+type ModuleLoadHook = (url: string, context: unknown, nextLoad: ModuleNextLoad) => unknown;
+
+const { registerHooks } = moduleApi as unknown as {
+  registerHooks: (hooks: { load: ModuleLoadHook }) => void;
+};
 
 registerHooks({
   load(url, context, nextLoad) {
@@ -109,7 +116,7 @@ test('AdvancedMatchCardContentRuntime는 최초 상세 로딩을 카드 내부 s
   });
 
   assert.match(html, /data-testid="prediction-detail-loading-skeleton"/);
-  assert.doesNotMatch(html, /data-testid="prediction-detail-refresh-indicator"/);
+  assert.match(html, /data-testid="prediction-detail-refresh-indicator"/);
   assert.doesNotMatch(html, /data-testid="prediction-detail-error-banner"/);
   assert.doesNotMatch(html, /경기 정보를 불러오는 중입니다/);
   assert.doesNotMatch(html, /상세 데이터를 준비 중입니다/);

@@ -66,6 +66,8 @@ const cleanupStatusLabel: Record<AdminNonCanonicalCleanupTrackerStatus, string> 
   in_progress: '정제 진행 중',
   done: '정제 완료',
 };
+const adminFieldLabelClassName =
+  'text-caption font-semibold text-slate-400';
 const formatTimeLabel = (value: string | null | undefined) => value ? value.slice(0, 5) : '-';
 
 const formatScoreLabel = (homeScore: number | null, awayScore: number | null) => {
@@ -247,8 +249,8 @@ function SummaryCard({
 }) {
   return (
     <div className={`rounded-2xl border p-5 ${accentClassName}`}>
-      <p className="text-caption uppercase tracking-[0.18em] text-slate-400">{label}</p>
-      <p className="mt-3 text-3xl font-black text-slate-50">{value}</p>
+      <p className={adminFieldLabelClassName}>{label}</p>
+      <p className="mt-2 text-2xl font-black text-slate-50">{value}</p>
     </div>
   );
 }
@@ -439,7 +441,7 @@ function CleanupArtifactPaths({
 
   return (
     <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
-      <p className="text-12 font-semibold uppercase tracking-[0.18em] text-slate-500">자동 산출물</p>
+      <p className={adminFieldLabelClassName}>자동 산출물</p>
       {artifacts.summaryJson && (
         <div className="space-y-1">
           <p className="text-12 text-slate-500">summary</p>
@@ -550,7 +552,7 @@ function CleanupClosureStatus({
   return (
     <div className="space-y-2 rounded-2xl border border-slate-800 bg-slate-950/60 px-3 py-3">
       <div className="flex flex-wrap items-center gap-2">
-        <p className="text-12 font-semibold uppercase tracking-[0.18em] text-slate-500">최신 closure</p>
+        <p className={adminFieldLabelClassName}>최신 closure</p>
         <AdminStatusBadge
           status={closureSync.compareStatus}
           testId={`${testIdPrefix}-compare-status`}
@@ -1053,7 +1055,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
           <div className="grid gap-3 md:grid-cols-2 xl:min-w-[540px]">
             <label className="space-y-2">
-              <span className="flex items-center gap-2 text-caption font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <span className="flex items-center gap-2 text-caption font-semibold text-slate-400">
                 <AdminCalendarIcon className="h-4 w-4" />
                 시작일
               </span>
@@ -1069,7 +1071,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
               />
             </label>
             <label className="space-y-2">
-              <span className="text-caption font-semibold uppercase tracking-[0.18em] text-slate-400">종료일</span>
+              <span className={adminFieldLabelClassName}>종료일</span>
               <Input
                 data-testid="admin-game-status-end-date"
                 type="date"
@@ -1263,22 +1265,22 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               <label className="space-y-2">
-                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">티켓 URL</span>
+                <span className={adminFieldLabelClassName}>티켓 URL</span>
                 <Input
                   data-testid="admin-game-status-ticket-url"
                   value={cleanupTicketUrl}
                   onChange={(event) => setCleanupTicketUrl(event.target.value)}
-                  placeholder="https://tickets.example.com/..."
+                  placeholder="예매 URL을 붙여넣으세요"
                   className="border-slate-700 bg-slate-950 text-slate-100"
                 />
               </label>
               <label className="space-y-2">
-                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">담당자</span>
+                <span className={adminFieldLabelClassName}>담당자</span>
                 <Input
                   data-testid="admin-game-status-ticket-assignee"
                   value={cleanupAssignee}
                   onChange={(event) => setCleanupAssignee(event.target.value)}
-                  placeholder="ops-team"
+                  placeholder="ticket-ops"
                   className="border-slate-700 bg-slate-950 text-slate-100"
                 />
               </label>
@@ -1286,7 +1288,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
 
             <div className="mt-3 grid gap-3 md:grid-cols-[220px_minmax(0,1fr)]">
               <label className="space-y-2">
-                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">상태</span>
+                <span className={adminFieldLabelClassName}>상태</span>
                 <select
                   data-testid="admin-game-status-ticket-status"
                   value={cleanupStatus}
@@ -1301,7 +1303,7 @@ export function AdminGameStatusRepairPanel({ active }: { active: boolean }) {
                 </select>
               </label>
               <label className="space-y-2">
-                <span className="text-13 font-semibold uppercase tracking-[0.18em] text-slate-400">메모</span>
+                <span className={adminFieldLabelClassName}>메모</span>
                 <Textarea
                   data-testid="admin-game-status-ticket-note"
                   value={cleanupNote}

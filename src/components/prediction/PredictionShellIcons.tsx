@@ -64,10 +64,79 @@ export function PredictionGamepadIcon(props: IconProps) {
   );
 }
 
-export function PredictionLoaderIcon({ className, ...props }: IconProps) {
+export function PredictionLoaderIcon(props: IconProps) {
   return (
-    <BaseIcon className={className} {...props}>
+    <BaseIcon {...props}>
       <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    </BaseIcon>
+  );
+}
+
+export function PredictionBaseballIcon({
+  size = 56,
+  className,
+  ...props
+}: IconProps) {
+  return (
+    <svg
+      viewBox="0 0 56 56"
+      width={size}
+      height={size}
+      className={className}
+      aria-hidden="true"
+      {...props}
+    >
+      <circle cx="28" cy="28" r="25" fill="#fff" stroke="#e2e8f0" strokeWidth="2" />
+      <path d="M12 9 C25 20 25 36 12 47" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="2.5 4" />
+      <path d="M44 9 C31 20 31 36 44 47" fill="none" stroke="#dc2626" strokeWidth="2" strokeLinecap="round" strokeDasharray="2.5 4" />
+    </svg>
+  );
+}
+
+export function PredictionBaseballOutlineIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <circle cx="12" cy="12" r="8" />
+      <path d="M7.2 5.7c3 2.7 3 9.9 0 12.6" />
+      <path d="M16.8 5.7c-3 2.7-3 9.9 0 12.6" />
+    </BaseIcon>
+  );
+}
+
+export function PredictionBrainIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M8.5 5.5A3 3 0 0 1 12 4a3 3 0 0 1 3.5 1.5" />
+      <path d="M7 9a3 3 0 0 0 0 6" />
+      <path d="M17 9a3 3 0 0 1 0 6" />
+      <path d="M8 15.5A3.5 3.5 0 0 0 12 20a3.5 3.5 0 0 0 4-4.5" />
+      <path d="M12 4v16" />
+      <path d="M9 11h6" />
+    </BaseIcon>
+  );
+}
+
+export function PredictionCalendarDaysIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="4" y="5" width="16" height="15" rx="2" />
+      <path d="M8 3v4" />
+      <path d="M16 3v4" />
+      <path d="M4 10h16" />
+      <path d="M8 14h.01" />
+      <path d="M12 14h.01" />
+      <path d="M16 14h.01" />
+      <path d="M8 17h.01" />
+      <path d="M12 17h.01" />
+    </BaseIcon>
+  );
+}
+
+export function PredictionCloseIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M18 6 6 18" />
+      <path d="m6 6 12 12" />
     </BaseIcon>
   );
 }
@@ -194,6 +263,24 @@ export function PredictionZapIcon(props: IconProps) {
   );
 }
 
+export function PredictionLockIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 0 1 8 0v3" />
+    </BaseIcon>
+  );
+}
+
+export function PredictionPencilIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M4 20h4l11-11a2.1 2.1 0 0 0-3-3L5 17v3Z" />
+      <path d="m14 7 3 3" />
+    </BaseIcon>
+  );
+}
+
 export function PredictionSparklesIcon(props: IconProps) {
   return (
     <BaseIcon {...props}>
@@ -220,6 +307,16 @@ export function PredictionShieldIcon(props: IconProps) {
     <BaseIcon {...props}>
       <path d="M12 3 5 6v5c0 4.5 2.88 8.58 7 10 4.12-1.42 7-5.5 7-10V6l-7-3Z" />
       <path d="m9.5 12 1.8 1.8 3.2-3.6" />
+    </BaseIcon>
+  );
+}
+
+export function PredictionWindIcon(props: IconProps) {
+  return (
+    <BaseIcon {...props}>
+      <path d="M3 8h12a3 3 0 1 0-3-3" />
+      <path d="M3 12h16" />
+      <path d="M3 16h10a3 3 0 1 1-3 3" />
     </BaseIcon>
   );
 }

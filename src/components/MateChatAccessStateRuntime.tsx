@@ -7,7 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { Alert, AlertDescription } from './ui/alert';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
-import { MateAlertCircleIcon, MateChevronLeftIcon, MateInfoIcon } from './MateIcons';
+import { MateAlertCircleIcon, MateChevronLeftIcon, MateInfoIcon } from './icons/MateFlowIcons';
 import {
   mateInsetPanelClass,
   matePageShellClass,

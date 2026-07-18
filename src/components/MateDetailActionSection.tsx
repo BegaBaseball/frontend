@@ -8,7 +8,11 @@ import {
   MateDetailReferenceCard,
   buildMateDetailViewModel,
 } from './MateDetailReferenceBlocks';
-import { MateClockIcon, MateShareIcon } from './MateIcons';
+import {
+  MateDetailClockIcon as MateClockIcon,
+  MateDetailShareIcon as MateShareIcon,
+} from './icons/MateDetailIcons';
+import { buildMateShareActions } from './cheer/CheerLinkedEntryActions';
 import { mateMobileBarClass } from '../utils/mateFlowUi';
 import type { Party } from '../types/mate';
 
@@ -34,8 +38,11 @@ interface MateDetailActionSectionProps {
   isAwaitingApproval: boolean;
   primaryMobileAction: MateDetailActionButton | null;
   canAccessCheckIn: boolean;
+  isHost: boolean;
   onOpenQrPanel: () => void;
   onShare: () => void;
+  onShareToCheer: () => void;
+  isShareToCheerPending: boolean;
   onBrowsePartyList: () => void;
 }
 
@@ -56,8 +63,11 @@ export default function MateDetailActionSection({
   isAwaitingApproval,
   primaryMobileAction,
   canAccessCheckIn,
+  isHost,
   onOpenQrPanel,
   onShare,
+  onShareToCheer,
+  isShareToCheerPending,
   onBrowsePartyList,
 }: MateDetailActionSectionProps) {
   const [showSheet, setShowSheet] = useState(false);
@@ -66,6 +76,12 @@ export default function MateDetailActionSection({
   const compactAmountLabel = view.reservationDepositAmount > 0
     ? `예약금 ${formatAmount(view.reservationDepositAmount)}`
     : '승인 후 직거래 조율';
+  const shareActions = buildMateShareActions({
+    isHost,
+    status: party.status,
+    onShare,
+    onShareToCheer,
+  });
 
   const getActionLabel = (action: MateDetailActionButton) => {
     if (action.key === 'apply') return applyLabel;
@@ -116,10 +132,24 @@ export default function MateDetailActionSection({
           <p className="m-0 mt-3 text-center text-12 leading-[1.5] text-gray-400 dark:text-white/55">승인 전 결제 없음 · 채팅에서 장소 조율</p>
         </MateDetailReferenceCard>
         <MateDetailQrHint canAccessCheckIn={canAccessCheckIn} onOpenQrPanel={onOpenQrPanel} />
+        {shareActions.cheer && (
+          <button
+            type="button"
+            data-testid="mate-share-to-cheer"
+            className="inline-flex items-center justify-center gap-1.5 rounded-11 border border-primary bg-white p-3 text-13 font-bold text-primary disabled:cursor-not-allowed disabled:opacity-60 dark:bg-card dark:text-emerald-300"
+            onClick={shareActions.cheer.onClick}
+            disabled={isShareToCheerPending}
+            aria-busy={isShareToCheerPending}
+            aria-label={isShareToCheerPending ? '응원석 공유 대상을 확인하고 있습니다.' : shareActions.cheer.label}
+          >
+            <MateShareIcon className="h-4 w-4" />
+            {isShareToCheerPending ? '공유 확인 중...' : shareActions.cheer.label}
+          </button>
+        )}
         <button
           type="button"
           className="inline-flex items-center justify-center gap-1.5 rounded-11 border border-gray-200 bg-white p-3 text-13 font-bold text-gray-600 dark:border-border dark:bg-card dark:text-white"
-          onClick={onShare}
+          onClick={shareActions.friend.onClick}
         >
           <MateShareIcon className="h-4 w-4" /> 친구에게 공유
         </button>
@@ -161,6 +191,19 @@ export default function MateDetailActionSection({
             <div className="mb-3.5"><MateDetailParticipationBlock party={party} /></div>
             <div className="mb-4"><MateDetailPriceBox party={party} /></div>
             {renderActionButtons()}
+            {shareActions.cheer && (
+              <Button
+                data-testid="mate-share-to-cheer"
+                className="mt-2 h-auto w-full rounded-13 border-primary px-4 py-3 text-body font-black text-primary"
+                variant="outline"
+                onClick={shareActions.cheer.onClick}
+                disabled={isShareToCheerPending}
+                aria-busy={isShareToCheerPending}
+                aria-label={isShareToCheerPending ? '응원석 공유 대상을 확인하고 있습니다.' : shareActions.cheer.label}
+              >
+                {isShareToCheerPending ? '공유 확인 중...' : shareActions.cheer.label}
+              </Button>
+            )}
             <p className="m-0 mt-3 text-center text-12 text-gray-400 dark:text-white/55">승인 전 결제 없음 · 채팅에서 장소 조율</p>
           </div>
         </div>

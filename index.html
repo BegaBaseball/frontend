@@ -15,6 +15,7 @@
 
     <!-- External resource hints -->
     <link rel="dns-prefetch" href="https://api.begabaseball.xyz">
+    <link rel="preconnect" href="https://api.begabaseball.xyz" crossorigin>
 
     <style>
       /* FOUC 방지: 다크모드일 때 CSS 로드 전 즉시 배경색 적용 */
@@ -27,7 +28,7 @@
       }
     </style>
 
-    <!-- 테마 초기화 스크립트 (FOUC 방지) -->
+    <!-- 테마 초기화 스크립트 (FOUC 방지, CSP 허용 self-hosted asset) -->
     <script src="/theme-init.js"></script>
 
     <!-- SEO_HEAD_SLOT -->
@@ -38,10 +39,11 @@
       <!-- SEO_ROOT_SLOT -->
     </div>
     <!-- #root 밖에 위치: React DOM 조정 시 제거되지 않아 0.2s 페이드가 완전히 완료됨 -->
-    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:#000000;z-index:9999;transition:opacity 0.2s ease;">
+    <div id="app-shell-loader" style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background-color:var(--app-shell-bg,#ffffff);z-index:9999;transition:opacity 0.2s ease;">
       <div style="width:36px;height:36px;border:3px solid rgba(255,255,255,0.12);border-top-color:#3b82f6;border-radius:50%;animation:shell-spin 0.7s linear infinite;"></div>
     </div>
     <style>@keyframes shell-spin{to{transform:rotate(360deg)}}</style>
+    <script src="/performance-shell-init.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

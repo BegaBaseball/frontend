@@ -82,7 +82,7 @@ export interface AdminReportFilters {
 
 export interface AdminSeatView {
   id: number;
-  diaryId: number;
+  diaryId: number | null;
   userId: number;
   photoUrl: string;
   storagePath: string;
@@ -105,6 +105,9 @@ export interface AdminSeatView {
   diaryDate: string | null;
   ticketVerified: boolean;
   ticketVerifiedAt: string | null;
+  rating: number | null;
+  comment: string | null;
+  tags: string[];
 }
 
 export interface AdminSeatViewFilters {

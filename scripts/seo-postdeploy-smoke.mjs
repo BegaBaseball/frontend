@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  defaultOgImagePath,
   escapeHtml,
   indexableRoutes,
   robotsDisallow,
@@ -25,6 +26,14 @@ for (let index = 0; index < args.length; index += 1) {
 }
 
 const normalizeSiteUrl = (value) => String(value || '').trim().replace(/\/+$/, '');
+const normalizePublicPath = (value) => {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) {
+    return '/favicon.png';
+  }
+
+  return trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
+};
 const normalizePathname = (value) => {
   if (!value || value === '/') {
     return '/';
@@ -33,6 +42,9 @@ const normalizePathname = (value) => {
 };
 const buildUrl = (baseUrl, routePath) => (
   normalizePathname(routePath) === '/' ? baseUrl : `${baseUrl}${normalizePathname(routePath)}`
+);
+const buildPublicAssetUrl = (baseUrl, assetPath) => (
+  `${normalizeSiteUrl(baseUrl)}${normalizePublicPath(assetPath)}`
 );
 const isLoopbackBaseUrl = (value) => {
   try {
@@ -72,7 +84,7 @@ const routeChecks = [];
 const addCheck = (message) => checks.push(message);
 const addFailure = (message) => failures.push(message);
 const addWarning = (message) => warnings.push(message);
-const OG_IMAGE_PATH = '/favicon.png';
+const ORGANIZATION_LOGO_PATH = '/favicon.png';
 
 const fetchWithTimeout = async (url) => {
   const controller = new AbortController();
@@ -82,7 +94,7 @@ const fetchWithTimeout = async (url) => {
       headers: {
         'user-agent': 'bega-seo-postdeploy-smoke/1.0',
       },
-      redirect: 'follow',
+      redirect: 'manual',
       signal: controller.signal,
     });
   } finally {
@@ -90,9 +102,38 @@ const fetchWithTimeout = async (url) => {
   }
 };
 
+export const describeHttpStatusFailure = (response) => {
+  const location = response.headers.get('location');
+  if (location && response.status >= 300 && response.status < 400) {
+    return `HTTP ${response.status} redirect location=${location}`;
+  }
+  return `HTTP ${response.status}`;
+};
+
+export const resolveRedirectLocation = (candidateUrl, location) => {
+  if (!location) {
+    return '';
+  }
+
+  try {
+    return new URL(location, candidateUrl).toString().replace(/\/+$/, '');
+  } catch {
+    return '';
+  }
+};
+
+export const isRedirectToExpectedCanonical = (response, candidateUrl, canonicalUrl) => {
+  if (response.status < 300 || response.status >= 400) {
+    return false;
+  }
+
+  const location = response.headers.get('location');
+  return resolveRedirectLocation(candidateUrl, location) === normalizeSiteUrl(canonicalUrl);
+};
+
 const readTextOrFail = async (response, label) => {
   if (!response.ok) {
-    addFailure(`${label} 요청 실패: status=${response.status}`);
+    addFailure(`${label} 요청 실패: ${describeHttpStatusFailure(response)}`);
     return '';
   }
   return response.text();
@@ -183,7 +224,7 @@ const buildExpectedJsonLd = (route, expectedSiteUrl) => {
         '@type': 'Organization',
         name: 'BEGA',
         url: expectedSiteUrl,
-        logo: `${expectedSiteUrl}${OG_IMAGE_PATH}`,
+        logo: buildPublicAssetUrl(expectedSiteUrl, ORGANIZATION_LOGO_PATH),
       },
       {
         '@context': 'https://schema.org',
@@ -232,7 +273,7 @@ export const validatePrerenderedHtmlContract = (html, route, options = {}) => {
   const messages = [];
   const contractSiteUrl = normalizeSiteUrl(options.expectedSiteUrl || expectedSiteUrl);
   const canonical = buildUrl(contractSiteUrl, route.path);
-  const ogImage = `${contractSiteUrl}${OG_IMAGE_PATH}`;
+  const ogImage = buildPublicAssetUrl(contractSiteUrl, defaultOgImagePath);
   const googleVerification = String(options.googleSiteVerification ?? googleSiteVerification).trim();
   const naverVerification = String(options.naverSiteVerification ?? naverSiteVerification).trim();
 
@@ -384,9 +425,10 @@ const main = async () => {
 
   for (const route of indexableRoutes) {
     const candidates = buildRouteCandidates(baseUrl, route.path);
+    const canonicalUrl = buildUrl(expectedSiteUrl, route.path);
     const routeResult = { path: route.path, url: candidates[0], ok: false, status: 0, failures: [], candidates: [] };
 
-    for (const candidateUrl of candidates) {
+    for (const [candidateIndex, candidateUrl] of candidates.entries()) {
       const candidateResult = {
         url: candidateUrl,
         finalUrl: candidateUrl,
@@ -400,7 +442,15 @@ const main = async () => {
         candidateResult.status = response.status;
         candidateResult.finalUrl = response.url;
         if (!response.ok) {
-          candidateResult.failures.push(`HTTP ${response.status}`);
+          if (candidateIndex > 0 && isRedirectToExpectedCanonical(response, candidateUrl, canonicalUrl)) {
+            candidateResult.ok = true;
+            candidateResult.finalUrl = normalizeSiteUrl(canonicalUrl);
+            candidateResult.redirectToCanonical = true;
+            routeResult.candidates.push(candidateResult);
+            continue;
+          }
+
+          candidateResult.failures.push(describeHttpStatusFailure(response));
           routeResult.candidates.push(candidateResult);
           continue;
         }

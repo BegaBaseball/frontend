@@ -7,8 +7,15 @@ on:
       - ".github/labeler.yml"
       - "scripts/ci-workflow-policy.mjs"
       - "scripts/ci-workflow-policy.test.ts"
+      - "scripts/frontend-ui-impact.mjs"
+      - "scripts/frontend-ui-impact.test.ts"
+      - "docs/core-web-vitals.md"
       - "package.json"
   workflow_dispatch:
+
+concurrency:
+  group: ci-workflow-policy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -16,6 +23,7 @@ permissions:
 jobs:
   ci-workflow-policy:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4

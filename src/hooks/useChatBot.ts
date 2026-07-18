@@ -36,7 +36,7 @@ const STREAMING_BUFFER_FLUSH_INTERVAL_MS = 64;
 
 type QueuedMessage = {
   sessionId: number;
-  historyPayload: Array<{ role: string; content: string }> | null;
+  historyPayload: Array<{ role: 'user' | 'assistant'; content: string }> | null;
   userMessage: Message;
 };
 

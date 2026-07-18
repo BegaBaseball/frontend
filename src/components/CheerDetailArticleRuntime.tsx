@@ -1,27 +1,96 @@
-import { Suspense, lazy } from 'react';
+import { Suspense, lazy, Fragment } from 'react';
 import type { CSSProperties } from 'react';
-import type { CheerPost } from '../api/cheerApi';
+import { useNavigate } from 'react-router-dom';
+import type { CheerPost, CheerPostType } from '../api/cheerApi';
 import { TEAM_DATA } from '../constants/teams';
 import { formatTimeAgo } from '../utils/time';
 import { getRepostPolicyDecision } from '../utils/repostPolicy';
 import { DEFAULT_PROFILE_IMAGE } from '../utils/constants';
 import { sanitizeExternalUrl } from '../utils/safeExternalUrl';
+import { useTheme } from '../hooks/useTheme';
+import { getDarkModeAccentText } from '../utils/teamColors';
 import ImageGrid from './ImageGrid';
 import TeamLogo from './TeamLogo';
+import CheerLinkedContentCard from './cheer/CheerLinkedContentCard';
+
+const HASHTAG_PATTERN = /(#[^\s#.,!?]+)/g;
+
+const renderCheerContent = (
+    content: string,
+    accentText: string,
+    onTagClick: (tag: string) => void,
+) => content.split('\n').map((line, lineIndex) => (
+    <Fragment key={lineIndex}>
+        {line.split(HASHTAG_PATTERN).filter((segment) => segment !== '').map((segment, segIndex) => (
+            segment.startsWith('#') ? (
+                <span
+                    key={segIndex}
+                    className="cursor-pointer font-bold hover:underline"
+                    style={{ color: accentText }}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        onTagClick(segment);
+                    }}
+                >
+                    {segment}
+                </span>
+            ) : (
+                <Fragment key={segIndex}>{segment}</Fragment>
+            )
+        ))}
+        <br />
+    </Fragment>
+));
+
+// 게시글 타입 배지 색상 — 「응원석 구현 명세」 THEMES 무관(모드 불변 고정값)
+const CHEER_TYPE_BADGE = { label: '응원', color: '#8fb4de', bg: 'rgba(49, 82, 136, 0.2)' };
+const LINKED_TYPE_BADGES = {
+    CHECKIN: {
+        label: '직관 인증',
+        className: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-200',
+    },
+    RECRUITMENT: {
+        label: '동행 모집',
+        className: 'bg-violet-100 text-violet-800 dark:bg-violet-950/60 dark:text-violet-200',
+    },
+} as const;
+
+const renderPostTypeBadge = (postType: CheerPostType, detailAccent: string) => {
+    if (postType === 'NOTICE') {
+        return (
+            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold text-white sm:text-15" style={{ backgroundColor: detailAccent }}>
+                공지
+            </span>
+        );
+    }
+    if (postType === 'CHECKIN' || postType === 'RECRUITMENT') {
+        const badge = LINKED_TYPE_BADGES[postType];
+        return (
+            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold sm:text-15 ${badge.className}`}>
+                {badge.label}
+            </span>
+        );
+    }
+    return (
+        <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-15 font-bold sm:text-15" style={{ backgroundColor: CHEER_TYPE_BADGE.bg, color: CHEER_TYPE_BADGE.color }}>
+            {CHEER_TYPE_BADGE.label}
+        </span>
+    );
+};
 import {
-    ArrowLeftIcon,
-    ClockIcon,
-    EditIcon,
-    ExternalLinkIcon,
-    EyeIcon,
-    FlagIcon,
-    FlameIcon,
-    MegaphoneIcon,
-    MoreVerticalIcon,
-    QuoteIcon,
-    RepeatIcon,
-    TrashIcon,
-} from './icons/CheerIcons';
+    CheerDetailArrowLeftIcon as ArrowLeftIcon,
+    CheerDetailClockIcon as ClockIcon,
+    CheerDetailEditIcon as EditIcon,
+    CheerDetailExternalLinkIcon as ExternalLinkIcon,
+    CheerDetailEyeIcon as EyeIcon,
+    CheerDetailFlagIcon as FlagIcon,
+    CheerDetailFlameIcon as FlameIcon,
+    CheerDetailMegaphoneIcon as MegaphoneIcon,
+    CheerDetailMoreVerticalIcon as MoreVerticalIcon,
+    CheerDetailQuoteIcon as QuoteIcon,
+    CheerDetailRepeatIcon as RepeatIcon,
+    CheerDetailTrashIcon as TrashIcon,
+} from './icons/CheerDetailArticleIcons';
 import PlainMenu from './ui/plain-menu';
 import { ProfileAvatar } from './ui/ProfileAvatar';
 import baseballLogo from '../assets/d8ca714d95aedcc16fe63c80cbc299c6e3858c70.png';
@@ -108,6 +177,12 @@ export default function CheerDetailArticleRuntime({
     onToggleLike,
     onCancelRepost,
 }: CheerDetailArticleRuntimeProps) {
+    const navigate = useNavigate();
+    const { resolvedTheme } = useTheme();
+    const hashtagAccentText = resolvedTheme === 'dark' ? getDarkModeAccentText(detailAccent) : detailAccent;
+    const handleTagClick = (tag: string) => {
+        navigate(`/cheer?q=${encodeURIComponent(tag)}`);
+    };
     const repostCount = interactionRepostCount;
     const isRepost = Boolean(selectedPost.repostType);
     const isSimpleRepost = selectedPost.repostType === 'SIMPLE' && Boolean(selectedPost.originalPost);
@@ -153,6 +228,12 @@ export default function CheerDetailArticleRuntime({
     const displayTimeAgo = isSimpleRepost && selectedPost.originalPost
         ? formatTimeAgo(selectedPost.originalPost.createdAt)
         : selectedPost.timeAgo;
+    const effectivePostType = isSimpleRepost && selectedPost.originalPost
+        ? selectedPost.originalPost.postType
+        : selectedPost.postType;
+    const effectiveLinkedContent = isSimpleRepost && selectedPost.originalPost
+        ? selectedPost.originalPost.linkedContent
+        : selectedPost.linkedContent;
     const createdAtLabel = detailDateFormatter.format(new Date(displayCreatedAt));
     const repostedAtLabel = isRepost ? detailDateFormatter.format(new Date(selectedPost.createdAt)) : null;
     const embeddedPostFallback = (
@@ -165,12 +246,12 @@ export default function CheerDetailArticleRuntime({
             aria-busy="true"
             aria-label="원문 불러오는 중"
         >
-            <div className="space-y-3 animate-pulse">
-                <div className="h-4 w-40 rounded bg-slate-200/80 dark:bg-slate-800/80" />
+            <div className="space-y-3 animate-skeleton-pulse">
+                <div className="h-4 w-40 rounded bg-[var(--cheer-chip-bg)]" />
                 <div className="rounded-xl border border-slate-200/80 bg-white/70 p-3 dark:border-white/10 dark:bg-slate-900/70">
-                    <div className="h-3 w-24 rounded bg-slate-200/80 dark:bg-slate-800/80" />
-                    <div className="mt-3 h-3.5 w-full rounded bg-slate-200/80 dark:bg-slate-800/80" />
-                    <div className="mt-2 h-3.5 w-5/6 rounded bg-slate-200/80 dark:bg-slate-800/80" />
+                    <div className="h-3 w-24 rounded bg-[var(--cheer-chip-bg)]" />
+                    <div className="mt-3 h-3.5 w-full rounded bg-[var(--cheer-chip-bg)]" />
+                    <div className="mt-2 h-3.5 w-5/6 rounded bg-[var(--cheer-chip-bg)]" />
                 </div>
             </div>
         </div>
@@ -181,10 +262,10 @@ export default function CheerDetailArticleRuntime({
             aria-busy="true"
             aria-label="원문 불러오는 중"
         >
-            <div className="space-y-3 animate-pulse">
-                <div className="h-3 w-24 rounded bg-slate-200/80 dark:bg-slate-800/80" />
-                <div className="h-3.5 w-full rounded bg-slate-200/80 dark:bg-slate-800/80" />
-                <div className="h-3.5 w-5/6 rounded bg-slate-200/80 dark:bg-slate-800/80" />
+            <div className="space-y-3 animate-skeleton-pulse">
+                <div className="h-3 w-24 rounded bg-[var(--cheer-chip-bg)]" />
+                <div className="h-3.5 w-full rounded bg-[var(--cheer-chip-bg)]" />
+                <div className="h-3.5 w-5/6 rounded bg-[var(--cheer-chip-bg)]" />
             </div>
         </div>
     );
@@ -193,7 +274,7 @@ export default function CheerDetailArticleRuntime({
             {[1, 2, 3, 4].map((item) => (
                 <div
                     key={item}
-                    className="h-10 animate-pulse rounded-full bg-slate-200 dark:bg-slate-800/80"
+                    className="h-10 animate-skeleton-pulse rounded-full bg-[var(--cheer-chip-bg)]"
                 />
             ))}
         </div>
@@ -206,12 +287,12 @@ export default function CheerDetailArticleRuntime({
                 aria-busy="true"
                 aria-label="응원 현황 불러오는 중"
             >
-                <div className="animate-pulse space-y-2">
-                    <div className="h-4 w-24 rounded bg-slate-200 dark:bg-slate-800/80" />
+                <div className="animate-skeleton-pulse space-y-2">
+                    <div className="h-4 w-24 rounded bg-[var(--cheer-chip-bg)]" />
                     {[1, 2, 3].map((item) => (
                         <div
                             key={item}
-                            className="h-[44px] rounded-xl bg-slate-200 dark:bg-slate-800/80"
+                            className="h-[44px] rounded-xl bg-[var(--cheer-chip-bg)]"
                         />
                     ))}
                 </div>
@@ -225,7 +306,7 @@ export default function CheerDetailArticleRuntime({
 
     return (
         <article
-            className="relative mt-4 overflow-hidden rounded-3xl border bg-white font-sans shadow-lg dark:bg-slate-950"
+            className="relative mt-4 overflow-hidden rounded-3xl border bg-[var(--cheer-card-bg)] font-sans shadow-lg"
             style={primaryBorderStyle}
         >
             <div className="absolute inset-x-0 top-0 h-1.5" style={{ backgroundColor: detailAccent }} />
@@ -247,11 +328,7 @@ export default function CheerDetailArticleRuntime({
                                     <MegaphoneIcon className="h-3 w-3" />
                                     {teamName}
                                 </span>
-                                {selectedPost.postType === 'NOTICE' && (
-                                    <span className="inline-flex items-center gap-1 rounded-full border border-slate-900/10 bg-slate-900 px-2 py-0.5 text-15 font-bold text-white sm:px-2 sm:py-0.5 sm:text-15 dark:border-white/10 dark:bg-white dark:text-white">
-                                        공지
-                                    </span>
-                                )}
+                                {renderPostTypeBadge(effectivePostType, detailAccent)}
                                 {selectedPost.isHot && (
                                     <span className="inline-flex items-center gap-1 rounded-full border border-orange-200 bg-orange-50 px-2 py-0.5 text-15 font-bold text-orange-600 sm:px-2 sm:py-0.5 sm:text-15 dark:border-orange-500/30 dark:bg-orange-500/15 dark:text-orange-300">
                                         <FlameIcon className="h-3 w-3" />
@@ -411,7 +488,7 @@ export default function CheerDetailArticleRuntime({
                     <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_196px]">
                         <div className="min-w-0">
                             <div
-                                className="rounded-22 border bg-white/80 p-4 shadow-sm backdrop-blur-sm dark:border-white/10 dark:bg-slate-900/80 sm:p-5"
+                                className="rounded-22 border bg-[var(--cheer-sub-card)] p-4 shadow-sm backdrop-blur-sm sm:p-5"
                                 style={primaryBorderStyle}
                             >
                                 {isSimpleRepost && selectedPost.originalDeleted && originalEmbeddedPost ? (
@@ -429,8 +506,12 @@ export default function CheerDetailArticleRuntime({
                                 ) : (
                                     <>
                                         <div className="whitespace-pre-wrap break-words text-body leading-6 font-bold text-slate-900 dark:text-white sm:text-body sm:leading-7">
-                                            {displayContent}
+                                            {renderCheerContent(displayContent, hashtagAccentText, handleTagClick)}
                                         </div>
+
+                                        {effectiveLinkedContent && (
+                                            <CheerLinkedContentCard linkedContent={effectiveLinkedContent} variant="detail" />
+                                        )}
 
                                         {selectedPost.shareMode?.startsWith('EXTERNAL_') && safeSourceUrl && (
                                             <a

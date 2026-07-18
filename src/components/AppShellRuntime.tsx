@@ -4,7 +4,6 @@ import ScrollToTop from './ScrollToTop';
 import AuthBootstrapGate from './AuthBootstrapGate';
 import SeoHead from '../seo/SeoHead';
 import AppRoutes from './AppRoutes';
-import DeferredPretendardFont from './DeferredPretendardFont';
 
 const appRoutesFallback = (
   <main className="min-h-screen bg-background text-foreground">
@@ -22,7 +21,6 @@ export default function AppShellRuntime() {
       <ScrollToTop />
       <AuthBootstrapGate />
       <SeoHead />
-      <DeferredPretendardFont />
       <Suspense fallback={appRoutesFallback}>
         <AppRoutes />
       </Suspense>

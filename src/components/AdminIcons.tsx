@@ -1,35 +1,32 @@
-import type { ReactNode, SVGProps } from 'react';
+import type { SVGProps } from 'react';
 
-type IconProps = SVGProps<SVGSVGElement>;
+type AdminShieldIconProps = SVGProps<SVGSVGElement> & {
+  size?: number | string;
+  weight?: string;
+};
 
-function BaseIcon({
-  className,
-  children,
+export function AdminShieldIcon({
+  size = 24,
+  weight: _weight,
+  'aria-hidden': ariaHidden = true,
+  focusable = false,
   ...props
-}: IconProps & { children: ReactNode }) {
+}: AdminShieldIconProps) {
   return (
     <svg
-      viewBox="0 0 24 24"
+      aria-hidden={ariaHidden}
+      focusable={focusable}
       fill="none"
+      height={size}
       stroke="currentColor"
-      strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
+      strokeWidth="2"
+      viewBox="0 0 24 24"
+      width={size}
       {...props}
     >
-      {children}
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
     </svg>
-  );
-}
-
-export function AdminShieldIcon(props: IconProps) {
-  return (
-    <BaseIcon {...props}>
-      <path d="M12 3 5 6v5c0 5 2.9 8.84 7 10 4.1-1.16 7-5 7-10V6l-7-3Z" />
-      <path d="M12 8v5" />
-      <path d="M12 16h.01" />
-    </BaseIcon>
   );
 }

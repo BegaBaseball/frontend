@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 
 import TeamLogo from './TeamLogo';
-import { ChevronDownIcon, TrendingUpIcon } from './icons/PublicFeatureIcons';
+import { ChevronDownIcon, TrendingUpIcon } from './icons/OffseasonIcons';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { OffseasonPill } from './offseason/offseasonUi';
