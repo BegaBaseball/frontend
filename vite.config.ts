@@ -20,6 +20,8 @@ type ViteAliasConfigOptions = {
   useHelmetShim: boolean;
 };
 
+const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '::1']);
+
 const designSystemFallbackAliases = {
   'design_system/Button': './src/components/moduleFederation/fallback/Button.tsx',
   'design_system/Modal': './src/components/moduleFederation/fallback/Modal.tsx',
@@ -32,6 +34,48 @@ export const isProductionBuildCommand = ({ command, mode }: BuildCommandEnv) =>
 export const forceProductionBuildNodeEnv = (targetEnv: MutableBuildEnv) => {
   targetEnv.NODE_ENV = 'production';
   targetEnv.VITE_USER_NODE_ENV = 'production';
+};
+
+export const validateProductionPublicEnv = (targetEnv: MutableBuildEnv) => {
+  const siteUrlValue = targetEnv.VITE_SITE_URL?.trim() ?? '';
+  const apiBaseUrlValue = targetEnv.VITE_API_BASE_URL?.trim() ?? '';
+
+  if (!siteUrlValue) {
+    throw new Error('[vite] VITE_SITE_URL is required for production builds.');
+  }
+  if (!apiBaseUrlValue) {
+    throw new Error('[vite] VITE_API_BASE_URL is required for production builds.');
+  }
+
+  let siteUrl: URL;
+  try {
+    siteUrl = new URL(siteUrlValue);
+  } catch {
+    throw new Error(`[vite] VITE_SITE_URL must be an absolute HTTP(S) URL: ${siteUrlValue}`);
+  }
+
+  if (!/^https?:$/.test(siteUrl.protocol)) {
+    throw new Error(`[vite] VITE_SITE_URL must use HTTP(S): ${siteUrlValue}`);
+  }
+
+  const isLoopbackSite = LOOPBACK_HOSTS.has(siteUrl.hostname.toLowerCase());
+  if (isLoopbackSite && !/^https?:\/\//.test(apiBaseUrlValue)) {
+    return targetEnv;
+  }
+
+  if (!/^https:\/\//.test(apiBaseUrlValue)) {
+    throw new Error(
+      `[vite] VITE_API_BASE_URL must be an absolute HTTPS URL for public production builds: ${apiBaseUrlValue}`,
+    );
+  }
+
+  try {
+    new URL(apiBaseUrlValue);
+  } catch {
+    throw new Error(`[vite] VITE_API_BASE_URL must be an absolute HTTPS URL: ${apiBaseUrlValue}`);
+  }
+
+  return targetEnv;
 };
 
 export const createViteAliasConfig = ({
@@ -70,6 +114,10 @@ export default defineConfig(({ mode, command }) => {
   if (isProductionBuild) {
     forceProductionBuildNodeEnv(env);
     forceProductionBuildNodeEnv(process.env);
+    validateProductionPublicEnv({
+      ...env,
+      ...process.env,
+    });
   }
 
   const nodeEnv = isProductionBuild ? 'production' : process.env.NODE_ENV ?? mode;
