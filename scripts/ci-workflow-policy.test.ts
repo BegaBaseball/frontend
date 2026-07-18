@@ -421,6 +421,23 @@ test('policy rejects duplicate coverage thresholds that override required floors
   }
 });
 
+test('policy rejects coverage-disabling and whitespace-form threshold options', () => {
+  const invalidCommands = [
+    `${MATE_COVERAGE_COMMAND} --no-experimental-test-coverage --test src/utils/mateListUrlState.test.ts`,
+    `${MATE_COVERAGE_COMMAND} --test-coverage-lines 0 --test src/utils/mateListUrlState.test.ts`,
+  ];
+  const acceptedCommands = invalidCommands.filter((coverageCommand) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
+      scripts: { 'test:mate:coverage': coverageCommand },
+    }));
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedCommands, []);
+});
+
 test('policy rejects near-match coverage flags and threshold tokens', () => {
   const repoRoot = writePassingPolicyFixture();
   writeFixtureFile(repoRoot, 'package.json', JSON.stringify({
@@ -678,6 +695,43 @@ test('policy rejects direct runtime assignments to target Mate presets', () => {
   assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
 });
 
+test('policy rejects nested and alias-based mutations of target Mate preset arrays', () => {
+  const presetDeclaration = [
+    'const E2E_SPECS = {',
+    "  mateSmoke: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+    "  mateRoute: ['cypress/e2e/mate-list-url-state.cy.ts'],",
+    '};',
+  ];
+  const mutations = [
+    'E2E_SPECS.mateSmoke.length = 0;',
+    "E2E_SPECS.mateSmoke[0] = 'cypress/e2e/other.cy.ts';",
+    ...[
+      'splice',
+      'push',
+      'pop',
+      'shift',
+      'unshift',
+      'sort',
+      'reverse',
+      'copyWithin',
+      'fill',
+    ].map((method) => `E2E_SPECS.mateSmoke.${method}('cypress/e2e/other.cy.ts');`),
+    "const smokeAlias = E2E_SPECS.mateSmoke; smokeAlias.push('cypress/e2e/other.cy.ts');",
+    'const specsAlias = E2E_SPECS; specsAlias.mateRoute.length = 0;',
+  ];
+  const acceptedMutations = mutations.filter((mutation) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeFixtureFile(repoRoot, 'scripts/qa-presets.mjs', [
+      ...presetDeclaration,
+      mutation,
+    ].join('\n'));
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedMutations, []);
+});
+
 test('policy requires coverage status propagation in both Mate summary steps', () => {
   const repoRoot = writePassingPolicyFixture();
   writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', [
@@ -806,6 +860,39 @@ test('policy rejects echo-only coverage commands in the named coverage step', ()
 
   assert.equal(report.ok, false);
   assert.ok(report.failures.some((failure) => failure.id === 'missing-mate-quality-gate'));
+});
+
+test('policy requires an unconditional exact two-command coverage run step', () => {
+  const invalidWorkflows = [
+    passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      '        id: coverage\n        if: always()',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '        id: coverage',
+      '        id: coverage\n        continue-on-error: true',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '          set -o pipefail',
+      '          set -o pipefail\n          set +o pipefail',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '          set -o pipefail',
+      '          exit 0\n          set -o pipefail',
+    ),
+    passingMateQualityGateWorkflow().replace(
+      '          npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log',
+      '          npm run test:mate:coverage 2>&1 | tee reports/mate-ci/coverage.log\n          echo extra',
+    ),
+  ];
+  const acceptedWorkflows = invalidWorkflows.filter((workflow) => {
+    const repoRoot = writePassingPolicyFixture();
+    writeWorkflowFixture(repoRoot, '_frontend-mate-ci.yml', workflow);
+
+    return checkCiWorkflowPolicy(repoRoot).ok;
+  });
+
+  assert.deepEqual(acceptedWorkflows, []);
 });
 
 test('policy ignores fake steps inside explicit-indentation block scalars', () => {
