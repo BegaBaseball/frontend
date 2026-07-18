@@ -3,17 +3,31 @@ import { useEffect, useRef } from 'react';
 import { useAuthSession } from '../store/authStore';
 import { useNotificationStore } from '../store/notificationStore';
 import { NotificationData } from '../types/notification';
+import { isIgnorableNotificationError, notificationApi } from '../utils/notificationApi';
 import { ensureRealtimeAuthSession } from '../utils/realtimeAuth';
 import { NOTIFICATION_SOCKET_DESTINATION } from '../utils/socketDestinations';
 import { loadStompModule, resolveStompBrokerUrl, type StompClient } from '../utils/stomp';
 
+export const reloadNotificationSnapshot = async (
+    fetchNotifications: () => Promise<NotificationData[]>,
+    setNotifications: (notifications: NotificationData[]) => void,
+    isCurrent: () => boolean = () => true,
+) => {
+    const notifications = await fetchNotifications();
+    if (isCurrent()) {
+        setNotifications(notifications);
+    }
+};
+
 export const useNotificationSocket = (enabled = true) => {
     const { isLoggedIn, userId } = useAuthSession();
     const addNotification = useNotificationStore((state) => state.addNotification);
+    const setNotifications = useNotificationStore((state) => state.setNotifications);
     const clientRef = useRef<StompClient | null>(null);
 
     useEffect(() => {
         let disposed = false;
+        let reloadGeneration = 0;
         const disconnect = () => {
             if (clientRef.current) {
                 void clientRef.current.deactivate();
@@ -57,14 +71,49 @@ export const useNotificationSocket = (enabled = true) => {
                 heartbeatOutgoing: 4000,
 
                 onConnect: () => {
+                    if (disposed) {
+                        return;
+                    }
+
+                    const currentReloadGeneration = ++reloadGeneration;
+                    const isCurrentReload = () => (
+                        !disposed && currentReloadGeneration === reloadGeneration
+                    );
+                    const receivedDuringReload: NotificationData[] = [];
+                    let snapshotReloaded = false;
+
                     // 개인 알림 구독
                     client.subscribe(NOTIFICATION_SOCKET_DESTINATION, (message) => {
+                        if (disposed) {
+                            return;
+                        }
+
                         try {
                             const notification: NotificationData = JSON.parse(message.body);
+                            if (isCurrentReload() && !snapshotReloaded) {
+                                receivedDuringReload.push(notification);
+                            }
                             addNotification(notification);
                         } catch (error) {
                             console.error('Failed to parse notification:', error);
                         }
+                    });
+
+                    void reloadNotificationSnapshot(
+                        notificationApi.getNotifications,
+                        setNotifications,
+                        isCurrentReload,
+                    ).catch((error) => {
+                        if (isCurrentReload() && !isIgnorableNotificationError(error)) {
+                            console.error('Failed to reload notifications after socket connection:', error);
+                        }
+                    }).finally(() => {
+                        if (!isCurrentReload()) {
+                            return;
+                        }
+
+                        snapshotReloaded = true;
+                        receivedDuringReload.forEach(addNotification);
                     });
                 },
 
@@ -100,5 +149,5 @@ export const useNotificationSocket = (enabled = true) => {
             // 컴포넌트 언마운트 시 연결 해제
             disconnect();
         };
-    }, [enabled, isLoggedIn, userId, addNotification]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
+    }, [enabled, isLoggedIn, userId, addNotification, setNotifications]); // isLoggedIn/userId 변경 시(로그인/로그아웃) 재실행
 };

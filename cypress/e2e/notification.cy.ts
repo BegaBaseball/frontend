@@ -190,15 +190,15 @@ describe('Notification Panel', () => {
             body: notifications,
         }).as('getNotifications');
 
-        cy.intercept('POST', '**/api/notifications/*/read', {
+        cy.intercept('POST', '**/api/notifications/mark-all-read', {
             statusCode: 200,
-            body: { success: true },
-        }).as('readOne');
+            body: null,
+        }).as('markAllRead');
 
         cy.get('button[aria-label^="알림"]').click();
         cy.wait('@getNotifications');
 
         cy.contains('button', /모두 읽음|전체 읽음|모두 읽기|전체 확인/i).click({ force: true });
-        cy.wait('@readOne');
+        cy.wait('@markAllRead');
     });
 });

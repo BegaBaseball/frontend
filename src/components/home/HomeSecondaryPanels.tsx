@@ -39,6 +39,7 @@ export interface HomeDisplayedRanking {
   draws: number;
   losses: number;
   gamesBehind?: number;
+  recentForm?: ReadonlyArray<'W' | 'L' | 'D'>;
 }
 
 interface HomeSecondaryPanelsProps {
@@ -596,6 +597,7 @@ export default function HomeSecondaryPanels({
                   team={team}
                   variant="rich"
                   rowClassName={homeDashboardRankingRowClass}
+                  sparkline={team.recentForm as ('W' | 'D' | 'L')[] | undefined}
                 />
               ))}
               {Array.from({ length: rankingPlaceholderRows }).map((_, index) => (

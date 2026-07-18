@@ -199,3 +199,83 @@ fix: strengthen landing feature story contract
 ### Review-Fix Concerns
 
 No review-fix blocker or failing verification remains.
+
+---
+
+# Mate Task 4 Report: Required Search Callbacks and Mobile Dialog Accessibility/Parity
+
+## Status
+
+DONE
+
+## RED
+
+Appended the focused dialog accessibility and mobile parity cases before production edits, then ran:
+
+```bash
+CYPRESS_ALLOW_GLOBAL_FALLBACK=1 CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK=1 node scripts/test-e2e.mjs --host 127.0.0.1 --browser electron --spec cypress/e2e/mate-list-url-state.cy.ts
+```
+
+The sandboxed launch could not bind the local Vite port; the approved local-browser rerun reached the product test. It produced the expected close-control failure: the initially focused `PlainDialog` close button had no `aria-label`. The parity case also revealed an intermediate request from the old immediate mobile controls, with `searchQuery` absent on the first request after selection.
+
+## GREEN
+
+- Made `onTermClick` required in both search panels and removed `useMateStore` fallbacks.
+- Made `onSearchTermSelect` required in the bottom sheet.
+- Deleted only `src/store/mateStore.ts`; `mateRecentSearchStore.ts` remains.
+- Named the shared `PlainDialog` close button exactly `닫기`.
+- Kept mobile team/seat choices as bottom-sheet drafts and atomically applied both to canonical URL/API state with the `적용` action, avoiding an intermediate request.
+- Added the two focused Cypress cases for close-control focus restoration and mobile URL/API parity.
+
+Fresh focused result:
+
+```text
+mate-list-url-state.cy.ts: 9 passing, 0 failing
+```
+
+## Verification
+
+```text
+CYPRESS_ALLOW_GLOBAL_FALLBACK=1 CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK=1 node scripts/test-e2e.mjs --host 127.0.0.1 --browser electron --spec cypress/e2e/mate-list-url-state.cy.ts
+9 passing, 0 failing
+
+npm run build
+exit 0
+
+rg -n "useMateStore|mateStore" src
+no output (exit 1 expected for no matches)
+
+git diff --check
+no output
+```
+
+## Files
+
+- `cypress/e2e/mate-list-url-state.cy.ts`
+- `src/components/MateRecentSearchesPanel.tsx`
+- `src/components/MatePopularSearchesPanel.tsx`
+- `src/components/MateFilterBottomSheet.tsx`
+- `src/components/MateListControlsRuntime.tsx`
+- `src/components/ui/plain-dialog.tsx`
+- `src/hooks/useMateListController.ts`
+- deleted `src/store/mateStore.ts`
+
+`MateListControlsRuntime` and `useMateListController` are the minimal integration additions needed to make the new parity test's Apply action perform a single canonical URL/API update.
+
+## Self-Review
+
+- Confirmed all existing desktop and mobile search-panel call sites provide `onTermClick`.
+- Confirmed Escape closes the dialog and focus returns to the original filter trigger.
+- Confirmed the mobile apply request includes `teamId=HH`, `searchQuery=응원석`, and `page=0`, while the URL retains `team=mine`, encodes the query, and clears page state.
+- Confirmed no baseball-data, backend, or auth contract changed.
+- Preserved concurrent task reports and generated build reports; none are staged for this checkpoint.
+
+## Commit
+
+```text
+7ec9ff37 fix(mate): enforce accessible URL filter controls
+```
+
+## Concerns
+
+The report file also contains pre-existing concurrent landing-task content. This Mate section was appended without overwriting it. The build regenerated already-dirty report artifacts; they are intentionally excluded from staging.

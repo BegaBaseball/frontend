@@ -1,5 +1,7 @@
 /// <reference types="cypress" />
 
+import type { Interception } from 'cypress/types/net-stubbing';
+
 import { DEFAULT_CYPRESS_AUTH_TOKEN, seedCypressAuthState } from '../support/auth';
 
 describe('Mate list URL state', () => {
@@ -41,7 +43,7 @@ describe('Mate list URL state', () => {
     },
   });
   const assertRequest = (
-    interception: Cypress.Interception,
+    interception: Interception,
     expected: Record<string, string | null>,
   ) => {
     const params = new URL(interception.request.url).searchParams;
@@ -99,7 +101,7 @@ describe('Mate list URL state', () => {
   it('canonicalizes invalid known params once while preserving unknown and legacy params', () => {
     visitWithAuth('/mate?tab=closed&team=other&sort=oldest&date=2026-02-30&page=0&campaign=a&party=invalid');
     cy.location('search').should('eq', '?campaign=a');
-    cy.get('@getUrlParties.all').should((calls) => {
+    cy.get('@getUrlParties.all').should((calls: Interception[]) => {
       const effectiveUrls = new Set(calls.map((call) => call.request.url));
       expect(effectiveUrls.size).to.eq(1);
     });

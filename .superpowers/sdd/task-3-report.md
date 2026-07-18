@@ -197,3 +197,187 @@ fix: derive landing inning progress state
 ### Review Fix Concerns
 
 No review-fix blocker or failing verification remains.
+
+---
+
+# Mate Task 3 Report: URL-Driven List Controller and Restoration E2E
+
+## Status
+
+DONE
+
+The Mate list controller now derives committed search, date, team, status, sort, and page state from canonical URL parameters. All filter handlers update the URL atomically, high pages clamp after a successful response, and list-to-detail navigation carries the canonical filtered list path for both the detail `목록으로` action and browser Back restoration.
+
+## Files
+
+- `cypress/e2e/mate-list-url-state.cy.ts` (created)
+- `src/hooks/useMateListController.ts` (modified)
+
+The existing `src/store/mateStore.ts` remains intentionally untouched for Task 4 because `MateRecentSearchesPanel.tsx` and `MatePopularSearchesPanel.tsx` still consume it.
+
+## RED
+
+The Cypress spec was created before production edits and run with:
+
+```bash
+CYPRESS_ALLOW_GLOBAL_FALLBACK=1 CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK=1 node scripts/test-e2e.mjs --host 127.0.0.1 --browser electron --spec cypress/e2e/mate-list-url-state.cy.ts
+```
+
+The sandbox attempt could not bind localhost (`listen EPERM 127.0.0.1:5176`), so the same command was rerun with approved local-process access. Valid behavior RED:
+
+```text
+Tests: 7
+Passing: 1
+Failing: 6
+
+- deep link: searchQuery was null instead of `잠실 블루존`
+- invalid known params remained in location.search
+- debounced search request omitted `searchQuery`
+- status change request omitted `MATCHED`
+- detail `목록으로` lost the filtered query
+- page 99 requested backend page 0 instead of 98
+```
+
+These were the expected failures from the pre-change local/store-backed controller.
+
+## GREEN
+
+Final focused command:
+
+```bash
+CYPRESS_ALLOW_GLOBAL_FALLBACK=1 CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK=1 node scripts/test-e2e.mjs --host 127.0.0.1 --browser electron --spec cypress/e2e/mate-list-url-state.cy.ts
+```
+
+Fresh result:
+
+```text
+7 passing (11s)
+Tests: 7, Passing: 7, Failing: 0
+All specs passed!
+```
+
+The test fixture was minimally corrected after the first GREEN attempt: aliases now account only for unique `size=9` Mate list requests. The original broad `/api/parties` alias also captured the unrelated `MateTodayCountBadge` `size=1` request and React StrictMode duplicate requests, causing waits to assert against traffic outside the list-controller behavior. All intercepted requests are still replied to; only alias accounting was narrowed.
+
+## Additional Verification
+
+```bash
+/opt/homebrew/opt/node@22/bin/node --import tsx --test src/utils/mateListUrlState.test.ts src/utils/mateRouteState.test.ts src/hooks/mateQueryOptions.test.ts
+```
+
+```text
+12 tests, 12 pass, 0 fail
+```
+
+```bash
+npm run build
+```
+
+```text
+exit 0
+[log-audit] No suspicious console logs found.
+[seo:env:check] PASSED (strict=off)
+vite client: 1173 modules transformed; built in 8.27s
+[bundle-guard] ok. checked 153 budgets.
+[seo:prerender] prerendered 9 indexable and 2 performance routes.
+[seo:sitemap] generated dist/sitemap.xml
+```
+
+```bash
+rg -n "useMateStore|mateStore" src
+```
+
+```text
+src/store/mateStore.ts
+src/components/MatePopularSearchesPanel.tsx
+src/components/MateRecentSearchesPanel.tsx
+```
+
+`git diff --check` exits 0 with no output.
+
+## Self-Review
+
+- Confirmed every committed filter reads from parsed URL state and every filter/page action performs one `replace` URL write while preserving unknown parameters.
+- Confirmed free typing stays local until the guarded debounce commits normalized text and page zero atomically; seat/recent/popular button actions commit immediately.
+- Confirmed React Query retains the existing `getMatePartyListQueryOptions` call, query-key fields, and `AbortSignal` query function path.
+- Confirmed successful responses clamp only out-of-range pages and rewrite the one-based URL page canonically.
+- Confirmed invalid known parameters canonicalize away, unknown parameters survive, invalid legacy `party` is removed, and valid legacy `party` still redirects.
+- Confirmed detail route state uses the canonical current list path and both return mechanisms restore the exact query.
+- Confirmed no backend/auth/data contract, external baseball source, crawler, scraper, web search, or baseball-data fallback was added.
+- Confirmed only the two authorized source/test files will be staged; existing reports and generated build reports remain unstaged.
+
+## Commit
+
+Message:
+
+```text
+feat(mate): synchronize list filters with URL
+```
+
+Commit: `f72087e8`
+
+## Concerns
+
+No implementation blocker remains. The dev-server run emitted non-fatal WebSocket proxy `ECONNREFUSED` messages because no backend was configured; Cypress API behavior was fully intercepted and all seven assertions passed. Store deletion and panel callback migration remain intentionally deferred to Task 4.
+
+---
+
+## Review Fix: Prove Obsolete Search Request Completion
+
+### Finding Addressed
+
+The obsolete-response test previously used elapsed waits and UI assertions but did not prove that the delayed `느림` request was ever issued. A debounce regression that suppressed that request could therefore leave the test green without exercising stale-response protection.
+
+### Test Change
+
+- Added separate `getSlowSearchParties` and `getFastSearchParties` aliases only for `size=9` Mate list requests, excluding the `size=1` today badge traffic.
+- Incremented `slowRequestCount` synchronously when the delayed slow-request handler is entered.
+- Replaced the fixed pre-fast delay with a retrying assertion that `slowRequestCount` is greater than zero before typing `빠름`.
+- Waited for the fast alias, verified the latest result, then waited for the delayed slow alias to finish before asserting the fast result remains and the slow result is absent.
+
+This is a test-proof strengthening with no production change. The pre-fix test was already green, so manufacturing a behavior RED would require breaking the production debounce or stale-query behavior solely for the test; the original Task 3 RED remains the implementation behavior record.
+
+### Fresh Verification
+
+Command:
+
+```bash
+CYPRESS_ALLOW_GLOBAL_FALLBACK=1 CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK=1 node scripts/test-e2e.mjs --host 127.0.0.1 --browser electron --spec cypress/e2e/mate-list-url-state.cy.ts
+```
+
+Result:
+
+```text
+Mate list URL state
+  7 passing (26s)
+
+Tests: 7
+Passing: 7
+Failing: 0
+Pending: 0
+Skipped: 0
+All specs passed!
+```
+
+`git diff --check` exits 0 with no output.
+
+### Review Self-Check
+
+- Confirmed a suppressed slow request now fails before fast input is entered.
+- Confirmed both fast and slow list requests must be observed by Cypress aliases.
+- Confirmed the delayed slow request completes after the fast response before the final stale-result assertions run.
+- Confirmed badge requests cannot satisfy either search alias.
+- Confirmed no production, backend, auth, data contract, store, or baseball-data behavior changed.
+
+### Review Fix Commit
+
+Message:
+
+```text
+test(mate): prove obsolete search response ordering
+```
+
+Commit: `86a557aa`
+
+### Review Fix Concerns
+
+No blocker remains. The focused run again emitted non-fatal WebSocket proxy `ECONNREFUSED` messages because no backend was configured; all relevant HTTP requests were intercepted and the full spec passed.

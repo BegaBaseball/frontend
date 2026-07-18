@@ -4,15 +4,15 @@
  */
 
 export interface paths {
-    "/api/users/profile/{handle}/follow/notify": {
+    "/api/admin/cache-stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: operations["updateNotifySettingByHandle"];
+        get: operations["getCacheStats"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -20,31 +20,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{id}": {
+    "/api/admin/client-errors/dashboard": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["get"];
-        put: operations["update"];
-        post?: never;
-        delete: operations["delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/password": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["changePassword"];
+        get: operations["getDashboard"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -52,15 +36,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/mypage": {
+    "/api/admin/client-errors/events": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMyProfile"];
-        put: operations["updateMyProfile"];
+        get: operations["getEvents"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -68,47 +52,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/stadiums/places/{placeId}": {
+    "/api/admin/client-errors/events/{eventId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put: operations["updatePlace"];
-        post?: never;
-        delete: operations["deletePlace"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/offseason/movements/{movementId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["updateMovement"];
-        post?: never;
-        delete: operations["deleteMovement"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/games/{gameId}/inning-scores": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put: operations["upsertInningScores"];
+        get: operations["getEventDetail"];
+        put?: never;
         post?: never;
         delete?: never;
         options?: never;
@@ -132,7 +84,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/users/profile/{handle}/follow": {
+    "/api/admin/games/repair-status-mismatches": {
         parameters: {
             query?: never;
             header?: never;
@@ -141,14 +93,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["toggleFollowByHandle"];
+        post: operations["repairGameStatusMismatches"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/users/profile/{handle}/block": {
+    "/api/admin/games/status-mismatches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getGameStatusMismatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/games/sync-snapshots": {
         parameters: {
             query?: never;
             header?: never;
@@ -157,14 +125,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["toggleBlockByHandle"];
+        post: operations["syncGameSnapshotsByDateRange"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/tickets/analyze": {
+    "/api/admin/games/{gameId}/inning-scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["upsertInningScores"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/games/{gameId}/sync-snapshot": {
         parameters: {
             query?: never;
             header?: never;
@@ -173,14 +157,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["analyzeTicket"];
+        post: operations["syncGameSnapshot"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/storage/image": {
+    "/api/admin/maintenance/cheer-posts/cleanup": {
         parameters: {
             query?: never;
             header?: never;
@@ -189,15 +173,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mate chat image upload */
-        post: operations["uploadChatImage"];
+        post: operations["cleanupSoftDeletedCheerPosts"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/stadiums/{stadiumId}/favorite": {
+    "/api/admin/maintenance/media/backfill": {
         parameters: {
             query?: never;
             header?: never;
@@ -206,14 +189,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["addFavorite"];
-        delete: operations["removeFavorite"];
+        post: operations["backfillExistingData"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/reviews": {
+    "/api/admin/maintenance/media/cleanup": {
         parameters: {
             query?: never;
             header?: never;
@@ -222,15 +205,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mate review create */
-        post: operations["createReview"];
+        post: operations["runCleanup"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/quiz/result": {
+    "/api/admin/maintenance/media/smoke": {
         parameters: {
             query?: never;
             header?: never;
@@ -239,14 +221,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["getResult"];
+        post: operations["runSmoke"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/profile/image": {
+    "/api/admin/mates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/mates/{mateId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -255,14 +253,62 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["uploadProfileImage"];
+        post?: never;
+        delete: operations["deleteMate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/offseason/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMovements"];
+        put?: never;
+        post: operations["createMovement"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/predictions/vote": {
+    "/api/admin/offseason/movements/{movementId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updateMovement"];
+        post?: never;
+        delete: operations["deleteMovement"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/posts/{postId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -271,30 +317,46 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["vote"];
-        delete?: never;
+        post?: never;
+        delete: operations["deletePost"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/predictions/ranking": {
+    "/api/admin/reports": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPredction"];
+        get: operations["getReports"];
         put?: never;
-        post: operations["savePrediction"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/predictions/my-votes": {
+    "/api/admin/reports/{reportId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["handleReport"];
+        trace?: never;
+    };
+    "/api/admin/reports/{reportId}/appeal": {
         parameters: {
             query?: never;
             header?: never;
@@ -303,30 +365,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["getMyVotesBulk"];
+        post: operations["requestAppeal"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/posts/{postId}/images": {
+    "/api/admin/roles/audit-logs": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listPostImages"];
+        get: operations["getAuditLogs"];
         put?: never;
-        post: operations["uploadPostImages"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/payments/toss/{intentId}/cancel": {
+    "/api/admin/roles/users/{userId}/demote": {
         parameters: {
             query?: never;
             header?: never;
@@ -335,15 +397,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancel Mate Toss payment intent */
-        post: operations["cancelTossPayment"];
+        post: operations["demoteToUser"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/payments/toss/prepare": {
+    "/api/admin/roles/users/{userId}/promote": {
         parameters: {
             query?: never;
             header?: never;
@@ -352,15 +413,62 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Prepare Mate Toss payment intent */
-        post: operations["prepareTossPayment"];
+        post: operations["promoteToAdmin"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/payments/toss/confirm": {
+    "/api/admin/seat-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSeatViews"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/seat-views/{seatViewId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSeatView"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["handleSeatView"];
+        trace?: never;
+    };
+    "/api/admin/stadiums/places/{placeId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["updatePlace"];
+        post?: never;
+        delete: operations["deletePlace"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/stadiums/{stadiumId}/places": {
         parameters: {
             query?: never;
             header?: never;
@@ -369,31 +477,46 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Confirm Mate Toss payment */
-        post: operations["confirmTossPayment"];
+        post: operations["createPlace"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/parties": {
+    "/api/admin/stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getAllParties"];
+        get: operations["getStats"];
         put?: never;
-        post: operations["createParty"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/parties/{id}/favorite": {
+    "/api/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getUsers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/users/{userId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -402,14 +525,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["addFavorite_1"];
-        delete: operations["removeFavorite_1"];
+        post?: never;
+        delete: operations["deleteUser"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/parties/search-terms": {
+    "/api/ai/chat/completion": {
         parameters: {
             query?: never;
             header?: never;
@@ -418,30 +541,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["recordSearchTerm"];
+        post: operations["chatCompletion"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/notifications/{notificationId}/read": {
+    "/api/ai/chat/favorites": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["listFavorites"];
         put?: never;
-        post: operations["markAsRead"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/notifications/mark-all-read": {
+    "/api/ai/chat/favorites/{messageId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -450,14 +573,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["markAllAsRead"];
+        post: operations["addFavorite_2"];
+        delete: operations["removeFavorite_2"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/chat/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listSessions"];
+        put?: never;
+        post: operations["createSession"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/media/uploads/{assetId}/finalize": {
+    "/api/ai/chat/sessions/{sessionId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -466,14 +605,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["finalizeUpload"];
+        post?: never;
+        delete: operations["deleteSession_1"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/ai/chat/sessions/{sessionId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMessages"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/media/uploads/init": {
+    "/api/ai/chat/sessions/{sessionId}/messages/assistant": {
         parameters: {
             query?: never;
             header?: never;
@@ -482,14 +637,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["initUpload"];
+        post: operations["addAssistantMessage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/leaderboard/seed-test-data": {
+    "/api/ai/chat/sessions/{sessionId}/messages/user": {
         parameters: {
             query?: never;
             header?: never;
@@ -498,14 +653,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["seedTestData"];
+        post: operations["addUserMessage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/leaderboard/powerups/{type}/use": {
+    "/api/ai/chat/stream": {
         parameters: {
             query?: never;
             header?: never;
@@ -514,14 +669,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["usePowerup"];
+        post: operations["chatStream"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/internal/settlements/{paymentId}/payout": {
+    "/api/ai/chat/voice": {
         parameters: {
             query?: never;
             header?: never;
@@ -530,14 +685,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["requestPayout"];
+        post: operations["chatVoice"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/internal/payout/sellers": {
+    "/api/ai/coach/analyze": {
         parameters: {
             query?: never;
             header?: never;
@@ -546,62 +701,62 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["upsertSellerProfile"];
+        post: operations["coachAnalyze"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/images/{imageId}/thumbnail": {
+    "/api/ai/coach/auto-brief/ops/health": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["coachAutoBriefOpsHealth"];
         put?: never;
-        post: operations["markAsThumbnail"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/images/{imageId}/signed-url": {
+    "/api/ai/release-decision/artifacts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["releaseDecisionArtifacts"];
         put?: never;
-        post: operations["renewSignedUrl"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/dm/rooms": {
+    "/api/ai/release-decision/artifacts/{artifactId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["releaseDecisionArtifactDetail"];
         put?: never;
-        post: operations["bootstrapRoom"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/dm/messages": {
+    "/api/ai/release-decision/draft": {
         parameters: {
             query?: never;
             header?: never;
@@ -610,30 +765,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["sendMessage"];
+        post: operations["releaseDecisionDraft"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/{id}/seat-view-selections": {
+    "/api/ai/release-decision/eval-cases": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["releaseDecisionEvalCases"];
         put?: never;
-        post: operations["submitSeatViewSelections"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/{id}/seat-view-candidates": {
+    "/api/ai/release-decision/evaluate": {
         parameters: {
             query?: never;
             header?: never;
@@ -642,30 +797,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["createSeatViewCandidates"];
+        post: operations["releaseDecisionEvaluate"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/{id}/modify": {
+    "/api/ai/release-decision/presets": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["releaseDecisionPresets"];
         put?: never;
-        post: operations["updateDiary"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/{id}/images": {
+    "/api/ai/release-decision/save": {
         parameters: {
             query?: never;
             header?: never;
@@ -674,14 +829,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["uploadImages"];
+        post: operations["releaseDecisionSave"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/{id}/delete": {
+    "/api/applications": {
         parameters: {
             query?: never;
             header?: never;
@@ -690,14 +845,110 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["deleteDiary"];
+        post: operations["createApplication"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/save": {
+    "/api/applications/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/party/{partyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getApplicationsByPartyId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/party/{partyId}/approved": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getApprovedApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/party/{partyId}/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyApplicationByPartyId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/party/{partyId}/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPendingApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/party/{partyId}/rejected": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRejectedApplications"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{applicationId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -706,7 +957,938 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["saveDiary"];
+        post?: never;
+        delete: operations["cancelApplication"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{applicationId}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approveApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{applicationId}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["cancelApplicationWithReason"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/applications/{applicationId}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["rejectApplication"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteAccount"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/account/deletion/recovery": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getDeletionRecoveryInfo"];
+        put?: never;
+        post: operations["recoverDeletedAccount"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/check-handle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["checkHandle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/check-name": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["checkName"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/link-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["generateLinkToken"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/login": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["logout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/mypage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyProfile"];
+        put: operations["updateMyProfile"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/oauth2/state/{stateId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["consumeOAuth2State"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["changePassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/reset/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["confirmPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/reset/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["requestPasswordReset"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/policies/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["submitPolicyConsents"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/policies/required": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRequiredPolicies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/providers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getConnectedProviders"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/providers/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["unlinkProvider"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/reissue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reissue"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/security-events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSecurityEvents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSessions"];
+        put?: never;
+        post?: never;
+        delete: operations["deleteSessions"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteSession"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["signUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/trusted-devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTrustedDevices"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/trusted-devices/{deviceId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteTrustedDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Mate chat message send */
+        post: operations["sendMessage_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/my/unread-counts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTotalUnreadCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/party/{partyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mate chat messages by party */
+        get: operations["getMessagesByPartyId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/party/{partyId}/latest": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Mate latest chat message by party */
+        get: operations["getLatestMessage"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/chat/party/{partyId}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["updateReadTimestamp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["checkIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkin/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["isCheckedIn"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkin/party/{partyId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCheckInsByPartyId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkin/party/{partyId}/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCheckInCount"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkin/qr-session": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createQrSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/checkin/user/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCheckInsByUserId"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/battle/{gameId}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBattleStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/bookmarks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBookmarks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/comments/{commentId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["deleteComment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/comments/{commentId}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["toggleCommentLike"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/me/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listMyPosts"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list"];
+        put?: never;
+        post: operations["create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/changes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["checkChanges"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/following": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listFollowing"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/hot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listHot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/linked": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["linked"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["search"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["get"];
+        put: operations["update"];
+        post?: never;
+        delete: operations["delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/bookmark": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["toggleBookmark"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["comments"];
+        put?: never;
+        post: operations["addComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getImages"];
+        put?: never;
+        post: operations["uploadImages_1"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/like": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["toggleLike"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/quote": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["createQuoteRepost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["reportPost"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{id}/repost": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["toggleRepost"];
+        delete: operations["cancelRepost"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/posts/{postId}/comments/{parentCommentId}/replies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["addReply"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/cheer/user/{handle}/posts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["listByUser"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -745,23 +1927,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts": {
+    "/api/diary/entries": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["list"];
+        get: operations["getDiary_1"];
         put?: never;
-        post: operations["create"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{postId}/comments/{parentCommentId}/replies": {
+    "/api/diary/games": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getGamesByDate_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diary/save": {
         parameters: {
             query?: never;
             header?: never;
@@ -770,14 +1968,62 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["addReply"];
+        post: operations["saveDiary"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{id}/repost": {
+    "/api/diary/seat-views": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSeatViewPhotos"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diary/statistics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["showStatistics"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diary/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getDiary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/diary/{id}/delete": {
         parameters: {
             query?: never;
             header?: never;
@@ -786,14 +2032,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["toggleRepost"];
-        delete: operations["cancelRepost"];
+        post: operations["deleteDiary"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{id}/report": {
+    "/api/diary/{id}/images": {
         parameters: {
             query?: never;
             header?: never;
@@ -802,14 +2048,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reportPost"];
+        post: operations["uploadImages"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{id}/quote": {
+    "/api/diary/{id}/modify": {
         parameters: {
             query?: never;
             header?: never;
@@ -818,14 +2064,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["createQuoteRepost"];
+        post: operations["updateDiary"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{id}/like": {
+    "/api/diary/{id}/seat-view-candidates": {
         parameters: {
             query?: never;
             header?: never;
@@ -834,46 +2080,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["toggleLike"];
+        post: operations["createSeatViewCandidates"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/{id}/images": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getImages"];
-        put?: never;
-        post: operations["uploadImages_1"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cheer/posts/{id}/comments": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["comments"];
-        put?: never;
-        post: operations["addComment"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/cheer/posts/{id}/bookmark": {
+    "/api/diary/{id}/seat-view-selections": {
         parameters: {
             query?: never;
             header?: never;
@@ -882,14 +2096,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["toggleBookmark"];
+        post: operations["submitSeatViewSelections"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/comments/{commentId}/like": {
+    "/api/dm/messages": {
         parameters: {
             query?: never;
             header?: never;
@@ -898,14 +2112,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["toggleCommentLike"];
+        post: operations["sendMessage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/checkin": {
+    "/api/dm/messages/{messageId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -914,14 +2128,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["checkIn"];
-        delete?: never;
+        post?: never;
+        delete: operations["deleteMessage"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/checkin/qr-session": {
+    "/api/dm/rooms": {
         parameters: {
             query?: never;
             header?: never;
@@ -930,14 +2144,254 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["createQrSession"];
+        post: operations["bootstrapRoom"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/chat/party/{partyId}/read": {
+    "/api/dm/rooms/my": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/dm/rooms/{roomId}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMessages"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAllFranchises"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/code/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFranchiseByCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["searchFranchises"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFranchiseById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/{id}/current-team": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getCurrentTeam"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/{id}/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFranchiseHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/{id}/history/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecentHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/{id}/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFranchiseMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/franchises/{id}/teams": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getFranchiseTeams"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/games/past": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPastGames"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/home/bootstrap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getBootstrap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/home/navigation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getNavigation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/home/widgets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getWidgets"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/images/{imageId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -946,14 +2400,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["updateReadTimestamp"];
-        delete?: never;
+        post?: never;
+        delete: operations["deleteImage"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/chat/messages": {
+    "/api/images/{imageId}/signed-url": {
         parameters: {
             query?: never;
             header?: never;
@@ -962,15 +2416,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Mate chat message send */
-        post: operations["sendMessage_1"];
+        post: operations["renewSignedUrl"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/signup": {
+    "/api/images/{imageId}/thumbnail": {
         parameters: {
             query?: never;
             header?: never;
@@ -979,14 +2432,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["signUp"];
+        post: operations["markAsThumbnail"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/reissue": {
+    "/api/internal/payout/sellers": {
         parameters: {
             query?: never;
             header?: never;
@@ -995,14 +2448,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["reissue"];
+        post: operations["upsertSellerProfile"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/policies/consents": {
+    "/api/internal/payout/sellers/{userId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getSellerProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/internal/settlements/{paymentId}/payout": {
         parameters: {
             query?: never;
             header?: never;
@@ -1011,14 +2480,270 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["submitPolicyConsents"];
+        post: operations["requestPayout"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/password/reset/request": {
+    "/api/kbo/league-start-dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLeagueStartDates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kbo/offseason/metadata": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMetadata"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kbo/offseason/movements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMovements_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kbo/rankings/snapshot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRankingSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kbo/rankings/{seasonYear}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getTeamRankings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kbo/schedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getGamesByDate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/kbo/schedule/navigation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getScheduleNavigation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLeaderboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/achievements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAllAchievements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/achievements/rare": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecentRareAchievements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/achievements/recent": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecentAchievements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/hot-streaks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getHotStreaks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyStats_1"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/me/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMyScoreHistory"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/powerups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getPowerups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/powerups/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getActivePowerups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/powerups/{type}/use": {
         parameters: {
             query?: never;
             header?: never;
@@ -1027,14 +2752,62 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["requestPasswordReset"];
+        post: operations["usePowerup"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/password/reset/confirm": {
+    "/api/leaderboard/profile/{handle}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getUserStatsByHandle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/profile/{handle}/rank": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getUserRankByHandle"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/recent-scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getRecentScores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/leaderboard/seed-test-data": {
         parameters: {
             query?: never;
             header?: never;
@@ -1043,1286 +2816,21 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post: operations["confirmPasswordReset"];
+        post: operations["seedTestData"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/logout": {
+    "/api/leaderboard/stats": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
-        post: operations["logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/account/deletion/recovery": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getDeletionRecoveryInfo"];
-        put?: never;
-        post: operations["recoverDeletedAccount"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/applications": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/applications/{applicationId}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["rejectApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/applications/{applicationId}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["cancelApplicationWithReason"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/applications/{applicationId}/approve": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["approveApplication"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/release-decision/save": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["releaseDecisionSave"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/release-decision/evaluate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["releaseDecisionEvaluate"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/release-decision/draft": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["releaseDecisionDraft"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/coach/analyze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["coachAnalyze"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/voice": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["chatVoice"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/stream": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["chatStream"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["listSessions"];
-        put?: never;
-        post: operations["createSession"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/sessions/{sessionId}/messages/user": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["addUserMessage"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/sessions/{sessionId}/messages/assistant": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["addAssistantMessage"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/favorites/{messageId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["addFavorite_2"];
-        delete: operations["removeFavorite_2"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/completion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["chatCompletion"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/stadiums/{stadiumId}/places": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["createPlace"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/roles/users/{userId}/promote": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["promoteToAdmin"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/roles/users/{userId}/demote": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["demoteToUser"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/reports/{reportId}/appeal": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["requestAppeal"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/offseason/movements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMovements"];
-        put?: never;
-        post: operations["createMovement"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/maintenance/media/smoke": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["runSmoke"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/maintenance/media/cleanup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["runCleanup"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/maintenance/media/backfill": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["backfillExistingData"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/maintenance/cheer-posts/cleanup": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["cleanupSoftDeletedCheerPosts"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/games/{gameId}/sync-snapshot": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["syncGameSnapshot"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/games/sync-snapshots": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["syncGameSnapshotsByDateRange"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/games/repair-status-mismatches": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["repairGameStatusMismatches"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPartyById"];
-        put?: never;
-        post?: never;
-        delete: operations["deleteParty"];
-        options?: never;
-        head?: never;
-        patch: operations["updateParty"];
-        trace?: never;
-    };
-    "/api/admin/seat-views/{seatViewId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSeatView"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["handleSeatView"];
-        trace?: never;
-    };
-    "/api/admin/reports/{reportId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getReport"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch: operations["handleReport"];
-        trace?: never;
-    };
-    "/api/users/{userId}/social-verified": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["checkSocialVerified"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/profile/{handle}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPublicUserProfile"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/profile/{handle}/following": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPublicFollowing"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/profile/{handle}/followers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPublicFollowers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/profile/{handle}/follow-counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPublicFollowCounts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/me/following": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyFollowing"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/me/followers": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyFollowers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/me/follow-counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyFollowCounts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/users/me/blocked": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getBlockedUsers"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/test/games-range": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getGamesInRange"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/test/counts": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getCounts"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/teams": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTeams"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/teams/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getActiveTeams"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/team/{teamCode}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTeamCodeHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/team/{teamCode}/season/{season}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTeamSeason"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/statistics/{season}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSeasonStatistics"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/stadium/{stadium}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getHistoryByStadium"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/seasons": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAvailableSeasons"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/season/{season}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSeasonTeams"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/season/{season}/standings": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSeasonStandings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/recent": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRecentSeasons"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/team-history/range": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getHistoryByRange"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getStadiums"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums/{stadiumId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getStadiumDetail"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums/{stadiumId}/places": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPlacesByStadium"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums/places/all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAllPlaces"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums/name/{stadiumName}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getStadiumDetailByName"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums/name/{stadiumName}/places": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPlacesByStadiumName"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/stadiums/favorites": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getFavorites"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reviews/party/{partyId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getReviewsByParty"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/reviews/host/{handle}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getReviewsByHost"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/status/{gameId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getVoteStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/ranking/share/{shareId}/{seasonYear}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSharedPrediction"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/ranking/init": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getInit"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/ranking/current-season": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getCurrentSeason"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/predictions/bootstrap": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPredictionBootstrap"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/prediction/stats/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/payments/capability": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Mate payment capability */
-        get: operations["getPaymentCapability"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/upcoming": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getUpcomingParties"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/status/{status}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPartiesByStatus"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/search": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["searchParties"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/search-terms/popular": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPopularSearchTerms"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/profile/{handle}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPartiesByHostHandle"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/my": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyParties"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/parties/my/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyPartyHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/notifications/my": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyNotifications"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/notifications/my/unread-count": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyUnreadCount"];
+        get: operations["getGlobalStats"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2339,6 +2847,70 @@ export interface paths {
             cookie?: never;
         };
         get: operations["getMatches"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches/bounds": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMatchBounds"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMatchDay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getLiveSummaries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/matches/range": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getMatchesByRange"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2395,542 +2967,78 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/matches/range": {
+    "/api/media/uploads/init": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMatchesByRange"];
+        get?: never;
         put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/matches/live": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getLiveSummaries"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/matches/day": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMatchDay"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/matches/bounds": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMatchBounds"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getLeaderboard"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getGlobalStats"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/recent-scores": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRecentScores"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/profile/{handle}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getUserStatsByHandle"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/profile/{handle}/rank": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getUserRankByHandle"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/powerups": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPowerups"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/powerups/active": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getActivePowerups"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyStats_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/me/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMyScoreHistory"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/hot-streaks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getHotStreaks"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/achievements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAllAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/achievements/recent": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRecentAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/leaderboard/achievements/rare": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRecentRareAchievements"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/schedule": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getGamesByDate"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/schedule/navigation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getScheduleNavigation"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/rankings/{seasonYear}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getTeamRankings"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/rankings/snapshot": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getRankingSnapshot"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/offseason/movements": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMovements_1"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/offseason/metadata": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getMetadata"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/kbo/league-start-dates": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getLeagueStartDates"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/internal/payout/sellers/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSellerProfile"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/home/widgets": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getWidgets"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/home/navigation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getNavigation"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/home/bootstrap": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getBootstrap"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/games/past": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getPastGames"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/franchises": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getAllFranchises"];
-        put?: never;
-        post?: never;
+        post: operations["initUpload"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/{id}": {
+    "/api/media/uploads/{assetId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getFranchiseById"];
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["deleteUpload"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/{id}/teams": {
+    "/api/media/uploads/{assetId}/finalize": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getFranchiseTeams"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["finalizeUpload"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/{id}/metadata": {
+    "/api/notifications/mark-all-read": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getFranchiseMetadata"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["markAllAsRead"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/{id}/history": {
+    "/api/notifications/my": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getFranchiseHistory"];
+        get: operations["getMyNotifications"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2939,14 +3047,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/{id}/history/recent": {
+    "/api/notifications/my/unread-count": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getRecentHistory"];
+        get: operations["getMyUnreadCount"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2955,62 +3063,62 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/{id}/current-team": {
+    "/api/notifications/{notificationId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getCurrentTeam"];
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["deleteNotification"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/search": {
+    "/api/notifications/{notificationId}/read": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["searchFranchises"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["markAsRead"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/franchises/code/{code}": {
+    "/api/parties": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getFranchiseByCode"];
+        get: operations["getAllParties"];
         put?: never;
-        post?: never;
+        post: operations["createParty"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/dm/rooms/{roomId}/messages": {
+    "/api/parties/my": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMessages"];
+        get: operations["getMyParties"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3019,14 +3127,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/dm/rooms/my": {
+    "/api/parties/my/history": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMyRooms"];
+        get: operations["getMyPartyHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3035,14 +3143,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/diary/{id}": {
+    "/api/parties/profile/{handle}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getDiary"];
+        get: operations["getPartiesByHostHandle"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3051,14 +3159,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/diary/statistics": {
+    "/api/parties/search": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["showStatistics"];
+        get: operations["searchParties"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3067,30 +3175,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/diary/seat-views": {
+    "/api/parties/search-terms": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getSeatViewPhotos"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["recordSearchTerm"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/diary/games": {
+    "/api/parties/search-terms/popular": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getGamesByDate_1"];
+        get: operations["getPopularSearchTerms"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3099,14 +3207,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/diary/entries": {
+    "/api/parties/status/{status}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getDiary_1"];
+        get: operations["getPartiesByStatus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3115,14 +3223,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/user/{handle}/posts": {
+    "/api/parties/upcoming": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listByUser"];
+        get: operations["getUpcomingParties"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3131,46 +3239,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/search": {
+    "/api/parties/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["search"];
+        get: operations["getPartyById"];
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["deleteParty"];
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations["updateParty"];
         trace?: never;
     };
-    "/api/cheer/posts/linked": {
+    "/api/parties/{id}/favorite": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["linked"];
+        get?: never;
         put?: never;
-        post?: never;
-        delete?: never;
+        post: operations["addFavorite_1"];
+        delete: operations["removeFavorite_1"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/hot": {
+    "/api/payments/capability": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listHot"];
+        /** Get Mate payment capability */
+        get: operations["getPaymentCapability"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3179,78 +3288,81 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/following": {
+    "/api/payments/toss/confirm": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listFollowing"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Confirm Mate Toss payment */
+        post: operations["confirmTossPayment"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/posts/changes": {
+    "/api/payments/toss/prepare": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["checkChanges"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Prepare Mate Toss payment intent */
+        post: operations["prepareTossPayment"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/me/posts": {
+    "/api/payments/toss/{intentId}/cancel": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listMyPosts"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Cancel Mate Toss payment intent */
+        post: operations["cancelTossPayment"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/bookmarks": {
+    "/api/posts/{postId}/images": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getBookmarks"];
+        get: operations["listPostImages"];
         put?: never;
-        post?: never;
+        post: operations["uploadPostImages"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/battle/{gameId}/status": {
+    "/api/prediction/stats/me": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getBattleStatus"];
+        get: operations["getMyStats"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3259,14 +3371,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/checkin/user/{userId}": {
+    "/api/predictions/bootstrap": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getCheckInsByUserId"];
+        get: operations["getPredictionBootstrap"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3275,46 +3387,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/checkin/party/{partyId}": {
+    "/api/predictions/my-votes": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getCheckInsByPartyId"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["getMyVotesBulk"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/checkin/party/{partyId}/count": {
+    "/api/predictions/ranking": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getCheckInCount"];
+        get: operations["getPredction"];
         put?: never;
-        post?: never;
+        post: operations["savePrediction"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/checkin/check": {
+    "/api/predictions/ranking/current-season": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["isCheckedIn"];
+        get: operations["getCurrentSeason"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3323,15 +3435,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/chat/party/{partyId}": {
+    "/api/predictions/ranking/init": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Mate chat messages by party */
-        get: operations["getMessagesByPartyId"];
+        get: operations["getInit"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3340,15 +3451,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/chat/party/{partyId}/latest": {
+    "/api/predictions/ranking/share/{shareId}/{seasonYear}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Mate latest chat message by party */
-        get: operations["getLatestMessage"];
+        get: operations["getSharedPrediction"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3357,14 +3467,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/chat/my/unread-counts": {
+    "/api/predictions/status/{gameId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getTotalUnreadCount"];
+        get: operations["getVoteStatus"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3373,110 +3483,95 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/trusted-devices": {
+    "/api/predictions/vote": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getTrustedDevices"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["vote"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/sessions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["getSessions"];
-        put?: never;
-        post?: never;
-        delete: operations["deleteSessions"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/security-events": {
+    "/api/predictions/{gameId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getSecurityEvents"];
+        get?: never;
         put?: never;
         post?: never;
-        delete?: never;
+        delete: operations["cancelVote"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/providers": {
+    "/api/profile/image": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getConnectedProviders"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["uploadProfileImage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/policies/required": {
+    "/api/quiz/result": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getRequiredPolicies"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["getResult"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/oauth2/state/{stateId}": {
+    "/api/reviews": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["consumeOAuth2State"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Mate review create */
+        post: operations["createReview"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/link-token": {
+    "/api/reviews/host/{handle}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["generateLinkToken"];
+        get: operations["getReviewsByHost"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3485,14 +3580,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/check-name": {
+    "/api/reviews/party/{partyId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["checkName"];
+        get: operations["getReviewsByParty"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3501,14 +3596,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/auth/check-handle": {
+    "/api/stadiums": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["checkHandle"];
+        get: operations["getStadiums"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3517,14 +3612,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/applications/party/{partyId}": {
+    "/api/stadiums/favorites": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getApplicationsByPartyId"];
+        get: operations["getFavorites"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3533,14 +3628,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/applications/party/{partyId}/rejected": {
+    "/api/stadiums/name/{stadiumName}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getRejectedApplications"];
+        get: operations["getStadiumDetailByName"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3549,14 +3644,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/applications/party/{partyId}/pending": {
+    "/api/stadiums/name/{stadiumName}/places": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPendingApplications"];
+        get: operations["getPlacesByStadiumName"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3565,14 +3660,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/applications/party/{partyId}/mine": {
+    "/api/stadiums/places/all": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMyApplicationByPartyId"];
+        get: operations["getAllPlaces"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3581,14 +3676,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/applications/party/{partyId}/approved": {
+    "/api/stadiums/{stadiumId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getApprovedApplications"];
+        get: operations["getStadiumDetail"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3597,30 +3692,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/applications/my": {
+    "/api/stadiums/{stadiumId}/favorite": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMyApplications"];
+        get?: never;
         put?: never;
-        post?: never;
-        delete?: never;
+        post: operations["addFavorite"];
+        delete: operations["removeFavorite"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/ai/release-decision/presets": {
+    "/api/stadiums/{stadiumId}/places": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["releaseDecisionPresets"];
+        get: operations["getPlacesByStadium"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3629,30 +3724,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/release-decision/eval-cases": {
+    "/api/storage/image": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["releaseDecisionEvalCases"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Mate chat image upload */
+        post: operations["uploadChatImage"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/ai/release-decision/artifacts": {
+    "/api/team-history/range": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["releaseDecisionArtifacts"];
+        get: operations["getHistoryByRange"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3661,14 +3757,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/release-decision/artifacts/{artifactId}": {
+    "/api/team-history/recent": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["releaseDecisionArtifactDetail"];
+        get: operations["getRecentSeasons"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3677,14 +3773,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/coach/auto-brief/ops/health": {
+    "/api/team-history/season/{season}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["coachAutoBriefOpsHealth"];
+        get: operations["getSeasonTeams"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3693,14 +3789,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/chat/sessions/{sessionId}/messages": {
+    "/api/team-history/season/{season}/standings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listMessages"];
+        get: operations["getSeasonStandings"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3709,14 +3805,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/ai/chat/favorites": {
+    "/api/team-history/seasons": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["listFavorites"];
+        get: operations["getAvailableSeasons"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3725,14 +3821,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/users": {
+    "/api/team-history/stadium/{stadium}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getUsers"];
+        get: operations["getHistoryByStadium"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3741,14 +3837,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/stats": {
+    "/api/team-history/statistics/{season}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getStats"];
+        get: operations["getSeasonStatistics"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3757,14 +3853,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/seat-views": {
+    "/api/team-history/team/{teamCode}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getSeatViews"];
+        get: operations["getTeamCodeHistory"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3773,14 +3869,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/roles/audit-logs": {
+    "/api/team-history/team/{teamCode}/season/{season}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getAuditLogs"];
+        get: operations["getTeamSeason"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3789,14 +3885,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/reports": {
+    "/api/teams": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getReports"];
+        get: operations["getTeams"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3805,14 +3901,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/posts": {
+    "/api/teams/active": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getPosts"];
+        get: operations["getActiveTeams"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3821,14 +3917,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/mates": {
+    "/api/test/counts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getMates"];
+        get: operations["getCounts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3837,14 +3933,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/games/status-mismatches": {
+    "/api/test/games-range": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getGameStatusMismatches"];
+        get: operations["getGamesInRange"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3853,30 +3949,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/client-errors/events": {
+    "/api/tickets/analyze": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getEvents"];
+        get?: never;
         put?: never;
-        post?: never;
+        post: operations["analyzeTicket"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/admin/client-errors/events/{eventId}": {
+    "/api/users/me/blocked": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getEventDetail"];
+        get: operations["getBlockedUsers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3885,14 +3981,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/client-errors/dashboard": {
+    "/api/users/me/follow-counts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getDashboard"];
+        get: operations["getMyFollowCounts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3901,14 +3997,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/admin/cache-stats": {
+    "/api/users/me/followers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["getCacheStats"];
+        get: operations["getMyFollowers"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3933,39 +4029,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/predictions/{gameId}": {
+    "/api/users/me/following": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["getMyFollowing"];
         put?: never;
         post?: never;
-        delete: operations["cancelVote"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/notifications/{notificationId}": {
+    "/api/users/profile/{handle}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["getPublicUserProfile"];
         put?: never;
         post?: never;
-        delete: operations["deleteNotification"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/media/uploads/{assetId}": {
+    "/api/users/profile/{handle}/block": {
         parameters: {
             query?: never;
             header?: never;
@@ -3974,14 +4070,14 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        delete: operations["deleteUpload"];
+        post: operations["toggleBlockByHandle"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/images/{imageId}": {
+    "/api/users/profile/{handle}/follow": {
         parameters: {
             query?: never;
             header?: never;
@@ -3990,30 +4086,30 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
-        delete: operations["deleteImage"];
+        post: operations["toggleFollowByHandle"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/dm/messages/{messageId}": {
+    "/api/users/profile/{handle}/follow-counts": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["getPublicFollowCounts"];
         put?: never;
         post?: never;
-        delete: operations["deleteMessage"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/cheer/comments/{commentId}": {
+    "/api/users/profile/{handle}/follow/notify": {
         parameters: {
             query?: never;
             header?: never;
@@ -4021,153 +4117,57 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        put?: never;
+        put: operations["updateNotifySettingByHandle"];
         post?: never;
-        delete: operations["deleteComment"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/trusted-devices/{deviceId}": {
+    "/api/users/profile/{handle}/followers": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["getPublicFollowers"];
         put?: never;
         post?: never;
-        delete: operations["deleteTrustedDevice"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/sessions/{sessionId}": {
+    "/api/users/profile/{handle}/following": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["getPublicFollowing"];
         put?: never;
         post?: never;
-        delete: operations["deleteSession"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/auth/providers/{provider}": {
+    "/api/users/{userId}/social-verified": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["checkSocialVerified"];
         put?: never;
         post?: never;
-        delete: operations["unlinkProvider"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/auth/account": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteAccount"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/applications/{applicationId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["cancelApplication"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/ai/chat/sessions/{sessionId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteSession_1"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/users/{userId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteUser"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/posts/{postId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deletePost"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/admin/mates/{mateId}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["deleteMate"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -4177,1431 +4177,109 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        FollowToggleResponse: {
-            following?: boolean;
-            notifyNewPosts?: boolean;
-            /** Format: int64 */
-            followerCount?: number;
-            /** Format: int64 */
-            followingCount?: number;
-        };
-        UpdatePostReq: {
-            content: string;
-            images?: string[];
-            /** @enum {string} */
-            shareMode?: "INTERNAL_REPOST" | "INTERNAL_QUOTE" | "EXTERNAL_LINK" | "EXTERNAL_COPY" | "EXTERNAL_EMBED" | "EXTERNAL_SUMMARY";
-            sourceUrl?: string;
-            sourceTitle?: string;
-            sourceAuthor?: string;
-            sourceLicense?: string;
-            sourceLicenseUrl?: string;
-            sourceChangedNote?: string;
-            sourceSnapshotType?: string;
-        };
-        CheckinLinkedContentRes: {
-            /** Format: date */
-            gameDate?: string;
-            homeTeam?: string;
-            awayTeam?: string;
-            cheeringTeam?: string;
-            stadium?: string;
-            verified?: boolean;
-        };
-        EmbeddedPostDto: {
-            /** Format: int64 */
-            id?: number;
-            teamId?: string;
-            teamColor?: string;
-            content?: string;
-            author?: string;
-            authorHandle?: string;
-            authorProfileImageUrl?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            imageUrls?: string[];
-            deleted?: boolean;
-            /** Format: int32 */
-            likeCount?: number;
-            /** Format: int32 */
-            commentCount?: number;
-            /** Format: int32 */
-            repostCount?: number;
-            postType?: string;
-            linkedContent?: components["schemas"]["LinkedContentRes"];
-        };
-        LinkedContentRes: {
-            /** @enum {string} */
-            kind?: "CHECKIN" | "RECRUITMENT";
-            available?: boolean;
-            /** @enum {string} */
-            unavailableReason?: "SOURCE_MISSING" | "SOURCE_INELIGIBLE" | "MANUAL_BASEBALL_DATA_REQUIRED";
-            checkin?: components["schemas"]["CheckinLinkedContentRes"];
-            recruitment?: components["schemas"]["RecruitmentLinkedContentRes"];
-        };
-        PostDetailRes: {
-            /** Format: int64 */
-            id?: number;
-            teamId?: string;
-            teamName?: string;
-            teamShortName?: string;
-            teamColor?: string;
-            content?: string;
-            author?: string;
-            authorHandle?: string;
-            authorProfileImageUrl?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int32 */
-            comments?: number;
-            /** Format: int32 */
-            likes?: number;
-            /** Format: int32 */
-            bookmarkCount?: number;
-            likedByMe?: boolean;
-            isBookmarked?: boolean;
-            isOwner?: boolean;
-            imageUrls?: string[];
-            /** Format: int32 */
-            views?: number;
-            /** Format: int32 */
-            repostCount?: number;
-            repostedByMe?: boolean;
-            postType?: string;
-            /** Format: int64 */
-            repostOfId?: number;
-            repostType?: string;
-            originalPost?: components["schemas"]["EmbeddedPostDto"];
-            originalDeleted?: boolean;
-            shareMode?: string;
-            sourceInfo?: components["schemas"]["SourceInfoRes"];
-            linkedContent?: components["schemas"]["LinkedContentRes"];
-        };
-        RecruitmentLinkedContentRes: {
-            /** Format: int64 */
-            partyId?: number;
-            /** Format: date */
-            gameDate?: string;
-            /**
-             * Format: time
-             * @example 18:30:00
-             */
-            gameTime?: string;
-            homeTeam?: string;
-            awayTeam?: string;
-            stadium?: string;
-            section?: string;
-            /** Format: int32 */
-            currentParticipants?: number;
-            /** Format: int32 */
-            maxParticipants?: number;
-            status?: string;
-            recruiting?: boolean;
-            description?: string;
-            /** Format: int32 */
-            price?: number;
-            /** Format: int32 */
-            ticketPrice?: number;
-            /** Format: int32 */
-            reservationDepositAmount?: number;
-        };
-        SourceInfoRes: {
-            title?: string;
-            author?: string;
-            url?: string;
-            license?: string;
-            licenseUrl?: string;
-            changedNote?: string;
-            snapshotType?: string;
-        };
-        ChangePasswordRequest: {
-            currentPassword?: string;
-            newPassword: string;
-            confirmPassword: string;
-        };
-        ApiResponse: {
-            success?: boolean;
-            message?: string;
-            data?: Record<string, never>;
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        UserProfileDto: {
-            /** Format: int64 */
-            id?: number;
-            name: string;
-            handle?: string;
-            email: string;
-            favoriteTeam?: string;
-            profileImageUrl?: string;
-            createdAt?: string;
-            role?: string;
-            bio?: string;
-            provider?: string;
-            providerId?: string;
-            hasPassword?: boolean;
-            policyConsentRequired?: boolean;
-            policyConsentNoticeRequired?: boolean;
-            missingPolicyTypes?: string[];
-            policyConsentEffectiveDate?: string;
-            policyConsentHardGateDate?: string;
-            /** Format: int32 */
-            cheerPoints?: number;
-        };
-        PlaceRequest: {
-            name: string;
-            category: string;
-            description?: string;
-            address?: string;
-            phone?: string;
-            /** Format: double */
-            lat: number;
-            /** Format: double */
-            lng: number;
-            /** Format: double */
-            rating?: number;
-            openTime?: string;
-            closeTime?: string;
-        };
-        OffseasonMovementAdminRequest: {
-            /** Format: date */
-            movementDate: string;
-            section: string;
-            teamCode: string;
-            playerName: string;
-            summary?: string;
-            details?: string;
-            contractTerm?: string;
-            contractValue?: string;
-            optionDetails?: string;
-            counterpartyTeam?: string;
-            counterpartyDetails?: string;
-            sourceLabel?: string;
-            sourceUrl?: string;
-            /** Format: date-time */
-            announcedAt?: string;
-        };
-        ApiResponseOffseasonMovementAdminDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["OffseasonMovementAdminDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        OffseasonMovementAdminDto: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: date */
-            movementDate?: string;
-            section?: string;
-            teamCode?: string;
-            playerName?: string;
-            summary?: string;
-            details?: string;
-            contractTerm?: string;
-            contractValue?: string;
-            optionDetails?: string;
-            counterpartyTeam?: string;
-            counterpartyDetails?: string;
-            sourceLabel?: string;
-            sourceUrl?: string;
-            /** Format: date-time */
-            announcedAt?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        GameInningScoreRequestDto: {
-            /** Format: int32 */
-            inning: number;
-            teamSide: string;
-            teamCode?: string;
-            /** Format: int32 */
-            runs: number;
-            isExtra?: boolean;
-        };
-        ApiResponseMapStringObject: {
-            success?: boolean;
-            message?: string;
-            data?: {
-                [key: string]: Record<string, never>;
-            };
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        AdminNonCanonicalCleanupTrackerUpsertRequest: {
-            ticketUrl?: string;
-            assignee?: string;
-            status?: string;
-            note?: string;
-            gameIds?: string[];
-        };
-        AdminNonCanonicalCleanupTrackerDto: {
-            /** Format: date */
-            startDate?: string;
-            /** Format: date */
-            endDate?: string;
-            ticketUrl?: string;
-            assignee?: string;
-            status?: string;
-            note?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            gameIds?: string[];
-        };
-        ApiResponseAdminNonCanonicalCleanupTrackerDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminNonCanonicalCleanupTrackerDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        BlockToggleResponse: {
-            blocked?: boolean;
-            /** Format: int64 */
-            blockedCount?: number;
-        };
-        TicketInfo: {
-            date?: string;
-            time?: string;
-            stadium?: string;
-            homeTeam?: string;
-            awayTeam?: string;
-            section?: string;
-            row?: string;
-            seat?: string;
-            /** Format: int32 */
-            peopleCount?: number;
-            /** Format: int32 */
-            price?: number;
-            reservationNumber?: string;
-            /** Format: int64 */
-            gameId?: number;
-            verificationToken?: string;
-        };
-        ApiResponseMateChatImageUploadResponse: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MateChatImageUploadResponse"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MateChatImageUploadResponse: {
-            path?: string;
-            url?: string;
-        };
-        MateReviewCreateRequest: {
-            /** Format: int64 */
-            partyId?: number;
-            revieweeHandle?: string;
-            /** Format: int32 */
-            rating?: number;
-            comment?: string;
-        };
-        MateReviewResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            partyId?: number;
-            reviewerHandle?: string;
-            revieweeHandle?: string;
-            /** Format: int32 */
-            rating?: number;
-            comment?: string;
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        TeamUserAnswersDto: {
-            answers?: {
-                [key: string]: string;
-            };
-        };
-        TeamResultDto: {
-            name?: string;
-            color?: string;
-        };
-        PredictionRequestDto: {
-            gameId: string;
-            votedTeam?: string;
-        };
-        RankingPredictionRequestDto: {
-            /** Format: int32 */
-            seasonYear: number;
-            teamIdsInOrder?: string[];
-        };
-        RankingPredictionResponseDto: {
-            /** Format: int64 */
-            id: number;
-            shareId: string | null;
-            /** Format: int32 */
-            seasonYear: number;
-            teamIdsInOrder: string[];
-            teamDetails: components["schemas"]["TeamRankingDetail"][];
-            /** Format: date-time */
-            createdAt: string;
-        };
-        TeamRankingDetail: {
-            teamId: string;
-            teamName: string;
-            /** Format: int32 */
-            currentRank: number | null;
-            /** Format: int32 */
-            lastSeasonRank: number | null;
-        };
-        PredictionMyVotesRequestDto: {
-            gameIds: string[];
-        };
-        PredictionMyVoteEntryDto: {
-            gameId: string;
-            votedTeam: ("home" | "away") | null;
-        };
-        PredictionMyVotesResponseDto: {
-            votes: {
-                [key: string]: string;
-            };
-            entries: components["schemas"]["PredictionMyVoteEntryDto"][];
-        };
-        PostImageDto: {
-            /** Format: int64 */
-            id?: number;
-            storagePath?: string;
-            mimeType?: string;
-            /** Format: int64 */
-            bytes?: number;
-            isThumbnail?: boolean;
-            url?: string;
-        };
-        MatePaymentCancelIntentRequest: {
-            cancelReason?: string;
-        };
-        ApiResponseMatePaymentCancelIntentResponse: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MatePaymentCancelIntentResponse"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MatePaymentCancelIntentResponse: {
-            /** Format: int64 */
-            intentId?: number;
-            /** @enum {string} */
-            status?: "PREPARED" | "CONFIRMED" | "APPLICATION_CREATED" | "CANCEL_REQUESTED" | "CANCELED" | "CANCEL_FAILED" | "EXPIRED";
-        };
-        MatePaymentPrepareRequest: {
-            /** Format: int64 */
-            partyId?: number;
-            /** @enum {string} */
-            flowType?: "DEPOSIT" | "SELLING_FULL";
-            cancelPolicyVersion?: string;
-        };
-        MatePaymentPrepareResponse: {
-            /** Format: int64 */
-            intentId?: number;
-            orderId?: string;
-            /** Format: int32 */
-            amount?: number;
-            currency?: string;
-            orderName?: string;
-            /** @enum {string} */
-            flowType?: "DEPOSIT" | "SELLING_FULL";
-            cancelPolicyVersion?: string;
-            /** @enum {string} */
-            paymentType?: "DEPOSIT" | "FULL";
-        };
-        MatePaymentConfirmRequest: {
-            paymentKey?: string;
-            orderId?: string;
-            /** Format: int64 */
-            intentId?: number;
-            /** @enum {string} */
-            flowType?: "DEPOSIT" | "SELLING_FULL";
-            cancelPolicyVersion?: string;
-            /** Format: int64 */
-            partyId?: number;
-            message?: string;
-            verificationToken?: string;
-            ticketVerified?: boolean;
-            ticketImageUrl?: string;
-            /** @enum {string} */
-            paymentType?: "DEPOSIT" | "FULL";
-        };
-        MateApplicationResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            partyId?: number;
-            applicantHandle?: string;
-            applicantName?: string;
-            /** @enum {string} */
-            applicantBadge?: "NEW" | "VERIFIED" | "TRUSTED";
-            /** Format: double */
-            applicantRating?: number;
-            message?: string;
-            /** Format: int32 */
-            depositAmount?: number;
-            /** @enum {string} */
-            paymentType?: "DEPOSIT" | "FULL";
-            ticketVerified?: boolean;
-            ticketImageUrl?: string;
-            paymentKey?: string;
-            orderId?: string;
-            /** Format: int32 */
-            feeAmount?: number;
-            /** Format: int32 */
-            netSettlementAmount?: number;
-            /** @enum {string} */
-            paymentStatus?: "PAID" | "REFUND_REQUESTED" | "CANCELED" | "REFUND_FAILED";
-            /** @enum {string} */
-            settlementStatus?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            approvedAt?: string;
-            /** Format: date-time */
-            rejectedAt?: string;
-            /** Format: date-time */
-            responseDeadline?: string;
-            isPaid?: boolean;
-            isApproved?: boolean;
-            isRejected?: boolean;
-        };
-        LocalTime: {
-            /** Format: int32 */
-            hour?: number;
-            /** Format: int32 */
-            minute?: number;
-            /** Format: int32 */
-            second?: number;
-            /** Format: int32 */
-            nano?: number;
-        };
-        MatePartyCreateRequest: {
-            teamId?: string;
-            /** @enum {string} */
-            cheeringSide: "HOME" | "AWAY" | "NEUTRAL";
-            /** Format: date */
-            gameDate: string;
-            gameTime: components["schemas"]["LocalTime"];
-            stadium: string;
-            homeTeam: string;
-            awayTeam: string;
-            section: string;
-            seatDetail?: string;
-            /** Format: int32 */
-            maxParticipants: number;
-            description: string;
-            ticketImageUrl?: string;
-            /** Format: int32 */
-            ticketPrice?: number;
-            /** Format: int32 */
-            reservationDepositAmount?: number;
-            reservationNumber?: string;
-            verificationToken: string;
-        };
-        MateHostReviewSnippet: {
-            reviewerHandle?: string;
-            /** Format: int32 */
-            rating?: number;
-            comment?: string;
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        MateHostTrustMetrics: {
-            /** Format: int32 */
-            averageResponseMinutes?: number;
-            /** Format: date-time */
-            lastActiveAt?: string;
-            /** Format: int64 */
-            completedMateCount?: number;
-            /** Format: int64 */
-            recentNoShowCount?: number;
-            reviewKeywordSummary?: components["schemas"]["MateReviewKeywordSummary"][];
-            recentHostReviews?: components["schemas"]["MateHostReviewSnippet"][];
-        };
-        MatePartyResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            hostId?: number;
-            hostHandle?: string;
-            hostName?: string;
-            hostProfileImageUrl?: string;
-            hostFavoriteTeam?: string;
-            /** @enum {string} */
-            hostBadge?: "NEW" | "VERIFIED" | "TRUSTED";
-            /** Format: double */
-            hostAverageRating?: number;
-            /** Format: int64 */
-            hostReviewCount?: number;
-            teamId?: string;
-            /** @enum {string} */
-            cheeringSide?: "HOME" | "AWAY" | "NEUTRAL";
-            /** Format: date */
-            gameDate?: string;
-            gameTime?: components["schemas"]["LocalTime"];
-            stadium?: string;
-            homeTeam?: string;
-            awayTeam?: string;
-            section?: string;
-            /** Format: int32 */
-            maxParticipants?: number;
-            /** Format: int32 */
-            currentParticipants?: number;
-            description?: string;
-            ticketVerified?: boolean;
-            ticketImageUrl?: string;
-            /** @enum {string} */
-            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
-            /** Format: int32 */
-            price?: number;
-            /** Format: int32 */
-            ticketPrice?: number;
-            /** Format: int32 */
-            reservationDepositAmount?: number;
-            hostTrustMetrics?: components["schemas"]["MateHostTrustMetrics"];
-            reservationNumber?: string;
-            seatDetail?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        MateReviewKeywordSummary: {
-            label?: string;
-            /** Format: int64 */
-            count?: number;
-        };
-        RecordRequest: {
-            term?: string;
-        };
-        InitMediaUploadRequest: {
-            /** @enum {string} */
-            domain: "PROFILE" | "DIARY" | "CHEER" | "CHAT";
-            fileName: string;
-            contentType: string;
-            /** Format: int64 */
-            contentLength: number;
-            /** Format: int32 */
-            width: number;
-            /** Format: int32 */
-            height: number;
-        };
-        PowerupUseResultDto: {
-            success?: boolean;
-            message?: string;
-            /** Format: int32 */
-            remainingCount?: number;
-        };
-        ApiResponseMateInternalSettlementPayoutResponse: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MateInternalSettlementPayoutResponse"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MateInternalSettlementPayoutResponse: {
-            /** Format: int64 */
-            payoutId?: number;
-            /** @enum {string} */
-            status?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
-            providerRef?: string;
-            failureCode?: string;
-            failReason?: string;
-            /** Format: date-time */
-            requestedAt?: string;
-            /** Format: date-time */
-            completedAt?: string;
-        };
-        MateSellerPayoutProfileUpsertRequest: {
-            /** Format: int64 */
-            userId?: number;
-            provider?: string;
-            providerSellerId?: string;
-            kycStatus?: string;
-            metadataJson?: string;
-        };
-        ApiResponseMateSellerPayoutProfileResponse: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MateSellerPayoutProfileResponse"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MateSellerPayoutProfileResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            userId?: number;
-            provider?: string;
-            providerSellerId?: string;
-            kycStatus?: string;
-            metadataJson?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        SignedUrlDto: {
-            url?: string;
-            /** Format: date-time */
-            expiresAt?: string;
-        };
-        BootstrapRequest: {
-            targetHandle: string;
-        };
-        Request: {
-            /** Format: int64 */
-            roomId: number;
-            content: string;
-            clientMessageId?: string;
-        };
-        SeatViewSelectionRequest: {
-            candidateIds?: number[];
-        };
-        SeatViewCandidateCreateRequest: {
-            storagePaths?: string[];
-            sourceTypes?: string[];
-        };
-        DiaryRequestDto: {
-            date?: string;
-            type?: string;
-            /** Format: int64 */
-            gameId?: number;
-            memo?: string;
-            photos?: string[];
-            emojiName?: string;
-            winningName?: string;
-            section?: string;
-            block?: string;
-            seatRow?: string;
-            seatNumber?: string;
-            ticketVerificationToken?: string;
-        };
-        AchievementDto: {
-            /** Format: int64 */
-            id?: number;
-            code?: string;
-            name?: string;
-            description?: string;
-            iconUrl?: string;
-            rarity?: string;
-            rarityKo?: string;
-            rarityColor?: string;
-            /** Format: int64 */
-            pointsRequired?: number;
-            earned?: boolean;
-            /** Format: date-time */
-            earnedAt?: string;
-        };
-        DiaryResponseDto: {
-            /** Format: int64 */
-            id?: number;
-            date?: string;
-            /** Format: int64 */
-            gameId?: number;
-            team?: string;
-            stadium?: string;
-            emojiName?: string;
-            winningName?: string;
-            memo?: string;
-            photos?: string[];
-            photoStoragePaths?: string[];
-            type?: string;
-            section?: string;
-            block?: string;
-            seatRow?: string;
-            seatNumber?: string;
-            ticketVerified?: boolean;
-            seatViewReward?: components["schemas"]["SeatViewRewardDto"];
-        };
-        SeatViewRewardDto: {
-            /** Format: int32 */
-            pointsEarned?: number;
-            firstContribution?: boolean;
-            unlockedAchievements?: components["schemas"]["AchievementDto"][];
-            /** Format: int64 */
-            totalContributions?: number;
-        };
-        ClientErrorEventRequest: {
-            eventId: string;
-            category: string;
-            message: string;
-            /** Format: int32 */
-            statusCode?: number;
-            responseCode?: string;
-            stack?: string;
-            componentStack?: string;
-            route: string;
-            method?: string;
-            endpoint?: string;
-            timestamp: string;
-            sessionId?: string;
-            /** Format: int64 */
-            userId?: number;
-        };
-        ClientErrorFeedbackRequest: {
-            eventId: string;
-            comment: string;
-            actionTaken: string;
-            route: string;
-            timestamp: string;
-        };
-        CreatePostReq: {
-            teamId?: string;
-            content: string;
-            images?: string[];
-            postType?: string;
-            /** @enum {string} */
-            shareMode?: "INTERNAL_REPOST" | "INTERNAL_QUOTE" | "EXTERNAL_LINK" | "EXTERNAL_COPY" | "EXTERNAL_EMBED" | "EXTERNAL_SUMMARY";
-            sourceUrl?: string;
-            sourceTitle?: string;
-            sourceAuthor?: string;
-            sourceLicense?: string;
-            sourceLicenseUrl?: string;
-            sourceChangedNote?: string;
-            sourceSnapshotType?: string;
-            /** Format: int64 */
-            diaryId?: number;
-            /** Format: int64 */
-            partyId?: number;
-        };
-        CreateCommentReq: {
-            content: string;
-        };
-        CommentRes: {
-            /** Format: int64 */
-            id?: number;
-            author?: string;
-            authorTeamId?: string;
-            authorProfileImageUrl?: string;
-            authorHandle?: string;
-            content?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int32 */
-            likeCount?: number;
-            likedByMe?: boolean;
-            replies?: components["schemas"]["CommentRes"][];
-        };
-        RepostToggleResponse: {
-            reposted?: boolean;
-            /** Format: int32 */
-            count?: number;
-        };
-        ReportRequest: {
-            /** @enum {string} */
-            reason?: "SPAM" | "INAPPROPRIATE_CONTENT" | "ABUSIVE_LANGUAGE" | "ADVERTISEMENT" | "COPYRIGHT_INFRINGEMENT" | "FAKE_INFORMATION" | "OTHER";
-            description?: string;
-            sourceUrl?: string;
-            hasRightEvidence?: boolean;
-            license?: string;
-            ownerContact?: string;
-            requestedReason?: string;
-            requestedAction?: string;
-            evidenceUrl?: string;
-        };
-        ReportCaseRes: {
-            /** Format: int64 */
-            caseId?: number;
-            reportStatus?: string;
-            /** Format: date-time */
-            handledAt?: string;
-            nextAction?: string;
-            adminMessage?: string;
-        };
-        QuoteRepostReq: {
-            content: string;
-        };
-        LikeToggleResponse: {
-            liked?: boolean;
-            /** Format: int32 */
-            likes?: number;
-        };
-        BookmarkResponse: {
-            bookmarked?: boolean;
-            /** Format: int32 */
-            count?: number;
-        };
-        MateCheckInRequest: {
-            /** Format: int64 */
-            partyId: number;
-            location: string;
-            qrSessionId?: string;
-            manualCode?: string;
-        };
-        MateCheckInResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            partyId?: number;
-            userHandle?: string;
-            userName?: string;
-            location?: string;
-            /** Format: date-time */
-            checkedInAt?: string;
-        };
-        MateCheckInQrSessionRequest: {
-            /** Format: int64 */
-            partyId: number;
-        };
-        MateCheckInQrSessionResponse: {
-            sessionId?: string;
-            /** Format: int64 */
-            partyId?: number;
-            /** Format: date-time */
-            expiresAt?: string;
-            checkinUrl?: string;
-            manualCode?: string;
-        };
-        MateChatReadResponse: {
-            success?: boolean;
-            message?: string;
-        };
-        MateChatMessageRequest: {
-            /** Format: int64 */
-            partyId: number;
-            message?: string;
-            imageUrl?: string;
-            clientMessageId: string;
-        };
-        MateChatMessageResponse: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            partyId?: number;
-            /** Format: int64 */
-            senderId?: number;
-            senderName?: string;
-            message?: string;
-            imageUrl?: string;
-            clientMessageId?: string;
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        PolicyConsentItemDto: {
-            /** @enum {string} */
-            policyType: "TERMS" | "PRIVACY" | "DATA_DISCLAIMER";
-            version: string;
-            agreed: boolean;
-        };
-        SignupDto: {
-            name: string;
-            handle: string;
-            email: string;
-            password: string;
-            confirmPassword: string;
-            favoriteTeam?: string;
-            provider?: string;
-            providerId?: string;
-            policyConsents: components["schemas"]["PolicyConsentItemDto"][];
-        };
-        ApiResponseVoid: {
-            success?: boolean;
-            message?: string;
-            data?: Record<string, never>;
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        PolicyConsentSubmitDto: {
-            policyConsents: components["schemas"]["PolicyConsentItemDto"][];
-        };
-        PasswordResetRequestDto: {
-            email: string;
-            redirect?: string;
-        };
-        PasswordResetConfirmDto: {
-            token: string;
-            newPassword: string;
-            confirmPassword: string;
-        };
-        LoginDto: {
-            email: string;
-            password: string;
-            captchaToken?: string;
+        AccountDeletionRecoveryInfoDto: {
+            scheduledFor?: string;
         };
         AccountDeletionRecoveryRequestDto: {
             token: string;
         };
-        MateApplicationCreateRequest: {
+        AccountSecurityEventDto: {
+            browser?: string;
+            deviceLabel?: string;
+            deviceType?: string;
+            eventType?: string;
             /** Format: int64 */
-            partyId: number;
+            id?: number;
+            ip?: string;
             message?: string;
-            /** Format: int32 */
-            depositAmount?: number;
-            /** @enum {string} */
-            paymentType?: "DEPOSIT" | "FULL";
-            ticketVerified?: boolean;
-            ticketImageUrl?: string;
-            verificationToken?: string;
+            occurredAt?: string;
+            os?: string;
         };
-        MateApplicationCancelRequest: {
-            /** @enum {string} */
-            cancelReasonType?: "BUYER_CHANGED_MIND" | "SELLER_CHANGED_MIND" | "SYSTEM" | "EVENT_CANCELED" | "OTHER";
-            cancelMemo?: string;
-        };
-        MateApplicationCancelResponse: {
-            /** Format: int64 */
-            applicationId?: number;
-            /** Format: int32 */
-            refundAmount?: number;
-            /** Format: int32 */
-            feeCharged?: number;
-            refundPolicyApplied?: string;
-            /** @enum {string} */
-            paymentStatus?: "PAID" | "REFUND_REQUESTED" | "CANCELED" | "REFUND_FAILED";
-            /** @enum {string} */
-            settlementStatus?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
-        };
-        StreamingResponseBody: Record<string, never>;
-        ApiResponseChatSessionSummary: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ChatSessionSummary"];
+        AchievementDto: {
             code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ChatSessionSummary: {
+            description?: string;
+            earned?: boolean;
+            /** Format: date-time */
+            earnedAt?: string;
+            iconUrl?: string;
             /** Format: int64 */
-            sessionId?: number;
-            title?: string;
-            /** Format: int32 */
-            messageCount?: number;
-            latestMessagePreview?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            /** Format: date-time */
-            lastMessageAt?: string;
-        };
-        CreateUserChatMessageRequest: {
-            content: string;
-        };
-        ApiResponseStoredChatMessage: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["StoredChatMessage"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        JsonNode: Record<string, never>;
-        StoredChatMessage: {
-            /** Format: int64 */
-            messageId?: number;
-            /** Format: int64 */
-            sessionId?: number;
-            /** @enum {string} */
-            role?: "USER" | "ASSISTANT";
-            /** @enum {string} */
-            status?: "COMPLETED" | "CANCELLED" | "ERROR";
-            content?: string;
-            verified?: boolean;
-            cached?: boolean;
-            intent?: string;
-            strategy?: string;
-            finishReason?: string;
-            cancelled?: boolean;
-            errorCode?: string;
-            plannerMode?: string;
-            plannerCacheHit?: boolean;
-            toolExecutionMode?: string;
-            fallbackReason?: string;
-            metadata?: components["schemas"]["JsonNode"];
-            citations?: components["schemas"]["JsonNode"];
-            toolCalls?: components["schemas"]["JsonNode"];
-            favorite?: boolean;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        CreateAssistantChatMessageRequest: {
-            content: string;
-            status?: string;
-            verified?: boolean;
-            cached?: boolean;
-            intent?: string;
-            strategy?: string;
-            finishReason?: string;
-            cancelled?: boolean;
-            errorCode?: string;
-            plannerMode?: string;
-            plannerCacheHit?: boolean;
-            toolExecutionMode?: string;
-            fallbackReason?: string;
-            metadata?: components["schemas"]["JsonNode"];
-            citations?: components["schemas"]["JsonNode"];
-            toolCalls?: components["schemas"]["JsonNode"];
-        };
-        ApiResponseChatFavoriteItem: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ChatFavoriteItem"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ChatFavoriteItem: {
-            /** Format: int64 */
-            messageId?: number;
-            /** Format: int64 */
-            sessionId?: number;
-            sessionTitle?: string;
-            content?: string;
-            prompt?: string;
-            /** Format: date-time */
-            favoritedAt?: string;
-            /** Format: date-time */
-            messageCreatedAt?: string;
-        };
-        RoleChangeRequestDto: {
-            reason?: string;
-        };
-        ApiResponseRoleChangeResponseDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["RoleChangeResponseDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        RoleChangeResponseDto: {
-            /** Format: int64 */
-            userId?: number;
-            email?: string;
+            id?: number;
             name?: string;
-            previousRole?: string;
-            newRole?: string;
+            /** Format: int64 */
+            pointsRequired?: number;
+            rarity?: string;
+            rarityColor?: string;
+            rarityKo?: string;
+        };
+        ActivePowerupDto: {
             /** Format: date-time */
-            changedAt?: string;
-        };
-        AdminReportAppealReq: {
-            appealReason?: string;
-        };
-        AdminReportDto: {
+            activatedAt?: string;
+            description?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            gameId?: string;
+            icon?: string;
             /** Format: int64 */
             id?: number;
-            /** Format: int64 */
-            postId?: number;
-            postPreview?: string;
-            /** Format: int64 */
-            reporterId?: number;
-            reporterHandle?: string;
-            reason?: string;
-            description?: string;
-            status?: string;
-            adminAction?: string;
-            adminMemo?: string;
-            /** Format: int64 */
-            handledBy?: number;
-            /** Format: date-time */
-            handledAt?: string;
-            evidenceUrl?: string;
-            requestedAction?: string;
-            appealStatus?: string;
-            appealReason?: string;
-            /** Format: int32 */
-            appealCount?: number;
+            name?: string;
+            type?: string;
+            used?: boolean;
+        };
+        AdminMateDto: {
+            awayTeam?: string;
             /** Format: date-time */
             createdAt?: string;
-        };
-        ApiResponseAdminReportDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminReportDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseMediaSmokeReport: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MediaSmokeReport"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MediaSmokeDomainReport: {
-            /** @enum {string} */
-            domain?: "PROFILE" | "DIARY" | "CHEER" | "CHAT";
             /** Format: int32 */
-            checkedCount?: number;
-            /** Format: int32 */
-            missingObjectCount?: number;
-            /** Format: int32 */
-            urlFailureCount?: number;
-            /** Format: int32 */
-            feedDerivativeMissingCount?: number;
-            failedObjectKeys?: string[];
-        };
-        MediaSmokeReport: {
-            /** Format: int32 */
-            sampleLimit?: number;
-            requestedDomains?: string[];
-            domains?: components["schemas"]["MediaSmokeDomainReport"][];
-            hasFailures?: boolean;
-        };
-        ApiResponseMediaCleanupReport: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MediaCleanupReport"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MediaCleanupReport: {
-            requestedTargets?: string[];
-            targets?: components["schemas"]["MediaCleanupTargetReport"][];
-            hasFailures?: boolean;
-        };
-        MediaCleanupTargetReport: {
-            /** @enum {string} */
-            target?: "PENDING" | "ORPHAN";
-            /** Format: int32 */
-            scannedCount?: number;
-            /** Format: int32 */
-            deletedCount?: number;
-            /** Format: int32 */
-            errorCount?: number;
-        };
-        ApiResponseMediaBackfillReport: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["MediaBackfillReport"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        MediaBackfillDomainReport: {
-            domain?: string;
-            /** Format: int32 */
-            scannedCount?: number;
-            /** Format: int32 */
-            normalizedCount?: number;
-            /** Format: int32 */
-            updatedCount?: number;
-            /** Format: int32 */
-            clearedCount?: number;
-            /** Format: int32 */
-            linkSyncedCount?: number;
-            /** Format: int32 */
-            legacyPathRetainedCount?: number;
-            /** Format: int32 */
-            manualReviewCount?: number;
-            sampleNormalizedTargets?: string[];
-            sampleLegacyRetainedTargets?: string[];
-            sampleManualReviewTargets?: string[];
-            auditCounts?: {
-                [key: string]: number;
-            };
-            auditSamples?: components["schemas"]["MediaBackfillIssueSample"][];
-        };
-        MediaBackfillIssueSample: {
-            type?: string;
-            subject?: string;
-            objectKey?: string;
-            detail?: string;
-        };
-        MediaBackfillReport: {
-            applied?: boolean;
-            /** Format: int32 */
-            batchSize?: number;
-            requestedDomains?: string[];
-            domains?: components["schemas"]["MediaBackfillDomainReport"][];
-            hasFailures?: boolean;
-        };
-        ApiResponseGameScoreSyncResultDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["GameScoreSyncResultDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        GameScoreSyncResultDto: {
-            gameId?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            gameStatus?: string;
-            /** Format: int32 */
-            inningScoreCount?: number;
-            synced?: boolean;
-            usedInningScores?: boolean;
-            winningTeam?: string;
-            /** Format: int32 */
-            winningScore?: number;
-        };
-        ApiResponseGameScoreSyncBatchResultDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["GameScoreSyncBatchResultDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        GameScoreSyncBatchResultDto: {
-            /** Format: date */
-            startDate?: string;
-            /** Format: date */
-            endDate?: string;
-            /** Format: int32 */
-            totalGames?: number;
-            /** Format: int32 */
-            syncedGames?: number;
-            /** Format: int32 */
-            skippedGames?: number;
-            results?: components["schemas"]["GameScoreSyncResultDto"][];
-        };
-        ApiResponseGameStatusRepairBatchResultDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["GameStatusRepairBatchResultDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        GameStatusMismatchDto: {
-            gameId?: string;
+            currentMembers?: number;
             /** Format: date */
             gameDate?: string;
-            startTime?: components["schemas"]["LocalTime"];
-            rawStatus?: string;
-            normalizedRawStatus?: string;
-            effectiveStatus?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            /** Format: int32 */
-            inningScoreCount?: number;
-            hasKnownScore?: boolean;
-            hasInningScores?: boolean;
-            reasons?: string[];
-        };
-        GameStatusRepairBatchResultDto: {
-            /** Format: date */
-            startDate?: string;
-            /** Format: date */
-            endDate?: string;
-            dryRun?: boolean;
-            /** Format: int32 */
-            totalGames?: number;
-            /** Format: int32 */
-            mismatchCount?: number;
-            /** Format: int32 */
-            repairedCount?: number;
-            mismatches?: components["schemas"]["GameStatusMismatchDto"][];
-            repairedGames?: components["schemas"]["GameScoreSyncResultDto"][];
-            /** Format: int32 */
-            nonCanonicalCount?: number;
-            nonCanonicalGames?: components["schemas"]["NonCanonicalGameDto"][];
-        };
-        NonCanonicalGameDto: {
-            gameId?: string;
-            /** Format: date */
-            gameDate?: string;
-            startTime?: components["schemas"]["LocalTime"];
-            rawStatus?: string;
             homeTeam?: string;
-            awayTeam?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            reasons?: string[];
-        };
-        MatePartyUpdateRequest: {
-            /** @enum {string} */
-            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
-            /** Format: int32 */
-            price?: number;
-            description?: string;
-            section?: string;
-            seatDetail?: string;
-            /** Format: int32 */
-            maxParticipants?: number;
-            /** Format: int32 */
-            ticketPrice?: number;
-            /** Format: int32 */
-            reservationDepositAmount?: number;
-        };
-        AdminSeatViewActionReq: {
-            adminLabel?: string;
-            moderationStatus?: string;
-            adminMemo?: string;
-        };
-        AdminSeatViewDto: {
+            hostName?: string;
             /** Format: int64 */
             id?: number;
-            /** Format: int64 */
-            diaryId?: number;
-            /** Format: int64 */
-            userId?: number;
-            photoUrl?: string;
-            storagePath?: string;
-            sourceType?: string;
-            aiSuggestedLabel?: string;
-            /** Format: double */
-            aiConfidence?: number;
-            aiReason?: string;
-            userSelected?: boolean;
-            moderationStatus?: string;
-            adminLabel?: string;
-            adminMemo?: string;
-            /** Format: int64 */
-            reviewedBy?: number;
-            reviewedAt?: string;
-            rewardGranted?: boolean;
-            stadium?: string;
+            /** Format: int32 */
+            maxMembers?: number;
             section?: string;
-            block?: string;
-            seatRow?: string;
-            seatNumber?: string;
-            diaryDate?: string;
-            ticketVerified?: boolean;
-            ticketVerifiedAt?: string;
+            stadium?: string;
+            status?: string;
+            teamId?: string;
+            title?: string;
         };
-        ApiResponseAdminSeatViewDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminSeatViewDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
+        AdminNonCanonicalCleanupTrackerDto: {
+            assignee?: string;
+            /** Format: date */
+            endDate?: string;
+            gameIds?: string[];
+            note?: string;
+            /** Format: date */
+            startDate?: string;
+            status?: string;
+            ticketUrl?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        AdminNonCanonicalCleanupTrackerUpsertRequest: {
+            assignee?: string;
+            gameIds?: string[];
+            note?: string;
+            status?: string;
+            ticketUrl?: string;
+        };
+        AdminPostDto: {
+            author?: string;
+            /** Format: int32 */
+            commentCount?: number;
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            isHot?: boolean;
+            /** Format: int32 */
+            likeCount?: number;
+            team?: string;
+            /** Format: int32 */
+            views?: number;
         };
         AdminReportActionReq: {
             /** @enum {string} */
@@ -5609,1430 +4287,1394 @@ export interface components {
             adminMemo?: string;
             visibleUntil?: string;
         };
-        Pageable: {
+        AdminReportAppealReq: {
+            appealReason?: string;
+        };
+        AdminReportDto: {
+            adminAction?: string;
+            adminMemo?: string;
             /** Format: int32 */
-            page?: number;
-            /** Format: int32 */
-            size?: number;
-            sort?: string[];
-        };
-        PageMetadata: {
-            /** Format: int64 */
-            size?: number;
-            /** Format: int64 */
-            number?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int64 */
-            totalPages?: number;
-        };
-        PagedModel: {
-            content?: Record<string, never>[];
-            page?: components["schemas"]["PageMetadata"];
-        };
-        FollowCountResponse: {
-            /** Format: int64 */
-            followerCount?: number;
-            /** Format: int64 */
-            followingCount?: number;
-            notifyNewPosts?: boolean;
-            blockedByMe?: boolean;
-            blockingMe?: boolean;
-            isFollowedByMe?: boolean;
-        };
-        TeamSummaryDto: {
-            teamId?: string;
-            teamName?: string;
-            teamShortName?: string;
-            isActive?: boolean;
-        };
-        TeamFranchiseEntity: {
-            /** Format: int32 */
-            id?: number;
-            name?: string;
-            originalCode?: string;
-            currentCode?: string;
+            appealCount?: number;
+            appealReason?: string;
+            appealStatus?: string;
             /** Format: date-time */
             createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            metadataJson?: string;
-            webUrl?: string;
-        };
-        TeamHistoryEntity: {
-            /** Format: int32 */
-            id?: number;
-            franchise?: components["schemas"]["TeamFranchiseEntity"];
-            /** Format: int32 */
-            season?: number;
-            teamName?: string;
-            teamCode?: string;
-            logoUrl?: string;
-            /** Format: int32 */
-            ranking?: number;
-            stadium?: string;
-            city?: string;
-            color?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            /** Format: int32 */
-            franchiseId?: number;
-        };
-        StadiumDto: {
-            stadiumId?: string;
-            stadiumName?: string;
-            team?: string;
-            /** Format: double */
-            lat?: number;
-            /** Format: double */
-            lng?: number;
-            address?: string;
-            phone?: string;
-        };
-        PlaceDto: {
-            /** Format: int64 */
-            id?: number;
-            stadiumName?: string;
-            category?: string;
-            name?: string;
             description?: string;
-            /** Format: double */
-            lat?: number;
-            /** Format: double */
-            lng?: number;
-            address?: string;
-            phone?: string;
-            /** Format: double */
-            rating?: number;
-            openTime?: string;
-            closeTime?: string;
-        };
-        StadiumDetailDto: {
-            stadiumId?: string;
-            stadiumName?: string;
-            team?: string;
-            /** Format: double */
-            lat?: number;
-            /** Format: double */
-            lng?: number;
-            address?: string;
-            phone?: string;
-            places?: components["schemas"]["PlaceDto"][];
-        };
-        PredictionResponseDto: {
-            gameId: string;
+            evidenceUrl?: string;
+            /** Format: date-time */
+            handledAt?: string;
             /** Format: int64 */
-            homeVotes: number;
-            /** Format: int64 */
-            awayVotes: number;
-            /** Format: int64 */
-            totalVotes: number;
-            /** Format: int32 */
-            homePercentage: number;
-            /** Format: int32 */
-            awayPercentage: number;
-        };
-        RankingPredictionInitDto: {
-            /** Format: int32 */
-            seasonYear: number;
-            saved: components["schemas"]["RankingPredictionResponseDto"] | null;
-        };
-        RankingPredictionCurrentSeasonDto: {
-            /** Format: int32 */
-            seasonYear: number;
-        };
-        GameDetailDto: {
-            gameId: string;
-            /** Format: date */
-            gameDate: string;
-            stadium: string;
-            stadiumName: string;
-            startTime: components["schemas"]["LocalTime"];
-            /** Format: int32 */
-            attendance: number;
-            weather: string;
-            /** Format: int32 */
-            gameTimeMinutes: number;
-            homeTeam: string;
-            awayTeam: string;
-            /** Format: int32 */
-            homeScore: number;
-            /** Format: int32 */
-            awayScore: number;
-            homePitcher: string;
-            awayPitcher: string;
-            gameStatus: string;
-            inningScores: components["schemas"]["GameInningScoreDto"][];
-            summary: components["schemas"]["GameSummaryDto"][];
-        };
-        GameInningScoreDto: {
-            /** Format: int32 */
-            inning: number;
-            teamSide: string;
-            teamCode: string;
-            /** Format: int32 */
-            runs: number;
-            isExtra: boolean;
-        };
-        GameSummaryDto: {
-            type: string;
-            /** Format: int32 */
-            playerId: number;
-            playerName: string;
-            detail: string;
-        };
-        MatchDayNavigationResponseDto: {
-            /** Format: date */
-            date?: string;
-            games?: components["schemas"]["MatchDto"][];
-            /** Format: date */
-            prevDate?: string;
-            /** Format: date */
-            nextDate?: string;
-            hasPrev?: boolean;
-            hasNext?: boolean;
-        };
-        MatchDto: {
-            gameId: string;
-            /** Format: date */
-            gameDate: string;
-            homeTeam: string;
-            awayTeam: string;
-            stadium: string;
-            startTime: components["schemas"]["LocalTime"];
-            /** Format: int32 */
-            homeScore: number;
-            /** Format: int32 */
-            awayScore: number;
-            winner: string;
-            gameStatus: string;
-            homePitcher: components["schemas"]["PitcherDto"];
-            awayPitcher: components["schemas"]["PitcherDto"];
-            aiSummary: string;
-            winProbability: components["schemas"]["WinProbabilityDto"];
-            /** Format: int32 */
-            seasonId: number;
-            leagueType: string;
-            postSeasonSeries: string;
-            /** Format: int32 */
-            seriesGameNo: number;
-            isDummy: boolean;
-        };
-        PitcherDto: {
-            name: string;
-            era: string;
-            /** Format: int32 */
-            win: number;
-            /** Format: int32 */
-            loss: number;
-            imgUrl: string;
-        };
-        PredictionBootstrapErrorDto: {
-            message: string;
-            /** Format: int32 */
-            status: number | null;
-            code: string | null;
-        };
-        PredictionBootstrapResourceDtoGameDetailDto: {
-            ok: boolean;
-            data: components["schemas"]["GameDetailDto"] | null;
-            error: components["schemas"]["PredictionBootstrapErrorDto"] | null;
-        };
-        PredictionBootstrapResourceDtoPredictionResponseDto: {
-            ok: boolean;
-            data: components["schemas"]["PredictionResponseDto"] | null;
-            error: components["schemas"]["PredictionBootstrapErrorDto"] | null;
-        };
-        PredictionBootstrapResponseDto: {
-            schedule: components["schemas"]["MatchDayNavigationResponseDto"];
-            selectedGameId: string | null;
-            selectedGameFound: boolean;
-            detail: components["schemas"]["PredictionBootstrapResourceDtoGameDetailDto"] | null;
-            voteStatus: components["schemas"]["PredictionBootstrapResourceDtoPredictionResponseDto"] | null;
-        };
-        WinProbabilityDto: {
-            /** Format: double */
-            home: number;
-            /** Format: double */
-            away: number;
-        };
-        PredictionStatsResponseDto: {
-            success: boolean;
-            message: string;
-            data: components["schemas"]["UserPredictionStatsDto"] | null;
-            code: string | null;
-            errors: {
-                [key: string]: string;
-            } | null;
-        };
-        UserPredictionStatsDto: {
-            /** Format: int32 */
-            totalPredictions: number;
-            /** Format: int32 */
-            correctPredictions: number;
-            /** Format: double */
-            accuracy: number;
-            /** Format: int32 */
-            streak: number;
-        };
-        MatePaymentCapabilityResponse: {
-            /** @enum {string} */
-            paymentMode: "DIRECT_TRADE" | "TOSS_TEST" | "IN_APP_PAYMENT";
-            /** @enum {string} */
-            businessMode: "DIRECT_TRADE" | "IN_APP_PAYMENT";
-            /** @enum {string} */
-            provider: "TOSS" | "UNSUPPORTED";
-            /** @enum {string} */
-            environment: "NONE" | "TEST" | "LIVE";
-            tossPaymentEnabled: boolean;
-            sellingPaymentRequired: boolean;
-            payoutEnabled: boolean;
-            /** @enum {string} */
-            payoutProvider: "SIM" | "TOSS" | "UNSUPPORTED";
-        };
-        MatePartyMemberSummary: {
-            initial?: string;
-            profileImageUrl?: string;
-            role?: string;
-            host?: boolean;
-        };
-        MatePartyPublicResponse: {
+            handledBy?: number;
             /** Format: int64 */
             id?: number;
-            hostHandle?: string;
-            hostName?: string;
-            hostProfileImageUrl?: string;
-            hostFavoriteTeam?: string;
-            /** @enum {string} */
-            hostBadge?: "NEW" | "VERIFIED" | "TRUSTED";
-            /** Format: double */
-            hostAverageRating?: number;
-            /** Format: int64 */
-            hostReviewCount?: number;
-            teamId?: string;
-            /** @enum {string} */
-            cheeringSide?: "HOME" | "AWAY" | "NEUTRAL";
-            /** Format: date */
-            gameDate?: string;
-            gameTime?: components["schemas"]["LocalTime"];
-            stadium?: string;
-            homeTeam?: string;
-            awayTeam?: string;
-            section?: string;
-            /** Format: int32 */
-            maxParticipants?: number;
-            /** Format: int32 */
-            currentParticipants?: number;
-            description?: string;
-            ticketVerified?: boolean;
-            /** @enum {string} */
-            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
-            /** Format: int32 */
-            price?: number;
-            /** Format: int32 */
-            ticketPrice?: number;
-            /** Format: int32 */
-            reservationDepositAmount?: number;
-            hostTrustMetrics?: components["schemas"]["MateHostTrustMetrics"];
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            favorited?: boolean;
-            seatDetail?: string;
-            members?: components["schemas"]["MatePartyMemberSummary"][];
-        };
-        PopularResponse: {
-            term?: string;
-            /** Format: int64 */
-            count?: number;
-            /** Format: int32 */
-            rank?: number;
-        };
-        Response: {
-            /** Format: int64 */
-            id?: number;
-            /** @enum {string} */
-            type?: "APPLICATION_RECEIVED" | "APPLICATION_APPROVED" | "APPLICATION_REJECTED" | "PARTY_EXPIRED" | "PARTY_AUTO_COMPLETED" | "GAME_TOMORROW_REMINDER" | "GAME_DAY_REMINDER" | "HOST_RESPONSE_NUDGE" | "REVIEW_REQUEST" | "PARTY_CANCELLED_HOST_DELETED" | "PARTY_PARTICIPANT_LEFT" | "POST_COMMENT" | "COMMENT_REPLY" | "POST_LIKE" | "POST_REPOST" | "NEW_FOLLOWER" | "FOLLOWING_NEW_POST" | "NEW_DEVICE_LOGIN";
-            title?: string;
-            message?: string;
-            /** Format: int64 */
-            relatedId?: number;
-            /** Format: date-time */
-            createdAt?: string;
-            isRead?: boolean;
-        };
-        GameLiveEventDto: {
-            /** Format: int32 */
-            eventSeq?: number;
-            /** Format: int32 */
-            inning?: number;
-            inningHalf?: string;
-            /** Format: int32 */
-            outs?: number;
-            batterName?: string;
-            pitcherName?: string;
-            description?: string;
-            eventType?: string;
-            resultCode?: string;
-            /** Format: int32 */
-            rbi?: number;
-            basesBefore?: string;
-            basesAfter?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            /** Format: double */
-            wpa?: number;
-            /** Format: double */
-            winExpectancyBefore?: number;
-            /** Format: double */
-            winExpectancyAfter?: number;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        /** @description Live game snapshot used by prediction detail polling. */
-        GameLiveSnapshotDto: {
-            gameId?: string;
-            gameStatus?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            /** Format: int32 */
-            currentInning?: number;
-            currentInningHalf?: string;
-            /** Format: int32 */
-            lastEventSeq?: number;
-            /** Format: date-time */
-            lastUpdatedAt?: string;
-            events?: components["schemas"]["GameLiveEventDto"][];
-            /** @description Normalized meaningful inning scores from game_inning_scores or derived from cumulative game_events scores. Older clients should tolerate this field being absent. */
-            inningScores?: components["schemas"]["GameInningScoreDto"][];
-        };
-        GameRelayEventDto: {
-            /** Format: int32 */
-            relayId?: number;
-            /** Format: int32 */
-            inning?: number;
-            inningHalf?: string;
-            pitcherName?: string;
-            batterName?: string;
-            playDescription?: string;
-            eventType?: string;
-            result?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-        };
-        GameRelaySnapshotDto: {
-            gameId?: string;
-            /** Format: int32 */
-            lastRelayId?: number;
-            /** Format: date-time */
-            lastUpdatedAt?: string;
-            events?: components["schemas"]["GameRelayEventDto"][];
-        };
-        GameLiveSummaryDto: {
-            gameId?: string;
-            gameStatus?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            /** Format: int32 */
-            lastEventSeq?: number;
-            /** Format: date-time */
-            lastUpdatedAt?: string;
-        };
-        MatchBoundsResponseDto: {
-            /** Format: date */
-            earliestGameDate?: string;
-            /** Format: date */
-            latestGameDate?: string;
-            hasData?: boolean;
-        };
-        RecentScoreDto: {
-            /** Format: int64 */
-            id?: number;
-            handle?: string;
-            userName?: string;
-            profileImageUrl?: string;
-            eventType?: string;
-            eventTypeKo?: string;
-            /** Format: int32 */
-            baseScore?: number;
-            /** Format: double */
-            multiplier?: number;
-            /** Format: int32 */
-            score?: number;
-            /** Format: int32 */
-            streak?: number;
-            description?: string;
-            /** Format: date-time */
-            timestamp?: string;
-        };
-        PowerupInventoryDto: {
-            type?: string;
-            name?: string;
-            description?: string;
-            icon?: string;
-            /** Format: int32 */
-            quantity?: number;
-            /** Format: double */
-            multiplier?: number;
-        };
-        UserStatsDto: {
-            handle?: string;
-            userName?: string;
-            profileImageUrl?: string;
-            /** Format: int64 */
-            rank?: number;
-            /** Format: int64 */
-            totalScore?: number;
-            /** Format: int64 */
-            seasonScore?: number;
-            /** Format: int64 */
-            monthlyScore?: number;
-            /** Format: int64 */
-            weeklyScore?: number;
-            /** Format: int64 */
-            totalRank?: number;
-            /** Format: int64 */
-            seasonRank?: number;
-            /** Format: int64 */
-            monthlyRank?: number;
-            /** Format: int64 */
-            weeklyRank?: number;
-            /** Format: int32 */
-            level?: number;
-            rankTitle?: string;
-            /** Format: int64 */
-            experiencePoints?: number;
-            /** Format: int64 */
-            nextLevelExp?: number;
-            /** Format: double */
-            levelProgress?: number;
-            /** Format: int32 */
-            currentStreak?: number;
-            /** Format: int32 */
-            maxStreak?: number;
-            /** Format: int32 */
-            correctPredictions?: number;
-            /** Format: int32 */
-            totalPredictions?: number;
-            /** Format: double */
-            accuracy?: number;
-            /** Format: int32 */
-            achievementCount?: number;
-            recentAchievements?: components["schemas"]["AchievementDto"][];
-            powerups?: components["schemas"]["PowerupInventoryDto"][];
-        };
-        UserRankDto: {
-            /** Format: int64 */
-            rank?: number;
-            /** Format: int64 */
-            score?: number;
-            /** Format: int32 */
-            level?: number;
-        };
-        ActivePowerupDto: {
-            /** Format: int64 */
-            id?: number;
-            type?: string;
-            name?: string;
-            description?: string;
-            icon?: string;
-            gameId?: string;
-            /** Format: date-time */
-            activatedAt?: string;
-            /** Format: date-time */
-            expiresAt?: string;
-            used?: boolean;
-        };
-        HotStreakDto: {
-            handle?: string;
-            userName?: string;
-            profileImageUrl?: string;
-            /** Format: int32 */
-            streak?: number;
-            /** Format: int32 */
-            level?: number;
-            rankTier?: string;
-            /** Format: int64 */
-            totalScore?: number;
-        };
-        HomePageGameDto: {
-            gameId?: string;
-            gameDate?: string;
-            sourceDate?: string;
-            time?: string;
-            stadium?: string;
-            gameStatus?: string;
-            gameStatusKr?: string;
-            gameInfo?: string;
-            leagueType?: string;
-            homeTeam?: string;
-            homeTeamFull?: string;
-            awayTeam?: string;
-            awayTeamFull?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-        };
-        ScheduleNavigationDto: {
-            /** Format: date */
-            prevGameDate?: string;
-            /** Format: date */
-            nextGameDate?: string;
-            hasPrev?: boolean;
-            hasNext?: boolean;
-        };
-        HomePageTeamRankingDto: {
-            /** Format: int32 */
-            rank: number;
-            teamId: string;
-            teamName: string;
-            /** Format: int32 */
-            wins: number;
-            /** Format: int32 */
-            losses: number;
-            /** Format: int32 */
-            draws: number;
-            winRate: string;
-            /** Format: int32 */
-            games: number;
-            /** Format: double */
-            gamesBehind: number;
-        };
-        HomeRankingSnapshotDto: {
-            /** Format: int32 */
-            rankingSeasonYear: number;
-            rankingSourceMessage: string;
-            rankings: components["schemas"]["HomePageTeamRankingDto"][];
-            isOffSeason: boolean;
-        };
-        OffseasonMovementDto: {
-            /** Format: int64 */
-            id?: number;
-            date?: string;
-            section?: string;
-            team?: string;
-            player?: string;
-            summary?: string;
-            remarks?: string;
-            contractTerm?: string;
-            contractValue?: string;
-            optionDetails?: string;
-            counterpartyTeam?: string;
-            counterpartyDetails?: string;
-            sourceLabel?: string;
-            sourceUrl?: string;
-            announcedAt?: string;
-            /** Format: int64 */
-            estimatedAmount?: number;
-            displayAmount?: string;
-            isBigEvent?: boolean;
-        };
-        AwardDto: {
-            award?: string;
-            playerName?: string;
-            team?: string;
-            stats?: string;
-        };
-        OffseasonMetaDto: {
-            awards?: components["schemas"]["AwardDto"][];
-            postSeasonResults?: components["schemas"]["PostSeasonResultDto"][];
-        };
-        PostSeasonResultDto: {
-            title?: string;
-            result?: string;
-            detail?: string;
-        };
-        LeagueStartDatesDto: {
-            regularSeasonStart?: string;
-            postseasonStart?: string;
-            koreanSeriesStart?: string;
-        };
-        FeaturedMateCardDto: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            hostId?: number;
-            teamId?: string;
-            gameDate?: string;
-            gameTime?: string;
-            stadium?: string;
-            section?: string;
-            description?: string;
-            homeTeam?: string;
-            awayTeam?: string;
-            /** Format: int32 */
-            currentParticipants?: number;
-            /** Format: int32 */
-            maxParticipants?: number;
-            /** Format: int32 */
-            ticketPrice?: number;
-            status?: string;
-        };
-        HomeWidgetsResponseDto: {
-            hotCheerPosts?: components["schemas"]["PostSummaryRes"][];
-            featuredMates?: components["schemas"]["FeaturedMateCardDto"][];
-            rankingSnapshot?: components["schemas"]["HomeRankingSnapshotDto"];
-        };
-        PostSummaryRes: {
-            /** Format: int64 */
-            id?: number;
-            teamId?: string;
-            teamName?: string;
-            teamShortName?: string;
-            teamColor?: string;
-            content?: string;
-            author?: string;
-            authorHandle?: string;
-            authorProfileImageUrl?: string;
-            authorTeamId?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int32 */
-            comments?: number;
-            /** Format: int32 */
-            likes?: number;
-            /** Format: int32 */
-            bookmarkCount?: number;
-            liked?: boolean;
-            /** Format: int32 */
-            views?: number;
-            isHot?: boolean;
-            isBookmarked?: boolean;
-            isOwner?: boolean;
-            /** Format: int32 */
-            repostCount?: number;
-            repostedByMe?: boolean;
-            postType?: string;
-            imageUrls?: string[];
-            /** Format: int64 */
-            repostOfId?: number;
-            repostType?: string;
-            originalPost?: components["schemas"]["EmbeddedPostDto"];
-            originalDeleted?: boolean;
-            shareMode?: string;
-            sourceInfo?: components["schemas"]["SourceInfoRes"];
-            linkedContent?: components["schemas"]["LinkedContentRes"];
-        };
-        HomeScopedNavigationDto: {
-            resolvedDate?: string;
-            prevGameDate?: string;
-            nextGameDate?: string;
-            hasPrev?: boolean;
-            hasNext?: boolean;
-        };
-        HomeBootstrapLoadStateDto: {
-            isFallback?: boolean;
-            timedOut?: boolean;
-            timedOutSections?: string[];
-            failedSections?: string[];
-            failureReason?: string;
-            manualDataRequest?: components["schemas"]["ManualBaseballDataRequest"];
-        };
-        HomeBootstrapResponseDto: {
-            selectedDate?: string;
-            leagueStartDates?: components["schemas"]["LeagueStartDatesDto"];
-            navigation?: components["schemas"]["HomeScheduleNavigationDto"];
-            games?: components["schemas"]["HomePageGameDto"][];
-            scheduledGamesWindow?: components["schemas"]["HomePageScheduledGameDto"][];
-            loadState?: components["schemas"]["HomeBootstrapLoadStateDto"];
-        };
-        HomePageScheduledGameDto: {
-            gameId?: string;
-            time?: string;
-            stadium?: string;
-            gameStatus?: string;
-            gameStatusKr?: string;
-            gameInfo?: string;
-            leagueType?: string;
-            homeTeam?: string;
-            homeTeamFull?: string;
-            awayTeam?: string;
-            awayTeamFull?: string;
-            /** Format: int32 */
-            homeScore?: number;
-            /** Format: int32 */
-            awayScore?: number;
-            sourceDate?: string;
-            leagueBadge?: string;
-        };
-        HomeScheduleNavigationDto: {
-            prevGameDate?: string;
-            nextGameDate?: string;
-            hasPrev?: boolean;
-            hasNext?: boolean;
-        };
-        ManualBaseballDataMissingItem: {
-            key?: string;
-            label?: string;
-            reason?: string;
-            expected_format?: string;
-        };
-        ManualBaseballDataRequest: {
-            scope?: string;
-            missingItems?: components["schemas"]["ManualBaseballDataMissingItem"][];
-            operatorMessage?: string;
-            blocking?: boolean;
-        };
-        TeamEntity: {
-            teamId?: string;
-            teamName?: string;
-            teamShortName?: string;
-            city?: string;
-            stadiumName?: string;
-            /** Format: int32 */
-            foundedYear?: number;
-            color?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: date-time */
-            updatedAt?: string;
-            franchise?: components["schemas"]["TeamFranchiseEntity"];
-            isActive?: boolean;
-            aliases?: string;
-            /** Format: int32 */
-            franchiseId?: number;
-            activeKboTeam?: boolean;
-        };
-        DayStats: {
-            /** Format: int32 */
-            count?: number;
-            /** Format: int32 */
-            wins?: number;
-            /** Format: double */
-            winRate?: number;
-        };
-        DiaryStatisticsDto: {
-            /** Format: int32 */
-            totalCount?: number;
-            /** Format: int32 */
-            totalWins?: number;
-            /** Format: int32 */
-            totalLosses?: number;
-            /** Format: int32 */
-            totalDraws?: number;
-            /** Format: double */
-            winRate?: number;
-            /** Format: int32 */
-            monthlyCount?: number;
-            /** Format: int32 */
-            yearlyCount?: number;
-            /** Format: int32 */
-            yearlyWins?: number;
-            /** Format: double */
-            yearlyWinRate?: number;
-            mostVisitedStadium?: string;
-            /** Format: int32 */
-            mostVisitedCount?: number;
-            monthlyVisitCounts?: {
-                [key: string]: number;
-            };
-            stadiumVisitCounts?: {
-                [key: string]: number;
-            };
-            /** Format: int32 */
-            homeVisitCount?: number;
-            /** Format: int32 */
-            awayVisitCount?: number;
-            /** Format: int32 */
-            scheduledCount?: number;
-            happiestMonth?: string;
-            /** Format: int32 */
-            happiestCount?: number;
-            firstDiaryDate?: string;
-            /** Format: int32 */
-            cheerPostCount?: number;
-            /** Format: int32 */
-            mateParticipationCount?: number;
-            emojiCounts?: {
-                [key: string]: number;
-            };
-            /** Format: int32 */
-            currentWinStreak?: number;
-            /** Format: int32 */
-            longestWinStreak?: number;
-            /** Format: int32 */
-            currentLossStreak?: number;
-            opponentWinRates?: {
-                [key: string]: components["schemas"]["OpponentStats"];
-            };
-            bestOpponent?: string;
-            worstOpponent?: string;
-            dayOfWeekStats?: {
-                [key: string]: components["schemas"]["DayStats"];
-            };
-            luckyDay?: string;
-            earnedBadges?: string[];
-        };
-        OpponentStats: {
-            /** Format: int32 */
-            wins?: number;
-            /** Format: int32 */
-            losses?: number;
-            /** Format: int32 */
-            draws?: number;
-            /** Format: double */
-            winRate?: number;
-        };
-        SeatViewPhotoDto: {
-            photoUrl?: string;
-            stadium?: string;
-            section?: string;
-            block?: string;
-            diaryDate?: string;
-        };
-        GameResponseDto: {
-            /** Format: int64 */
-            id?: number;
-            homeTeam?: string;
-            awayTeam?: string;
-            stadium?: string;
-            score?: string;
-            date?: string;
-        };
-        PagedModelPostSummaryRes: {
-            content?: components["schemas"]["PostSummaryRes"][];
-            page?: components["schemas"]["PageMetadata"];
-        };
-        PagedModelCommentRes: {
-            content?: components["schemas"]["CommentRes"][];
-            page?: components["schemas"]["PageMetadata"];
-        };
-        LinkedPostLookupRes: {
             /** Format: int64 */
             postId?: number;
-            preview?: components["schemas"]["LinkedContentRes"];
-        };
-        PostChangesResponse: {
-            /** Format: int32 */
-            newCount?: number;
+            postPreview?: string;
+            reason?: string;
+            reporterHandle?: string;
             /** Format: int64 */
-            latestId?: number;
+            reporterId?: number;
+            requestedAction?: string;
+            status?: string;
         };
-        CheerBattleStatusRes: {
-            stats?: {
-                [key: string]: number;
-            };
-            myVote?: string;
+        AdminSeatViewActionReq: {
+            adminLabel?: string;
+            adminMemo?: string;
+            moderationStatus?: string;
         };
-        MateChatUnreadCountResponse: {
-            success?: boolean;
+        AdminSeatViewDto: {
+            adminLabel?: string;
+            adminMemo?: string;
+            /** Format: double */
+            aiConfidence?: number;
+            aiReason?: string;
+            aiSuggestedLabel?: string;
+            block?: string;
+            diaryDate?: string;
             /** Format: int64 */
-            data?: number;
-        };
-        ApiResponseListTrustedDeviceDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["TrustedDeviceDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        TrustedDeviceDto: {
+            diaryId?: number;
             /** Format: int64 */
             id?: number;
-            deviceLabel?: string;
-            deviceType?: string;
-            browser?: string;
-            os?: string;
-            firstSeenAt?: string;
-            lastSeenAt?: string;
-            lastLoginAt?: string;
-            lastIp?: string;
+            moderationStatus?: string;
+            photoUrl?: string;
+            reviewedAt?: string;
+            /** Format: int64 */
+            reviewedBy?: number;
+            rewardGranted?: boolean;
+            seatNumber?: string;
+            seatRow?: string;
+            section?: string;
+            sourceType?: string;
+            stadium?: string;
+            storagePath?: string;
+            ticketVerified?: boolean;
+            ticketVerifiedAt?: string;
+            /** Format: int64 */
+            userId?: number;
+            userSelected?: boolean;
         };
-        AccountSecurityEventDto: {
+        AdminStatsDto: {
+            /** Format: int64 */
+            totalMates?: number;
+            /** Format: int64 */
+            totalPosts?: number;
+            /** Format: int64 */
+            totalUsers?: number;
+        };
+        AdminUserDto: {
+            /** Format: date-time */
+            createdAt?: string;
+            email?: string;
+            favoriteTeam?: string;
             /** Format: int64 */
             id?: number;
-            eventType?: string;
-            occurredAt?: string;
-            deviceLabel?: string;
-            deviceType?: string;
-            browser?: string;
-            os?: string;
-            ip?: string;
-            message?: string;
+            name?: string;
+            /** Format: int64 */
+            postCount?: number;
+            role?: string;
         };
-        ApiResponseListAccountSecurityEventDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AccountSecurityEventDto"][];
+        ApiResponse: {
             code?: string;
+            data?: Record<string, never>;
             errors?: {
                 [key: string]: string;
             };
-        };
-        ApiResponsePolicyRequiredResponseDto: {
-            success?: boolean;
             message?: string;
-            data?: components["schemas"]["PolicyRequiredResponseDto"];
+            success?: boolean;
+        };
+        ApiResponseAccountDeletionRecoveryInfoDto: {
             code?: string;
+            data?: components["schemas"]["AccountDeletionRecoveryInfoDto"];
             errors?: {
                 [key: string]: string;
             };
+            message?: string;
+            success?: boolean;
         };
-        PolicyRequiredResponseDto: {
-            policies?: components["schemas"]["PolicyRequirementItemDto"][];
-            /** Format: int32 */
-            gracePeriodDays?: number;
-            effectiveDate?: string;
-            hardGateDate?: string;
+        ApiResponseAdminNonCanonicalCleanupTrackerDto: {
+            code?: string;
+            data?: components["schemas"]["AdminNonCanonicalCleanupTrackerDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
         };
-        PolicyRequirementItemDto: {
-            policyType?: string;
-            version?: string;
-            path?: string;
-            required?: boolean;
-            effectiveDate?: string;
+        ApiResponseAdminReportDto: {
+            code?: string;
+            data?: components["schemas"]["AdminReportDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseAdminSeatViewDto: {
+            code?: string;
+            data?: components["schemas"]["AdminSeatViewDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseAdminStatsDto: {
+            code?: string;
+            data?: components["schemas"]["AdminStatsDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
         };
         ApiResponseAvailabilityCheckResponseDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AvailabilityCheckResponseDto"];
             code?: string;
+            data?: components["schemas"]["AvailabilityCheckResponseDto"];
             errors?: {
                 [key: string]: string;
             };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseChatFavoriteItem: {
+            code?: string;
+            data?: components["schemas"]["ChatFavoriteItem"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseChatSessionSummary: {
+            code?: string;
+            data?: components["schemas"]["ChatSessionSummary"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseClientErrorDashboardDto: {
+            code?: string;
+            data?: components["schemas"]["ClientErrorDashboardDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseClientErrorEventDetailDto: {
+            code?: string;
+            data?: components["schemas"]["ClientErrorEventDetailDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseClientErrorEventPageDto: {
+            code?: string;
+            data?: components["schemas"]["ClientErrorEventPageDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseGameScoreSyncBatchResultDto: {
+            code?: string;
+            data?: components["schemas"]["GameScoreSyncBatchResultDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseGameScoreSyncResultDto: {
+            code?: string;
+            data?: components["schemas"]["GameScoreSyncResultDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseGameStatusMismatchBatchResultDto: {
+            code?: string;
+            data?: components["schemas"]["GameStatusMismatchBatchResultDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseGameStatusRepairBatchResultDto: {
+            code?: string;
+            data?: components["schemas"]["GameStatusRepairBatchResultDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListAccountSecurityEventDto: {
+            code?: string;
+            data?: components["schemas"]["AccountSecurityEventDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListAdminMateDto: {
+            code?: string;
+            data?: components["schemas"]["AdminMateDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListAdminNonCanonicalCleanupTrackerDto: {
+            code?: string;
+            data?: components["schemas"]["AdminNonCanonicalCleanupTrackerDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListAdminPostDto: {
+            code?: string;
+            data?: components["schemas"]["AdminPostDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListAdminSeatViewDto: {
+            code?: string;
+            data?: components["schemas"]["AdminSeatViewDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListAdminUserDto: {
+            code?: string;
+            data?: components["schemas"]["AdminUserDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListChatFavoriteItem: {
+            code?: string;
+            data?: components["schemas"]["ChatFavoriteItem"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListChatSessionSummary: {
+            code?: string;
+            data?: components["schemas"]["ChatSessionSummary"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListOffseasonMovementAdminDto: {
+            code?: string;
+            data?: components["schemas"]["OffseasonMovementAdminDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListStoredChatMessage: {
+            code?: string;
+            data?: components["schemas"]["StoredChatMessage"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListTrustedDeviceDto: {
+            code?: string;
+            data?: components["schemas"]["TrustedDeviceDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMapStringLong: {
+            code?: string;
+            data?: {
+                [key: string]: number;
+            };
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMapStringObject: {
+            code?: string;
+            data?: {
+                [key: string]: Record<string, never>;
+            };
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMateChatImageUploadResponse: {
+            code?: string;
+            data?: components["schemas"]["MateChatImageUploadResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMateInternalSettlementPayoutResponse: {
+            code?: string;
+            data?: components["schemas"]["MateInternalSettlementPayoutResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMatePaymentCancelIntentResponse: {
+            code?: string;
+            data?: components["schemas"]["MatePaymentCancelIntentResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMateSellerPayoutProfileResponse: {
+            code?: string;
+            data?: components["schemas"]["MateSellerPayoutProfileResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMediaBackfillReport: {
+            code?: string;
+            data?: components["schemas"]["MediaBackfillReport"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMediaCleanupReport: {
+            code?: string;
+            data?: components["schemas"]["MediaCleanupReport"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMediaSmokeReport: {
+            code?: string;
+            data?: components["schemas"]["MediaSmokeReport"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseOffseasonMovementAdminDto: {
+            code?: string;
+            data?: components["schemas"]["OffseasonMovementAdminDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponsePageAdminReportDto: {
+            code?: string;
+            data?: components["schemas"]["PageObject"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponsePageAuditLogDto: {
+            code?: string;
+            data?: components["schemas"]["PageObject"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponsePolicyRequiredResponseDto: {
+            code?: string;
+            data?: components["schemas"]["PolicyRequiredResponseDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseRoleChangeResponseDto: {
+            code?: string;
+            data?: components["schemas"]["RoleChangeResponseDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseStoredChatMessage: {
+            code?: string;
+            data?: components["schemas"]["StoredChatMessage"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseVoid: {
+            code?: string;
+            data?: Record<string, never>;
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        AuditLogDto: {
+            action?: string;
+            actionDescription?: string;
+            adminEmail?: string;
+            /** Format: int64 */
+            adminId?: number;
+            adminName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            description?: string;
+            /** Format: int64 */
+            id?: number;
+            newValue?: string;
+            oldValue?: string;
+            targetUserEmail?: string;
+            /** Format: int64 */
+            targetUserId?: number;
+            targetUserName?: string;
         };
         AvailabilityCheckResponseDto: {
             available?: boolean;
             normalized?: string;
         };
-        AccountDeletionRecoveryInfoDto: {
-            scheduledFor?: string;
-        };
-        ApiResponseAccountDeletionRecoveryInfoDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AccountDeletionRecoveryInfoDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseListChatSessionSummary: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ChatSessionSummary"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseListStoredChatMessage: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["StoredChatMessage"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseListChatFavoriteItem: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ChatFavoriteItem"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        AdminUserDto: {
-            /** Format: int64 */
-            id?: number;
-            email?: string;
-            name?: string;
-            favoriteTeam?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            /** Format: int64 */
-            postCount?: number;
-            role?: string;
-        };
-        ApiResponseListAdminUserDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminUserDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        AdminStatsDto: {
-            /** Format: int64 */
-            totalUsers?: number;
-            /** Format: int64 */
-            totalPosts?: number;
-            /** Format: int64 */
-            totalMates?: number;
-        };
-        ApiResponseAdminStatsDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminStatsDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseListAdminSeatViewDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminSeatViewDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponsePageAuditLogDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["PageObject"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        AuditLogDto: {
-            /** Format: int64 */
-            id?: number;
-            /** Format: int64 */
-            adminId?: number;
-            adminEmail?: string;
-            adminName?: string;
-            /** Format: int64 */
-            targetUserId?: number;
-            targetUserEmail?: string;
-            targetUserName?: string;
-            action?: string;
-            actionDescription?: string;
-            oldValue?: string;
-            newValue?: string;
-            description?: string;
-            /** Format: date-time */
-            createdAt?: string;
-        };
-        PageObject: {
-            /** Format: int32 */
-            totalPages?: number;
-            /** Format: int64 */
-            totalElements?: number;
-            pageable?: components["schemas"]["PageableObject"];
-            first?: boolean;
-            last?: boolean;
-            /** Format: int32 */
-            numberOfElements?: number;
-            /** Format: int32 */
-            size?: number;
-            content?: components["schemas"]["AuditLogDto"][];
-            /** Format: int32 */
-            number?: number;
-            sort?: components["schemas"]["SortObject"];
-            empty?: boolean;
-        };
-        PageableObject: {
-            paged?: boolean;
-            /** Format: int32 */
-            pageNumber?: number;
-            /** Format: int32 */
-            pageSize?: number;
-            unpaged?: boolean;
-            /** Format: int64 */
-            offset?: number;
-            sort?: components["schemas"]["SortObject"];
-        };
-        SortObject: {
-            unsorted?: boolean;
-            sorted?: boolean;
-            empty?: boolean;
-        };
-        ApiResponsePageAdminReportDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["PageObject"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        AdminPostDto: {
-            /** Format: int64 */
-            id?: number;
+        AwardDto: {
+            award?: string;
+            playerName?: string;
+            stats?: string;
             team?: string;
+        };
+        BlockToggleResponse: {
+            blocked?: boolean;
+            /** Format: int64 */
+            blockedCount?: number;
+        };
+        BookmarkResponse: {
+            bookmarked?: boolean;
+            /** Format: int32 */
+            count?: number;
+        };
+        BootstrapRequest: {
+            targetHandle: string;
+        };
+        ChangePasswordRequest: {
+            confirmPassword: string;
+            currentPassword?: string;
+            newPassword: string;
+        };
+        ChatFavoriteItem: {
             content?: string;
-            author?: string;
+            /** Format: date-time */
+            favoritedAt?: string;
+            /** Format: date-time */
+            messageCreatedAt?: string;
+            /** Format: int64 */
+            messageId?: number;
+            prompt?: string;
+            /** Format: int64 */
+            sessionId?: number;
+            sessionTitle?: string;
+        };
+        ChatSessionSummary: {
             /** Format: date-time */
             createdAt?: string;
+            /** Format: date-time */
+            lastMessageAt?: string;
+            latestMessagePreview?: string;
             /** Format: int32 */
-            likeCount?: number;
-            /** Format: int32 */
-            commentCount?: number;
-            /** Format: int32 */
-            views?: number;
-            isHot?: boolean;
-        };
-        ApiResponseListAdminPostDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminPostDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseListOffseasonMovementAdminDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["OffseasonMovementAdminDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        AdminMateDto: {
+            messageCount?: number;
             /** Format: int64 */
-            id?: number;
-            teamId?: string;
+            sessionId?: number;
             title?: string;
-            stadium?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        CheckinLinkedContentRes: {
+            awayTeam?: string;
+            cheeringTeam?: string;
             /** Format: date */
             gameDate?: string;
-            /** Format: int32 */
-            currentMembers?: number;
-            /** Format: int32 */
-            maxMembers?: number;
-            status?: string;
-            /** Format: date-time */
-            createdAt?: string;
-            hostName?: string;
             homeTeam?: string;
-            awayTeam?: string;
-            section?: string;
+            stadium?: string;
+            verified?: boolean;
         };
-        ApiResponseListAdminMateDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminMateDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseGameStatusMismatchBatchResultDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["GameStatusMismatchBatchResultDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        GameStatusMismatchBatchResultDto: {
-            /** Format: date */
-            startDate?: string;
-            /** Format: date */
-            endDate?: string;
-            /** Format: int32 */
-            totalGames?: number;
-            /** Format: int32 */
-            mismatchCount?: number;
-            mismatches?: components["schemas"]["GameStatusMismatchDto"][];
-            /** Format: int32 */
-            nonCanonicalCount?: number;
-            nonCanonicalGames?: components["schemas"]["NonCanonicalGameDto"][];
-        };
-        ApiResponseListAdminNonCanonicalCleanupTrackerDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["AdminNonCanonicalCleanupTrackerDto"][];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ApiResponseClientErrorEventPageDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ClientErrorEventPageDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ClientErrorEventPageDto: {
-            content?: components["schemas"]["ClientErrorEventSummaryDto"][];
-            /** Format: int64 */
-            totalElements?: number;
-            /** Format: int32 */
-            totalPages?: number;
-            /** Format: int32 */
-            size?: number;
-            /** Format: int32 */
-            number?: number;
-            last?: boolean;
-        };
-        ClientErrorEventSummaryDto: {
-            eventId?: string;
-            bucket?: string;
-            source?: string;
-            message?: string;
-            /** Format: int32 */
-            statusCode?: number;
-            statusGroup?: string;
-            responseCode?: string;
-            route?: string;
-            normalizedRoute?: string;
-            method?: string;
-            endpoint?: string;
-            normalizedEndpoint?: string;
-            fingerprint?: string;
-            /** Format: date-time */
-            occurredAt?: string;
-            sessionId?: string;
-            /** Format: int64 */
-            userId?: number;
-            /** Format: int32 */
-            feedbackCount?: number;
-        };
-        ApiResponseClientErrorEventDetailDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ClientErrorEventDetailDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
-            };
-        };
-        ClientErrorEventDetailDto: {
-            event?: components["schemas"]["ClientErrorEventSummaryDto"];
-            stack?: string;
-            componentStack?: string;
-            feedback?: components["schemas"]["ClientErrorRecentFeedbackDto"][];
-            sameFingerprintRecentEvents?: components["schemas"]["ClientErrorEventSummaryDto"][];
-        };
-        ClientErrorRecentFeedbackDto: {
-            eventId?: string;
-            route?: string;
-            actionTaken?: string;
-            comment?: string;
-            /** Format: date-time */
-            occurredAt?: string;
-        };
-        ApiResponseClientErrorDashboardDto: {
-            success?: boolean;
-            message?: string;
-            data?: components["schemas"]["ClientErrorDashboardDto"];
-            code?: string;
-            errors?: {
-                [key: string]: string;
+        CheerBattleStatusRes: {
+            myVote?: string;
+            stats?: {
+                [key: string]: number;
             };
         };
         ClientErrorAlertNotificationDto: {
+            bucket?: string;
+            channel?: string;
+            deliveryStatus?: string;
+            failureReason?: string;
+            fingerprint?: string;
             /** Format: int64 */
             id?: number;
-            fingerprint?: string;
-            bucket?: string;
-            source?: string;
-            channel?: string;
-            route?: string;
-            statusGroup?: string;
-            /** Format: int64 */
-            observedCount?: number;
-            /** Format: int32 */
-            thresholdCount?: number;
-            /** Format: int32 */
-            windowMinutes?: number;
             latestEventId?: string;
             latestMessage?: string;
             /** Format: date-time */
             latestOccurredAt?: string;
             /** Format: date-time */
             notifiedAt?: string;
-            deliveryStatus?: string;
-            failureReason?: string;
+            /** Format: int64 */
+            observedCount?: number;
+            route?: string;
+            source?: string;
+            statusGroup?: string;
+            /** Format: int32 */
+            thresholdCount?: number;
+            /** Format: int32 */
+            windowMinutes?: number;
         };
         ClientErrorDashboardDto: {
             /** Format: date-time */
             from?: string;
+            granularity?: string;
+            recentAlerts?: components["schemas"]["ClientErrorAlertNotificationDto"][];
+            recentFeedback?: components["schemas"]["ClientErrorRecentFeedbackDto"][];
+            timeSeries?: components["schemas"]["ClientErrorTimeSeriesPointDto"][];
             /** Format: date-time */
             to?: string;
-            granularity?: string;
-            totals?: components["schemas"]["ClientErrorDashboardTotalsDto"];
-            timeSeries?: components["schemas"]["ClientErrorTimeSeriesPointDto"][];
             topFingerprints?: components["schemas"]["ClientErrorTopFingerprintDto"][];
-            recentFeedback?: components["schemas"]["ClientErrorRecentFeedbackDto"][];
-            recentAlerts?: components["schemas"]["ClientErrorAlertNotificationDto"][];
+            totals?: components["schemas"]["ClientErrorDashboardTotalsDto"];
         };
         ClientErrorDashboardTotalsDto: {
             /** Format: int64 */
-            api?: number;
+            affectedRoutes?: number;
             /** Format: int64 */
-            runtime?: number;
+            api?: number;
             /** Format: int64 */
             feedback?: number;
             /** Format: int64 */
-            uniqueFingerprints?: number;
+            runtime?: number;
             /** Format: int64 */
-            affectedRoutes?: number;
+            uniqueFingerprints?: number;
+        };
+        ClientErrorEventDetailDto: {
+            componentStack?: string;
+            event?: components["schemas"]["ClientErrorEventSummaryDto"];
+            feedback?: components["schemas"]["ClientErrorRecentFeedbackDto"][];
+            sameFingerprintRecentEvents?: components["schemas"]["ClientErrorEventSummaryDto"][];
+            stack?: string;
+        };
+        ClientErrorEventPageDto: {
+            content?: components["schemas"]["ClientErrorEventSummaryDto"][];
+            last?: boolean;
+            /** Format: int32 */
+            number?: number;
+            /** Format: int32 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        ClientErrorEventRequest: {
+            category: string;
+            componentStack?: string;
+            endpoint?: string;
+            eventId: string;
+            message: string;
+            method?: string;
+            responseCode?: string;
+            route: string;
+            sessionId?: string;
+            stack?: string;
+            /** Format: int32 */
+            statusCode?: number;
+            timestamp: string;
+            /** Format: int64 */
+            userId?: number;
+        };
+        ClientErrorEventSummaryDto: {
+            bucket?: string;
+            endpoint?: string;
+            eventId?: string;
+            /** Format: int32 */
+            feedbackCount?: number;
+            fingerprint?: string;
+            message?: string;
+            method?: string;
+            normalizedEndpoint?: string;
+            normalizedRoute?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            responseCode?: string;
+            route?: string;
+            sessionId?: string;
+            source?: string;
+            /** Format: int32 */
+            statusCode?: number;
+            statusGroup?: string;
+            /** Format: int64 */
+            userId?: number;
+        };
+        ClientErrorFeedbackRequest: {
+            actionTaken: string;
+            comment: string;
+            eventId: string;
+            route: string;
+            timestamp: string;
+        };
+        ClientErrorRecentFeedbackDto: {
+            actionTaken?: string;
+            comment?: string;
+            eventId?: string;
+            /** Format: date-time */
+            occurredAt?: string;
+            route?: string;
         };
         ClientErrorTimeSeriesPointDto: {
+            /** Format: int64 */
+            api?: number;
             /** Format: date-time */
             bucketStart?: string;
             /** Format: int64 */
-            api?: number;
+            feedback?: number;
             /** Format: int64 */
             runtime?: number;
-            /** Format: int64 */
-            feedback?: number;
         };
         ClientErrorTopFingerprintDto: {
-            fingerprint?: string;
             bucket?: string;
-            source?: string;
-            message?: string;
-            route?: string;
-            endpoint?: string;
-            statusGroup?: string;
-            method?: string;
             /** Format: int64 */
             count?: number;
-            /** Format: int64 */
-            uniqueSessions?: number;
+            endpoint?: string;
+            fingerprint?: string;
+            latestAlertChannel?: string;
+            /** Format: date-time */
+            latestAlertSentAt?: string;
             latestEventId?: string;
             /** Format: date-time */
             latestOccurredAt?: string;
+            message?: string;
+            method?: string;
+            route?: string;
+            source?: string;
+            statusGroup?: string;
+            /** Format: int64 */
+            uniqueSessions?: number;
+        };
+        CommentRes: {
+            author?: string;
+            authorHandle?: string;
+            authorProfileImageUrl?: string;
+            authorTeamId?: string;
+            content?: string;
             /** Format: date-time */
-            latestAlertSentAt?: string;
-            latestAlertChannel?: string;
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            likeCount?: number;
+            likedByMe?: boolean;
+            replies?: components["schemas"]["CommentRes"][];
+        };
+        CreateAssistantChatMessageRequest: {
+            cached?: boolean;
+            cancelled?: boolean;
+            citations?: components["schemas"]["JsonNode"];
+            content: string;
+            errorCode?: string;
+            fallbackReason?: string;
+            finishReason?: string;
+            intent?: string;
+            metadata?: components["schemas"]["JsonNode"];
+            plannerCacheHit?: boolean;
+            plannerMode?: string;
+            status?: string;
+            strategy?: string;
+            toolCalls?: components["schemas"]["JsonNode"];
+            toolExecutionMode?: string;
+            verified?: boolean;
+        };
+        CreateCommentReq: {
+            content: string;
+        };
+        CreatePostReq: {
+            content: string;
+            /** Format: int64 */
+            diaryId?: number;
+            images?: string[];
+            /** Format: int64 */
+            partyId?: number;
+            postType?: string;
+            /** @enum {string} */
+            shareMode?: "INTERNAL_REPOST" | "INTERNAL_QUOTE" | "EXTERNAL_LINK" | "EXTERNAL_COPY" | "EXTERNAL_EMBED" | "EXTERNAL_SUMMARY";
+            sourceAuthor?: string;
+            sourceChangedNote?: string;
+            sourceLicense?: string;
+            sourceLicenseUrl?: string;
+            sourceSnapshotType?: string;
+            sourceTitle?: string;
+            sourceUrl?: string;
+            teamId?: string;
+        };
+        CreateUserChatMessageRequest: {
+            content: string;
+        };
+        DayStats: {
+            /** Format: int32 */
+            count?: number;
+            /** Format: double */
+            winRate?: number;
+            /** Format: int32 */
+            wins?: number;
         };
         DeleteAccountRequest: {
-            password?: string;
             confirmText?: string;
+            password?: string;
         };
-        ApiResponseMapStringLong: {
-            success?: boolean;
-            message?: string;
-            data?: {
+        DiaryRequestDto: {
+            block?: string;
+            date?: string;
+            emojiName?: string;
+            /** Format: int64 */
+            gameId?: number;
+            memo?: string;
+            photos?: string[];
+            seatNumber?: string;
+            seatRow?: string;
+            section?: string;
+            ticketVerificationToken?: string;
+            type?: string;
+            winningName?: string;
+        };
+        DiaryResponseDto: {
+            block?: string;
+            date?: string;
+            emojiName?: string;
+            /** Format: int64 */
+            gameId?: number;
+            /** Format: int64 */
+            id?: number;
+            memo?: string;
+            photoStoragePaths?: string[];
+            photos?: string[];
+            seatNumber?: string;
+            seatRow?: string;
+            seatViewReward?: components["schemas"]["SeatViewRewardDto"];
+            section?: string;
+            stadium?: string;
+            team?: string;
+            ticketVerified?: boolean;
+            type?: string;
+            winningName?: string;
+        };
+        DiaryStatisticsDto: {
+            /** Format: int32 */
+            awayVisitCount?: number;
+            bestOpponent?: string;
+            /** Format: int32 */
+            cheerPostCount?: number;
+            /** Format: int32 */
+            currentLossStreak?: number;
+            /** Format: int32 */
+            currentWinStreak?: number;
+            dayOfWeekStats?: {
+                [key: string]: components["schemas"]["DayStats"];
+            };
+            earnedBadges?: string[];
+            emojiCounts?: {
                 [key: string]: number;
             };
-            code?: string;
-            errors?: {
-                [key: string]: string;
+            firstDiaryDate?: string;
+            /** Format: int32 */
+            happiestCount?: number;
+            happiestMonth?: string;
+            /** Format: int32 */
+            homeVisitCount?: number;
+            /** Format: int32 */
+            longestWinStreak?: number;
+            luckyDay?: string;
+            /** Format: int32 */
+            mateParticipationCount?: number;
+            /** Format: int32 */
+            monthlyCount?: number;
+            monthlyVisitCounts?: {
+                [key: string]: number;
             };
+            /** Format: int32 */
+            mostVisitedCount?: number;
+            mostVisitedStadium?: string;
+            opponentWinRates?: {
+                [key: string]: components["schemas"]["OpponentStats"];
+            };
+            /** Format: int32 */
+            scheduledCount?: number;
+            stadiumVisitCounts?: {
+                [key: string]: number;
+            };
+            /** Format: int32 */
+            totalCount?: number;
+            /** Format: int32 */
+            totalDraws?: number;
+            /** Format: int32 */
+            totalLosses?: number;
+            /** Format: int32 */
+            totalWins?: number;
+            /** Format: double */
+            winRate?: number;
+            worstOpponent?: string;
+            /** Format: int32 */
+            yearlyCount?: number;
+            /** Format: double */
+            yearlyWinRate?: number;
+            /** Format: int32 */
+            yearlyWins?: number;
+        };
+        EmbeddedPostDto: {
+            author?: string;
+            authorHandle?: string;
+            authorProfileImageUrl?: string;
+            /** Format: int32 */
+            commentCount?: number;
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            deleted?: boolean;
+            /** Format: int64 */
+            id?: number;
+            imageUrls?: string[];
+            /** Format: int32 */
+            likeCount?: number;
+            linkedContent?: components["schemas"]["LinkedContentRes"];
+            postType?: string;
+            /** Format: int32 */
+            repostCount?: number;
+            teamColor?: string;
+            teamId?: string;
+        };
+        FeaturedMateCardDto: {
+            awayTeam?: string;
+            /** Format: int32 */
+            currentParticipants?: number;
+            description?: string;
+            gameDate?: string;
+            gameTime?: string;
+            homeTeam?: string;
+            /** Format: int64 */
+            hostId?: number;
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            maxParticipants?: number;
+            section?: string;
+            stadium?: string;
+            status?: string;
+            teamId?: string;
+            /** Format: int32 */
+            ticketPrice?: number;
+        };
+        FollowCountResponse: {
+            blockedByMe?: boolean;
+            blockingMe?: boolean;
+            /** Format: int64 */
+            followerCount?: number;
+            /** Format: int64 */
+            followingCount?: number;
+            isFollowedByMe?: boolean;
+            notifyNewPosts?: boolean;
+        };
+        FollowToggleResponse: {
+            /** Format: int64 */
+            followerCount?: number;
+            following?: boolean;
+            /** Format: int64 */
+            followingCount?: number;
+            notifyNewPosts?: boolean;
+        };
+        GameDetailDto: {
+            /** Format: int32 */
+            attendance: number;
+            awayPitcher: string;
+            /** Format: int32 */
+            awayScore: number;
+            awayTeam: string;
+            /** Format: date */
+            gameDate: string;
+            gameId: string;
+            gameStatus: string;
+            /** Format: int32 */
+            gameTimeMinutes: number;
+            homePitcher: string;
+            /** Format: int32 */
+            homeScore: number;
+            homeTeam: string;
+            inningScores: components["schemas"]["GameInningScoreDto"][];
+            stadium: string;
+            stadiumName: string;
+            startTime: components["schemas"]["LocalTime"];
+            summary: components["schemas"]["GameSummaryDto"][];
+            weather: string;
+        };
+        GameInningScoreDto: {
+            /** Format: int32 */
+            inning: number;
+            isExtra: boolean;
+            /** Format: int32 */
+            runs: number;
+            teamCode: string;
+            teamSide: string;
+        };
+        GameInningScoreRequestDto: {
+            /** Format: int32 */
+            inning: number;
+            isExtra?: boolean;
+            /** Format: int32 */
+            runs: number;
+            teamCode?: string;
+            teamSide: string;
+        };
+        GameLiveEventDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            basesAfter?: string;
+            basesBefore?: string;
+            batterName?: string;
+            description?: string;
+            /** Format: int32 */
+            eventSeq?: number;
+            eventType?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            inning?: number;
+            inningHalf?: string;
+            /** Format: int32 */
+            outs?: number;
+            pitcherName?: string;
+            /** Format: int32 */
+            rbi?: number;
+            resultCode?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: double */
+            winExpectancyAfter?: number;
+            /** Format: double */
+            winExpectancyBefore?: number;
+            /** Format: double */
+            wpa?: number;
+        };
+        /** @description Live game snapshot used by prediction detail polling. */
+        GameLiveSnapshotDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            /** Format: int32 */
+            currentInning?: number;
+            currentInningHalf?: string;
+            events?: components["schemas"]["GameLiveEventDto"][];
+            gameId?: string;
+            gameStatus?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** @description Normalized meaningful inning scores from game_inning_scores or derived from cumulative game_events scores. Older clients should tolerate this field being absent. */
+            inningScores?: components["schemas"]["GameInningScoreDto"][];
+            /** Format: int32 */
+            lastEventSeq?: number;
+            /** Format: date-time */
+            lastUpdatedAt?: string;
+        };
+        GameLiveSummaryDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            gameId?: string;
+            gameStatus?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            lastEventSeq?: number;
+            /** Format: date-time */
+            lastUpdatedAt?: string;
+        };
+        GameRelayEventDto: {
+            batterName?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            eventType?: string;
+            /** Format: int32 */
+            inning?: number;
+            inningHalf?: string;
+            pitcherName?: string;
+            playDescription?: string;
+            /** Format: int32 */
+            relayId?: number;
+            result?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        GameRelaySnapshotDto: {
+            events?: components["schemas"]["GameRelayEventDto"][];
+            gameId?: string;
+            /** Format: int32 */
+            lastRelayId?: number;
+            /** Format: date-time */
+            lastUpdatedAt?: string;
+        };
+        GameResponseDto: {
+            awayTeam?: string;
+            date?: string;
+            homeTeam?: string;
+            /** Format: int64 */
+            id?: number;
+            score?: string;
+            stadium?: string;
+        };
+        GameScoreSyncBatchResultDto: {
+            /** Format: date */
+            endDate?: string;
+            results?: components["schemas"]["GameScoreSyncResultDto"][];
+            /** Format: int32 */
+            skippedGames?: number;
+            /** Format: date */
+            startDate?: string;
+            /** Format: int32 */
+            syncedGames?: number;
+            /** Format: int32 */
+            totalGames?: number;
+        };
+        GameScoreSyncResultDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            gameId?: string;
+            gameStatus?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            inningScoreCount?: number;
+            synced?: boolean;
+            usedInningScores?: boolean;
+            /** Format: int32 */
+            winningScore?: number;
+            winningTeam?: string;
+        };
+        GameStatusMismatchBatchResultDto: {
+            /** Format: date */
+            endDate?: string;
+            /** Format: int32 */
+            mismatchCount?: number;
+            mismatches?: components["schemas"]["GameStatusMismatchDto"][];
+            /** Format: int32 */
+            nonCanonicalCount?: number;
+            nonCanonicalGames?: components["schemas"]["NonCanonicalGameDto"][];
+            /** Format: date */
+            startDate?: string;
+            /** Format: int32 */
+            totalGames?: number;
+        };
+        GameStatusMismatchDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            effectiveStatus?: string;
+            /** Format: date */
+            gameDate?: string;
+            gameId?: string;
+            hasInningScores?: boolean;
+            hasKnownScore?: boolean;
+            /** Format: int32 */
+            homeScore?: number;
+            /** Format: int32 */
+            inningScoreCount?: number;
+            normalizedRawStatus?: string;
+            rawStatus?: string;
+            reasons?: string[];
+            startTime?: components["schemas"]["LocalTime"];
+        };
+        GameStatusRepairBatchResultDto: {
+            dryRun?: boolean;
+            /** Format: date */
+            endDate?: string;
+            /** Format: int32 */
+            mismatchCount?: number;
+            mismatches?: components["schemas"]["GameStatusMismatchDto"][];
+            /** Format: int32 */
+            nonCanonicalCount?: number;
+            nonCanonicalGames?: components["schemas"]["NonCanonicalGameDto"][];
+            /** Format: int32 */
+            repairedCount?: number;
+            repairedGames?: components["schemas"]["GameScoreSyncResultDto"][];
+            /** Format: date */
+            startDate?: string;
+            /** Format: int32 */
+            totalGames?: number;
+        };
+        GameSummaryDto: {
+            detail: string;
+            /** Format: int32 */
+            playerId: number;
+            playerName: string;
+            type: string;
+        };
+        HomeBootstrapLoadStateDto: {
+            failedSections?: string[];
+            failureReason?: string;
+            isFallback?: boolean;
+            manualDataRequest?: components["schemas"]["ManualBaseballDataRequest"];
+            timedOut?: boolean;
+            timedOutSections?: string[];
+        };
+        HomeBootstrapResponseDto: {
+            games?: components["schemas"]["HomePageGameDto"][];
+            leagueStartDates?: components["schemas"]["LeagueStartDatesDto"];
+            loadState?: components["schemas"]["HomeBootstrapLoadStateDto"];
+            navigation?: components["schemas"]["HomeScheduleNavigationDto"];
+            scheduledGamesWindow?: components["schemas"]["HomePageScheduledGameDto"][];
+            selectedDate?: string;
+        };
+        HomePageGameDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            awayTeam?: string;
+            awayTeamFull?: string;
+            gameDate?: string;
+            gameId?: string;
+            gameInfo?: string;
+            gameStatus?: string;
+            gameStatusKr?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            homeTeam?: string;
+            homeTeamFull?: string;
+            leagueType?: string;
+            sourceDate?: string;
+            stadium?: string;
+            time?: string;
+        };
+        HomePageScheduledGameDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            awayTeam?: string;
+            awayTeamFull?: string;
+            gameId?: string;
+            gameInfo?: string;
+            gameStatus?: string;
+            gameStatusKr?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            homeTeam?: string;
+            homeTeamFull?: string;
+            leagueBadge?: string;
+            leagueType?: string;
+            sourceDate?: string;
+            stadium?: string;
+            time?: string;
+        };
+        HomePageTeamRankingDto: {
+            /** Format: int32 */
+            draws: number;
+            /** Format: int32 */
+            games: number;
+            /** Format: double */
+            gamesBehind: number;
+            /** Format: int32 */
+            losses: number;
+            /** Format: int32 */
+            rank: number;
+            teamId: string;
+            teamName: string;
+            winRate: string;
+            /** Format: int32 */
+            wins: number;
+        };
+        HomeRankingSnapshotDto: {
+            isOffSeason: boolean;
+            /** Format: int32 */
+            rankingSeasonYear: number;
+            rankingSourceMessage: string;
+            rankings: components["schemas"]["HomePageTeamRankingDto"][];
+        };
+        HomeScheduleNavigationDto: {
+            hasNext?: boolean;
+            hasPrev?: boolean;
+            nextGameDate?: string;
+            prevGameDate?: string;
+        };
+        HomeScopedNavigationDto: {
+            hasNext?: boolean;
+            hasPrev?: boolean;
+            nextGameDate?: string;
+            prevGameDate?: string;
+            resolvedDate?: string;
+        };
+        HomeWidgetsResponseDto: {
+            featuredMates?: components["schemas"]["FeaturedMateCardDto"][];
+            hotCheerPosts?: components["schemas"]["PostSummaryRes"][];
+            rankingSnapshot?: components["schemas"]["HomeRankingSnapshotDto"];
+        };
+        HotStreakDto: {
+            handle?: string;
+            /** Format: int32 */
+            level?: number;
+            profileImageUrl?: string;
+            rankTier?: string;
+            /** Format: int32 */
+            streak?: number;
+            /** Format: int64 */
+            totalScore?: number;
+            userName?: string;
+        };
+        InitMediaUploadRequest: {
+            /** Format: int64 */
+            contentLength: number;
+            contentType: string;
+            /** @enum {string} */
+            domain: "PROFILE" | "DIARY" | "CHEER" | "CHAT";
+            fileName: string;
+            /** Format: int32 */
+            height: number;
+            /** Format: int32 */
+            width: number;
+        };
+        JsonNode: Record<string, never>;
+        LeagueStartDatesDto: {
+            koreanSeriesStart?: string;
+            postseasonStart?: string;
+            regularSeasonStart?: string;
+        };
+        LikeToggleResponse: {
+            liked?: boolean;
+            /** Format: int32 */
+            likes?: number;
+        };
+        LinkedContentRes: {
+            available?: boolean;
+            checkin?: components["schemas"]["CheckinLinkedContentRes"];
+            /** @enum {string} */
+            kind?: "CHECKIN" | "RECRUITMENT";
+            recruitment?: components["schemas"]["RecruitmentLinkedContentRes"];
+            /** @enum {string} */
+            unavailableReason?: "SOURCE_MISSING" | "SOURCE_INELIGIBLE" | "MANUAL_BASEBALL_DATA_REQUIRED";
+        };
+        LinkedPostLookupRes: {
+            /** Format: int64 */
+            postId?: number;
+            preview?: components["schemas"]["LinkedContentRes"];
+        };
+        LocalTime: {
+            /** Format: int32 */
+            hour?: number;
+            /** Format: int32 */
+            minute?: number;
+            /** Format: int32 */
+            nano?: number;
+            /** Format: int32 */
+            second?: number;
+        };
+        LoginDto: {
+            captchaToken?: string;
+            email: string;
+            password: string;
+        };
+        ManualBaseballDataMissingItem: {
+            expected_format?: string;
+            key?: string;
+            label?: string;
+            reason?: string;
+        };
+        ManualBaseballDataRequest: {
+            blocking?: boolean;
+            missingItems?: components["schemas"]["ManualBaseballDataMissingItem"][];
+            operatorMessage?: string;
+            scope?: string;
+        };
+        MatchBoundsResponseDto: {
+            /** Format: date */
+            earliestGameDate?: string;
+            hasData?: boolean;
+            /** Format: date */
+            latestGameDate?: string;
+        };
+        MatchDayNavigationResponseDto: {
+            /** Format: date */
+            date?: string;
+            games?: components["schemas"]["MatchDto"][];
+            hasNext?: boolean;
+            hasPrev?: boolean;
+            /** Format: date */
+            nextDate?: string;
+            /** Format: date */
+            prevDate?: string;
+        };
+        MatchDto: {
+            aiSummary: string;
+            awayPitcher: components["schemas"]["PitcherDto"];
+            /** Format: int32 */
+            awayScore: number;
+            awayTeam: string;
+            /** Format: date */
+            gameDate: string;
+            gameId: string;
+            gameStatus: string;
+            homePitcher: components["schemas"]["PitcherDto"];
+            /** Format: int32 */
+            homeScore: number;
+            homeTeam: string;
+            isDummy: boolean;
+            leagueType: string;
+            postSeasonSeries: string;
+            /** Format: int32 */
+            seasonId: number;
+            /** Format: int32 */
+            seriesGameNo: number;
+            stadium: string;
+            startTime: components["schemas"]["LocalTime"];
+            winProbability: components["schemas"]["WinProbabilityDto"];
+            winner: string;
         };
         MatchRangePageResponseDto: {
             content: components["schemas"]["MatchDto"][];
+            hasNext: boolean;
+            hasPrevious: boolean;
             /** Format: int32 */
             page: number;
             /** Format: int32 */
@@ -7041,8 +5683,1366 @@ export interface components {
             totalElements: number;
             /** Format: int32 */
             totalPages: number;
-            hasNext: boolean;
-            hasPrevious: boolean;
+        };
+        MateApplicationCancelRequest: {
+            cancelMemo?: string;
+            /** @enum {string} */
+            cancelReasonType?: "BUYER_CHANGED_MIND" | "SELLER_CHANGED_MIND" | "SYSTEM" | "EVENT_CANCELED" | "OTHER";
+        };
+        MateApplicationCancelResponse: {
+            /** Format: int64 */
+            applicationId?: number;
+            /** Format: int32 */
+            feeCharged?: number;
+            /** @enum {string} */
+            paymentStatus?: "PAID" | "REFUND_REQUESTED" | "CANCELED" | "REFUND_FAILED";
+            /** Format: int32 */
+            refundAmount?: number;
+            refundPolicyApplied?: string;
+            /** @enum {string} */
+            settlementStatus?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
+        };
+        MateApplicationCreateRequest: {
+            /** Format: int32 */
+            depositAmount?: number;
+            message?: string;
+            /** Format: int64 */
+            partyId: number;
+            /** @enum {string} */
+            paymentType?: "DEPOSIT" | "FULL";
+            ticketImageUrl?: string;
+            ticketVerified?: boolean;
+            verificationToken?: string;
+        };
+        MateApplicationResponse: {
+            /** @enum {string} */
+            applicantBadge?: "NEW" | "VERIFIED" | "TRUSTED";
+            applicantHandle?: string;
+            applicantName?: string;
+            /** Format: double */
+            applicantRating?: number;
+            /** Format: date-time */
+            approvedAt?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            depositAmount?: number;
+            /** Format: int32 */
+            feeAmount?: number;
+            /** Format: int64 */
+            id?: number;
+            isApproved?: boolean;
+            isPaid?: boolean;
+            isRejected?: boolean;
+            message?: string;
+            /** Format: int32 */
+            netSettlementAmount?: number;
+            orderId?: string;
+            /** Format: int64 */
+            partyId?: number;
+            paymentKey?: string;
+            /** @enum {string} */
+            paymentStatus?: "PAID" | "REFUND_REQUESTED" | "CANCELED" | "REFUND_FAILED";
+            /** @enum {string} */
+            paymentType?: "DEPOSIT" | "FULL";
+            /** Format: date-time */
+            rejectedAt?: string;
+            /** Format: date-time */
+            responseDeadline?: string;
+            /** @enum {string} */
+            settlementStatus?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
+            ticketImageUrl?: string;
+            ticketVerified?: boolean;
+        };
+        MateChatImageUploadResponse: {
+            path?: string;
+            url?: string;
+        };
+        MateChatMessageRequest: {
+            clientMessageId: string;
+            imageUrl?: string;
+            message?: string;
+            /** Format: int64 */
+            partyId: number;
+        };
+        MateChatMessageResponse: {
+            clientMessageId?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            imageUrl?: string;
+            message?: string;
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: int64 */
+            senderId?: number;
+            senderName?: string;
+        };
+        MateChatReadResponse: {
+            message?: string;
+            success?: boolean;
+        };
+        MateChatUnreadCountResponse: {
+            /** Format: int64 */
+            data?: number;
+            success?: boolean;
+        };
+        MateCheckInQrSessionRequest: {
+            /** Format: int64 */
+            partyId: number;
+        };
+        MateCheckInQrSessionResponse: {
+            checkinUrl?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            manualCode?: string;
+            /** Format: int64 */
+            partyId?: number;
+            sessionId?: string;
+        };
+        MateCheckInRequest: {
+            location: string;
+            manualCode?: string;
+            /** Format: int64 */
+            partyId: number;
+            qrSessionId?: string;
+        };
+        MateCheckInResponse: {
+            /** Format: date-time */
+            checkedInAt?: string;
+            /** Format: int64 */
+            id?: number;
+            location?: string;
+            /** Format: int64 */
+            partyId?: number;
+            userHandle?: string;
+            userName?: string;
+        };
+        MateHostReviewSnippet: {
+            comment?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            rating?: number;
+            reviewerHandle?: string;
+        };
+        MateHostTrustMetrics: {
+            /** Format: int32 */
+            averageResponseMinutes?: number;
+            /** Format: int64 */
+            completedMateCount?: number;
+            /** Format: date-time */
+            lastActiveAt?: string;
+            recentHostReviews?: components["schemas"]["MateHostReviewSnippet"][];
+            /** Format: int64 */
+            recentNoShowCount?: number;
+            reviewKeywordSummary?: components["schemas"]["MateReviewKeywordSummary"][];
+        };
+        MateInternalSettlementPayoutResponse: {
+            /** Format: date-time */
+            completedAt?: string;
+            failReason?: string;
+            failureCode?: string;
+            /** Format: int64 */
+            payoutId?: number;
+            providerRef?: string;
+            /** Format: date-time */
+            requestedAt?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "REQUESTED" | "COMPLETED" | "FAILED" | "SKIPPED" | "REFUNDED_AFTER_SETTLEMENT";
+        };
+        MatePartyCreateRequest: {
+            awayTeam: string;
+            /** @enum {string} */
+            cheeringSide: "HOME" | "AWAY" | "NEUTRAL";
+            description: string;
+            /** Format: date */
+            gameDate: string;
+            gameTime: components["schemas"]["LocalTime"];
+            homeTeam: string;
+            /** Format: int32 */
+            maxParticipants: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            reservationNumber?: string;
+            seatDetail?: string;
+            section: string;
+            stadium: string;
+            teamId?: string;
+            ticketImageUrl?: string;
+            /** Format: int32 */
+            ticketPrice?: number;
+            verificationToken: string;
+        };
+        MatePartyMemberSummary: {
+            host?: boolean;
+            initial?: string;
+            profileImageUrl?: string;
+            role?: string;
+        };
+        MatePartyPublicResponse: {
+            awayTeam?: string;
+            /** @enum {string} */
+            cheeringSide?: "HOME" | "AWAY" | "NEUTRAL";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            currentParticipants?: number;
+            description?: string;
+            favorited?: boolean;
+            /** Format: date */
+            gameDate?: string;
+            gameTime?: components["schemas"]["LocalTime"];
+            homeTeam?: string;
+            /** Format: double */
+            hostAverageRating?: number;
+            /** @enum {string} */
+            hostBadge?: "NEW" | "VERIFIED" | "TRUSTED";
+            hostFavoriteTeam?: string;
+            hostHandle?: string;
+            hostName?: string;
+            hostProfileImageUrl?: string;
+            /** Format: int64 */
+            hostReviewCount?: number;
+            hostTrustMetrics?: components["schemas"]["MateHostTrustMetrics"];
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            maxParticipants?: number;
+            members?: components["schemas"]["MatePartyMemberSummary"][];
+            /** Format: int32 */
+            price?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            seatDetail?: string;
+            section?: string;
+            stadium?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
+            teamId?: string;
+            /** Format: int32 */
+            ticketPrice?: number;
+            ticketVerified?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        MatePartyResponse: {
+            awayTeam?: string;
+            /** @enum {string} */
+            cheeringSide?: "HOME" | "AWAY" | "NEUTRAL";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            currentParticipants?: number;
+            description?: string;
+            /** Format: date */
+            gameDate?: string;
+            gameTime?: components["schemas"]["LocalTime"];
+            homeTeam?: string;
+            /** Format: double */
+            hostAverageRating?: number;
+            /** @enum {string} */
+            hostBadge?: "NEW" | "VERIFIED" | "TRUSTED";
+            hostFavoriteTeam?: string;
+            hostHandle?: string;
+            /** Format: int64 */
+            hostId?: number;
+            hostName?: string;
+            hostProfileImageUrl?: string;
+            /** Format: int64 */
+            hostReviewCount?: number;
+            hostTrustMetrics?: components["schemas"]["MateHostTrustMetrics"];
+            /** Format: int64 */
+            id?: number;
+            /** Format: int32 */
+            maxParticipants?: number;
+            /** Format: int32 */
+            price?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            reservationNumber?: string;
+            seatDetail?: string;
+            section?: string;
+            stadium?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
+            teamId?: string;
+            ticketImageUrl?: string;
+            /** Format: int32 */
+            ticketPrice?: number;
+            ticketVerified?: boolean;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        MatePartyUpdateRequest: {
+            description?: string;
+            /** Format: int32 */
+            maxParticipants?: number;
+            /** Format: int32 */
+            price?: number;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            seatDetail?: string;
+            section?: string;
+            /** @enum {string} */
+            status?: "PENDING" | "MATCHED" | "FAILED" | "SELLING" | "SOLD" | "CHECKED_IN" | "COMPLETED";
+            /** Format: int32 */
+            ticketPrice?: number;
+        };
+        MatePaymentCancelIntentRequest: {
+            cancelReason?: string;
+        };
+        MatePaymentCancelIntentResponse: {
+            /** Format: int64 */
+            intentId?: number;
+            /** @enum {string} */
+            status?: "PREPARED" | "CONFIRMED" | "APPLICATION_CREATED" | "CANCEL_REQUESTED" | "CANCELED" | "CANCEL_FAILED" | "EXPIRED";
+        };
+        MatePaymentCapabilityResponse: {
+            /** @enum {string} */
+            businessMode: "DIRECT_TRADE" | "IN_APP_PAYMENT";
+            /** @enum {string} */
+            environment: "NONE" | "TEST" | "LIVE";
+            /** @enum {string} */
+            paymentMode: "DIRECT_TRADE" | "TOSS_TEST" | "IN_APP_PAYMENT";
+            payoutEnabled: boolean;
+            /** @enum {string} */
+            payoutProvider: "SIM" | "TOSS" | "UNSUPPORTED";
+            /** @enum {string} */
+            provider: "TOSS" | "UNSUPPORTED";
+            sellingPaymentRequired: boolean;
+            tossPaymentEnabled: boolean;
+        };
+        MatePaymentConfirmRequest: {
+            cancelPolicyVersion?: string;
+            /** @enum {string} */
+            flowType?: "DEPOSIT" | "SELLING_FULL";
+            /** Format: int64 */
+            intentId?: number;
+            message?: string;
+            orderId?: string;
+            /** Format: int64 */
+            partyId?: number;
+            paymentKey?: string;
+            /** @enum {string} */
+            paymentType?: "DEPOSIT" | "FULL";
+            ticketImageUrl?: string;
+            ticketVerified?: boolean;
+            verificationToken?: string;
+        };
+        MatePaymentPrepareRequest: {
+            cancelPolicyVersion?: string;
+            /** @enum {string} */
+            flowType?: "DEPOSIT" | "SELLING_FULL";
+            /** Format: int64 */
+            partyId?: number;
+        };
+        MatePaymentPrepareResponse: {
+            /** Format: int32 */
+            amount?: number;
+            cancelPolicyVersion?: string;
+            currency?: string;
+            /** @enum {string} */
+            flowType?: "DEPOSIT" | "SELLING_FULL";
+            /** Format: int64 */
+            intentId?: number;
+            orderId?: string;
+            orderName?: string;
+            /** @enum {string} */
+            paymentType?: "DEPOSIT" | "FULL";
+        };
+        MateReviewCreateRequest: {
+            comment?: string;
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: int32 */
+            rating?: number;
+            revieweeHandle?: string;
+        };
+        MateReviewKeywordSummary: {
+            /** Format: int64 */
+            count?: number;
+            label?: string;
+        };
+        MateReviewResponse: {
+            comment?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: int32 */
+            rating?: number;
+            revieweeHandle?: string;
+            reviewerHandle?: string;
+        };
+        MateSellerPayoutProfileResponse: {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            kycStatus?: string;
+            metadataJson?: string;
+            provider?: string;
+            providerSellerId?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            /** Format: int64 */
+            userId?: number;
+        };
+        MateSellerPayoutProfileUpsertRequest: {
+            kycStatus?: string;
+            metadataJson?: string;
+            provider?: string;
+            providerSellerId?: string;
+            /** Format: int64 */
+            userId?: number;
+        };
+        MediaBackfillDomainReport: {
+            auditCounts?: {
+                [key: string]: number;
+            };
+            auditSamples?: components["schemas"]["MediaBackfillIssueSample"][];
+            /** Format: int32 */
+            clearedCount?: number;
+            domain?: string;
+            /** Format: int32 */
+            legacyPathRetainedCount?: number;
+            /** Format: int32 */
+            linkSyncedCount?: number;
+            /** Format: int32 */
+            manualReviewCount?: number;
+            /** Format: int32 */
+            normalizedCount?: number;
+            sampleLegacyRetainedTargets?: string[];
+            sampleManualReviewTargets?: string[];
+            sampleNormalizedTargets?: string[];
+            /** Format: int32 */
+            scannedCount?: number;
+            /** Format: int32 */
+            updatedCount?: number;
+        };
+        MediaBackfillIssueSample: {
+            detail?: string;
+            objectKey?: string;
+            subject?: string;
+            type?: string;
+        };
+        MediaBackfillReport: {
+            applied?: boolean;
+            /** Format: int32 */
+            batchSize?: number;
+            domains?: components["schemas"]["MediaBackfillDomainReport"][];
+            hasFailures?: boolean;
+            requestedDomains?: string[];
+        };
+        MediaCleanupReport: {
+            hasFailures?: boolean;
+            requestedTargets?: string[];
+            targets?: components["schemas"]["MediaCleanupTargetReport"][];
+        };
+        MediaCleanupTargetReport: {
+            /** Format: int32 */
+            deletedCount?: number;
+            /** Format: int32 */
+            errorCount?: number;
+            /** Format: int32 */
+            scannedCount?: number;
+            /** @enum {string} */
+            target?: "PENDING" | "ORPHAN";
+        };
+        MediaSmokeDomainReport: {
+            /** Format: int32 */
+            checkedCount?: number;
+            /** @enum {string} */
+            domain?: "PROFILE" | "DIARY" | "CHEER" | "CHAT";
+            failedObjectKeys?: string[];
+            /** Format: int32 */
+            feedDerivativeMissingCount?: number;
+            /** Format: int32 */
+            missingObjectCount?: number;
+            /** Format: int32 */
+            urlFailureCount?: number;
+        };
+        MediaSmokeReport: {
+            domains?: components["schemas"]["MediaSmokeDomainReport"][];
+            hasFailures?: boolean;
+            requestedDomains?: string[];
+            /** Format: int32 */
+            sampleLimit?: number;
+        };
+        NonCanonicalGameDto: {
+            /** Format: int32 */
+            awayScore?: number;
+            awayTeam?: string;
+            /** Format: date */
+            gameDate?: string;
+            gameId?: string;
+            /** Format: int32 */
+            homeScore?: number;
+            homeTeam?: string;
+            rawStatus?: string;
+            reasons?: string[];
+            startTime?: components["schemas"]["LocalTime"];
+        };
+        OffseasonMetaDto: {
+            awards?: components["schemas"]["AwardDto"][];
+            postSeasonResults?: components["schemas"]["PostSeasonResultDto"][];
+        };
+        OffseasonMovementAdminDto: {
+            /** Format: date-time */
+            announcedAt?: string;
+            contractTerm?: string;
+            contractValue?: string;
+            counterpartyDetails?: string;
+            counterpartyTeam?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            details?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: date */
+            movementDate?: string;
+            optionDetails?: string;
+            playerName?: string;
+            section?: string;
+            sourceLabel?: string;
+            sourceUrl?: string;
+            summary?: string;
+            teamCode?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        OffseasonMovementAdminRequest: {
+            /** Format: date-time */
+            announcedAt?: string;
+            contractTerm?: string;
+            contractValue?: string;
+            counterpartyDetails?: string;
+            counterpartyTeam?: string;
+            details?: string;
+            /** Format: date */
+            movementDate: string;
+            optionDetails?: string;
+            playerName: string;
+            section: string;
+            sourceLabel?: string;
+            sourceUrl?: string;
+            summary?: string;
+            teamCode: string;
+        };
+        OffseasonMovementDto: {
+            announcedAt?: string;
+            contractTerm?: string;
+            contractValue?: string;
+            counterpartyDetails?: string;
+            counterpartyTeam?: string;
+            date?: string;
+            displayAmount?: string;
+            /** Format: int64 */
+            estimatedAmount?: number;
+            /** Format: int64 */
+            id?: number;
+            isBigEvent?: boolean;
+            optionDetails?: string;
+            player?: string;
+            remarks?: string;
+            section?: string;
+            sourceLabel?: string;
+            sourceUrl?: string;
+            summary?: string;
+            team?: string;
+        };
+        OpponentStats: {
+            /** Format: int32 */
+            draws?: number;
+            /** Format: int32 */
+            losses?: number;
+            /** Format: double */
+            winRate?: number;
+            /** Format: int32 */
+            wins?: number;
+        };
+        PageMetadata: {
+            /** Format: int64 */
+            number?: number;
+            /** Format: int64 */
+            size?: number;
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int64 */
+            totalPages?: number;
+        };
+        PageObject: {
+            content?: components["schemas"]["AuditLogDto"][];
+            empty?: boolean;
+            first?: boolean;
+            last?: boolean;
+            /** Format: int32 */
+            number?: number;
+            /** Format: int32 */
+            numberOfElements?: number;
+            pageable?: components["schemas"]["PageableObject"];
+            /** Format: int32 */
+            size?: number;
+            sort?: components["schemas"]["SortObject"];
+            /** Format: int64 */
+            totalElements?: number;
+            /** Format: int32 */
+            totalPages?: number;
+        };
+        Pageable: {
+            /** Format: int32 */
+            page?: number;
+            /** Format: int32 */
+            size?: number;
+            sort?: string[];
+        };
+        PageableObject: {
+            /** Format: int64 */
+            offset?: number;
+            /** Format: int32 */
+            pageNumber?: number;
+            /** Format: int32 */
+            pageSize?: number;
+            paged?: boolean;
+            sort?: components["schemas"]["SortObject"];
+            unpaged?: boolean;
+        };
+        PagedModel: {
+            content?: Record<string, never>[];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PagedModelCommentRes: {
+            content?: components["schemas"]["CommentRes"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PagedModelPostSummaryRes: {
+            content?: components["schemas"]["PostSummaryRes"][];
+            page?: components["schemas"]["PageMetadata"];
+        };
+        PasswordResetConfirmDto: {
+            confirmPassword: string;
+            newPassword: string;
+            token: string;
+        };
+        PasswordResetRequestDto: {
+            email: string;
+            redirect?: string;
+        };
+        PitcherDto: {
+            era: string;
+            imgUrl: string;
+            /** Format: int32 */
+            loss: number;
+            name: string;
+            /** Format: int32 */
+            win: number;
+        };
+        PlaceDto: {
+            address?: string;
+            category?: string;
+            closeTime?: string;
+            description?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: double */
+            lat?: number;
+            /** Format: double */
+            lng?: number;
+            name?: string;
+            openTime?: string;
+            phone?: string;
+            /** Format: double */
+            rating?: number;
+            stadiumName?: string;
+        };
+        PlaceRequest: {
+            address?: string;
+            category: string;
+            closeTime?: string;
+            description?: string;
+            /** Format: double */
+            lat: number;
+            /** Format: double */
+            lng: number;
+            name: string;
+            openTime?: string;
+            phone?: string;
+            /** Format: double */
+            rating?: number;
+        };
+        PolicyConsentItemDto: {
+            agreed: boolean;
+            /** @enum {string} */
+            policyType: "TERMS" | "PRIVACY" | "DATA_DISCLAIMER";
+            version: string;
+        };
+        PolicyConsentSubmitDto: {
+            policyConsents: components["schemas"]["PolicyConsentItemDto"][];
+        };
+        PolicyRequiredResponseDto: {
+            effectiveDate?: string;
+            /** Format: int32 */
+            gracePeriodDays?: number;
+            hardGateDate?: string;
+            policies?: components["schemas"]["PolicyRequirementItemDto"][];
+        };
+        PolicyRequirementItemDto: {
+            effectiveDate?: string;
+            path?: string;
+            policyType?: string;
+            required?: boolean;
+            version?: string;
+        };
+        PopularResponse: {
+            /** Format: int64 */
+            count?: number;
+            /** Format: int32 */
+            rank?: number;
+            term?: string;
+        };
+        PostChangesResponse: {
+            /** Format: int64 */
+            latestId?: number;
+            /** Format: int32 */
+            newCount?: number;
+        };
+        PostDetailRes: {
+            author?: string;
+            authorHandle?: string;
+            authorProfileImageUrl?: string;
+            /** Format: int32 */
+            bookmarkCount?: number;
+            /** Format: int32 */
+            comments?: number;
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            imageUrls?: string[];
+            isBookmarked?: boolean;
+            isOwner?: boolean;
+            likedByMe?: boolean;
+            /** Format: int32 */
+            likes?: number;
+            linkedContent?: components["schemas"]["LinkedContentRes"];
+            originalDeleted?: boolean;
+            originalPost?: components["schemas"]["EmbeddedPostDto"];
+            postType?: string;
+            /** Format: int32 */
+            repostCount?: number;
+            /** Format: int64 */
+            repostOfId?: number;
+            repostType?: string;
+            repostedByMe?: boolean;
+            shareMode?: string;
+            sourceInfo?: components["schemas"]["SourceInfoRes"];
+            teamColor?: string;
+            teamId?: string;
+            teamName?: string;
+            teamShortName?: string;
+            /** Format: int32 */
+            views?: number;
+        };
+        PostImageDto: {
+            /** Format: int64 */
+            bytes?: number;
+            /** Format: int64 */
+            id?: number;
+            isThumbnail?: boolean;
+            mimeType?: string;
+            storagePath?: string;
+            url?: string;
+        };
+        PostSeasonResultDto: {
+            detail?: string;
+            result?: string;
+            title?: string;
+        };
+        PostSummaryRes: {
+            author?: string;
+            authorHandle?: string;
+            authorProfileImageUrl?: string;
+            authorTeamId?: string;
+            /** Format: int32 */
+            bookmarkCount?: number;
+            /** Format: int32 */
+            comments?: number;
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            imageUrls?: string[];
+            isBookmarked?: boolean;
+            isHot?: boolean;
+            isOwner?: boolean;
+            liked?: boolean;
+            /** Format: int32 */
+            likes?: number;
+            linkedContent?: components["schemas"]["LinkedContentRes"];
+            originalDeleted?: boolean;
+            originalPost?: components["schemas"]["EmbeddedPostDto"];
+            postType?: string;
+            /** Format: int32 */
+            repostCount?: number;
+            /** Format: int64 */
+            repostOfId?: number;
+            repostType?: string;
+            repostedByMe?: boolean;
+            shareMode?: string;
+            sourceInfo?: components["schemas"]["SourceInfoRes"];
+            teamColor?: string;
+            teamId?: string;
+            teamName?: string;
+            teamShortName?: string;
+            /** Format: int32 */
+            views?: number;
+        };
+        PowerupInventoryDto: {
+            description?: string;
+            icon?: string;
+            /** Format: double */
+            multiplier?: number;
+            name?: string;
+            /** Format: int32 */
+            quantity?: number;
+            type?: string;
+        };
+        PowerupUseResultDto: {
+            message?: string;
+            /** Format: int32 */
+            remainingCount?: number;
+            success?: boolean;
+        };
+        PredictionBootstrapErrorDto: {
+            code: string | null;
+            message: string;
+            /** Format: int32 */
+            status: number | null;
+        };
+        PredictionBootstrapResourceDtoGameDetailDto: {
+            data: components["schemas"]["GameDetailDto"] | null;
+            error: components["schemas"]["PredictionBootstrapErrorDto"] | null;
+            ok: boolean;
+        };
+        PredictionBootstrapResourceDtoPredictionResponseDto: {
+            data: components["schemas"]["PredictionResponseDto"] | null;
+            error: components["schemas"]["PredictionBootstrapErrorDto"] | null;
+            ok: boolean;
+        };
+        PredictionBootstrapResponseDto: {
+            detail: components["schemas"]["PredictionBootstrapResourceDtoGameDetailDto"] | null;
+            schedule: components["schemas"]["MatchDayNavigationResponseDto"];
+            selectedGameFound: boolean;
+            selectedGameId: string | null;
+            voteStatus: components["schemas"]["PredictionBootstrapResourceDtoPredictionResponseDto"] | null;
+        };
+        PredictionMyVoteEntryDto: {
+            gameId: string;
+            votedTeam: ("home" | "away") | null;
+        };
+        PredictionMyVotesRequestDto: {
+            gameIds: string[];
+        };
+        PredictionMyVotesResponseDto: {
+            entries: components["schemas"]["PredictionMyVoteEntryDto"][];
+            votes: {
+                [key: string]: string;
+            };
+        };
+        PredictionRequestDto: {
+            gameId: string;
+            votedTeam?: string;
+        };
+        PredictionResponseDto: {
+            /** Format: int32 */
+            awayPercentage: number;
+            /** Format: int64 */
+            awayVotes: number;
+            gameId: string;
+            /** Format: int32 */
+            homePercentage: number;
+            /** Format: int64 */
+            homeVotes: number;
+            /** Format: int64 */
+            totalVotes: number;
+        };
+        PredictionStatsResponseDto: {
+            code: string | null;
+            data: components["schemas"]["UserPredictionStatsDto"] | null;
+            errors: {
+                [key: string]: string;
+            } | null;
+            message: string;
+            success: boolean;
+        };
+        QuoteRepostReq: {
+            content: string;
+        };
+        RankingPredictionCurrentSeasonDto: {
+            /** Format: int32 */
+            seasonYear: number;
+        };
+        RankingPredictionInitDto: {
+            saved: components["schemas"]["RankingPredictionResponseDto"] | null;
+            /** Format: int32 */
+            seasonYear: number;
+        };
+        RankingPredictionRequestDto: {
+            /** Format: int32 */
+            seasonYear: number;
+            teamIdsInOrder?: string[];
+        };
+        RankingPredictionResponseDto: {
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int64 */
+            id: number;
+            /** Format: int32 */
+            seasonYear: number;
+            shareId: string | null;
+            teamDetails: components["schemas"]["TeamRankingDetail"][];
+            teamIdsInOrder: string[];
+        };
+        RecentScoreDto: {
+            /** Format: int32 */
+            baseScore?: number;
+            description?: string;
+            eventType?: string;
+            eventTypeKo?: string;
+            handle?: string;
+            /** Format: int64 */
+            id?: number;
+            /** Format: double */
+            multiplier?: number;
+            profileImageUrl?: string;
+            /** Format: int32 */
+            score?: number;
+            /** Format: int32 */
+            streak?: number;
+            /** Format: date-time */
+            timestamp?: string;
+            userName?: string;
+        };
+        RecordRequest: {
+            term?: string;
+        };
+        RecruitmentLinkedContentRes: {
+            awayTeam?: string;
+            /** Format: int32 */
+            currentParticipants?: number;
+            description?: string;
+            /** Format: date */
+            gameDate?: string;
+            /**
+             * Format: time
+             * @example 18:30:00
+             */
+            gameTime?: string;
+            homeTeam?: string;
+            /** Format: int32 */
+            maxParticipants?: number;
+            /** Format: int64 */
+            partyId?: number;
+            /** Format: int32 */
+            price?: number;
+            recruiting?: boolean;
+            /** Format: int32 */
+            reservationDepositAmount?: number;
+            section?: string;
+            stadium?: string;
+            status?: string;
+            /** Format: int32 */
+            ticketPrice?: number;
+        };
+        ReportCaseRes: {
+            adminMessage?: string;
+            /** Format: int64 */
+            caseId?: number;
+            /** Format: date-time */
+            handledAt?: string;
+            nextAction?: string;
+            reportStatus?: string;
+        };
+        ReportRequest: {
+            description?: string;
+            evidenceUrl?: string;
+            hasRightEvidence?: boolean;
+            license?: string;
+            ownerContact?: string;
+            /** @enum {string} */
+            reason?: "SPAM" | "INAPPROPRIATE_CONTENT" | "ABUSIVE_LANGUAGE" | "ADVERTISEMENT" | "COPYRIGHT_INFRINGEMENT" | "FAKE_INFORMATION" | "OTHER";
+            requestedAction?: string;
+            requestedReason?: string;
+            sourceUrl?: string;
+        };
+        RepostToggleResponse: {
+            /** Format: int32 */
+            count?: number;
+            reposted?: boolean;
+        };
+        Request: {
+            clientMessageId?: string;
+            content: string;
+            /** Format: int64 */
+            roomId: number;
+        };
+        Response: {
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            id?: number;
+            isRead?: boolean;
+            message?: string;
+            /** Format: int64 */
+            relatedId?: number;
+            title?: string;
+            /** @enum {string} */
+            type?: "APPLICATION_RECEIVED" | "APPLICATION_APPROVED" | "APPLICATION_REJECTED" | "PARTY_EXPIRED" | "PARTY_AUTO_COMPLETED" | "GAME_TOMORROW_REMINDER" | "GAME_DAY_REMINDER" | "HOST_RESPONSE_NUDGE" | "REVIEW_REQUEST" | "PARTY_CANCELLED_HOST_DELETED" | "PARTY_PARTICIPANT_LEFT" | "POST_COMMENT" | "COMMENT_REPLY" | "POST_LIKE" | "POST_REPOST" | "NEW_FOLLOWER" | "FOLLOWING_NEW_POST" | "NEW_DEVICE_LOGIN";
+        };
+        RoleChangeRequestDto: {
+            reason?: string;
+        };
+        RoleChangeResponseDto: {
+            /** Format: date-time */
+            changedAt?: string;
+            email?: string;
+            name?: string;
+            newRole?: string;
+            previousRole?: string;
+            /** Format: int64 */
+            userId?: number;
+        };
+        ScheduleNavigationDto: {
+            hasNext?: boolean;
+            hasPrev?: boolean;
+            /** Format: date */
+            nextGameDate?: string;
+            /** Format: date */
+            prevGameDate?: string;
+        };
+        SeatViewCandidateCreateRequest: {
+            sourceTypes?: string[];
+            storagePaths?: string[];
+        };
+        SeatViewPhotoDto: {
+            block?: string;
+            diaryDate?: string;
+            photoUrl?: string;
+            section?: string;
+            stadium?: string;
+        };
+        SeatViewRewardDto: {
+            firstContribution?: boolean;
+            /** Format: int32 */
+            pointsEarned?: number;
+            /** Format: int64 */
+            totalContributions?: number;
+            unlockedAchievements?: components["schemas"]["AchievementDto"][];
+        };
+        SeatViewSelectionRequest: {
+            candidateIds?: number[];
+        };
+        SignedUrlDto: {
+            /** Format: date-time */
+            expiresAt?: string;
+            url?: string;
+        };
+        SignupDto: {
+            confirmPassword: string;
+            email: string;
+            favoriteTeam?: string;
+            handle: string;
+            name: string;
+            password: string;
+            policyConsents: components["schemas"]["PolicyConsentItemDto"][];
+            provider?: string;
+            providerId?: string;
+        };
+        SortObject: {
+            empty?: boolean;
+            sorted?: boolean;
+            unsorted?: boolean;
+        };
+        SourceInfoRes: {
+            author?: string;
+            changedNote?: string;
+            license?: string;
+            licenseUrl?: string;
+            snapshotType?: string;
+            title?: string;
+            url?: string;
+        };
+        StadiumDetailDto: {
+            address?: string;
+            /** Format: double */
+            lat?: number;
+            /** Format: double */
+            lng?: number;
+            phone?: string;
+            places?: components["schemas"]["PlaceDto"][];
+            stadiumId?: string;
+            stadiumName?: string;
+            team?: string;
+        };
+        StadiumDto: {
+            address?: string;
+            /** Format: double */
+            lat?: number;
+            /** Format: double */
+            lng?: number;
+            phone?: string;
+            stadiumId?: string;
+            stadiumName?: string;
+            team?: string;
+        };
+        StoredChatMessage: {
+            cached?: boolean;
+            cancelled?: boolean;
+            citations?: components["schemas"]["JsonNode"];
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            errorCode?: string;
+            fallbackReason?: string;
+            favorite?: boolean;
+            finishReason?: string;
+            intent?: string;
+            /** Format: int64 */
+            messageId?: number;
+            metadata?: components["schemas"]["JsonNode"];
+            plannerCacheHit?: boolean;
+            plannerMode?: string;
+            /** @enum {string} */
+            role?: "USER" | "ASSISTANT";
+            /** Format: int64 */
+            sessionId?: number;
+            /** @enum {string} */
+            status?: "COMPLETED" | "CANCELLED" | "ERROR";
+            strategy?: string;
+            toolCalls?: components["schemas"]["JsonNode"];
+            toolExecutionMode?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            verified?: boolean;
+        };
+        StreamingResponseBody: Record<string, never>;
+        TeamEntity: {
+            activeKboTeam?: boolean;
+            aliases?: string;
+            city?: string;
+            color?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int32 */
+            foundedYear?: number;
+            franchise?: components["schemas"]["TeamFranchiseEntity"];
+            /** Format: int32 */
+            franchiseId?: number;
+            isActive?: boolean;
+            stadiumName?: string;
+            teamId?: string;
+            teamName?: string;
+            teamShortName?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        TeamFranchiseEntity: {
+            /** Format: date-time */
+            createdAt?: string;
+            currentCode?: string;
+            /** Format: int32 */
+            id?: number;
+            metadataJson?: string;
+            name?: string;
+            originalCode?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+            webUrl?: string;
+        };
+        TeamHistoryEntity: {
+            city?: string;
+            color?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            franchise?: components["schemas"]["TeamFranchiseEntity"];
+            /** Format: int32 */
+            franchiseId?: number;
+            /** Format: int32 */
+            id?: number;
+            logoUrl?: string;
+            /** Format: int32 */
+            ranking?: number;
+            /** Format: int32 */
+            season?: number;
+            stadium?: string;
+            teamCode?: string;
+            teamName?: string;
+            /** Format: date-time */
+            updatedAt?: string;
+        };
+        TeamRankingDetail: {
+            /** Format: int32 */
+            currentRank: number | null;
+            /** Format: int32 */
+            lastSeasonRank: number | null;
+            teamId: string;
+            teamName: string;
+        };
+        TeamResultDto: {
+            color?: string;
+            name?: string;
+        };
+        TeamSummaryDto: {
+            isActive?: boolean;
+            teamId?: string;
+            teamName?: string;
+            teamShortName?: string;
+        };
+        TeamUserAnswersDto: {
+            answers?: {
+                [key: string]: string;
+            };
+        };
+        TicketInfo: {
+            awayTeam?: string;
+            date?: string;
+            /** Format: int64 */
+            gameId?: number;
+            homeTeam?: string;
+            /** Format: int32 */
+            peopleCount?: number;
+            /** Format: int32 */
+            price?: number;
+            reservationNumber?: string;
+            row?: string;
+            seat?: string;
+            section?: string;
+            stadium?: string;
+            time?: string;
+            verificationToken?: string;
+        };
+        TrustedDeviceDto: {
+            browser?: string;
+            deviceLabel?: string;
+            deviceType?: string;
+            firstSeenAt?: string;
+            /** Format: int64 */
+            id?: number;
+            lastIp?: string;
+            lastLoginAt?: string;
+            lastSeenAt?: string;
+            os?: string;
+        };
+        UpdatePostReq: {
+            content: string;
+            images?: string[];
+            /** @enum {string} */
+            shareMode?: "INTERNAL_REPOST" | "INTERNAL_QUOTE" | "EXTERNAL_LINK" | "EXTERNAL_COPY" | "EXTERNAL_EMBED" | "EXTERNAL_SUMMARY";
+            sourceAuthor?: string;
+            sourceChangedNote?: string;
+            sourceLicense?: string;
+            sourceLicenseUrl?: string;
+            sourceSnapshotType?: string;
+            sourceTitle?: string;
+            sourceUrl?: string;
+        };
+        UserPredictionStatsDto: {
+            /** Format: double */
+            accuracy: number;
+            /** Format: int32 */
+            correctPredictions: number;
+            /** Format: int32 */
+            streak: number;
+            /** Format: int32 */
+            totalPredictions: number;
+        };
+        UserProfileDto: {
+            bio?: string;
+            /** Format: int32 */
+            cheerPoints?: number;
+            createdAt?: string;
+            email: string;
+            favoriteTeam?: string;
+            handle?: string;
+            hasPassword?: boolean;
+            /** Format: int64 */
+            id?: number;
+            missingPolicyTypes?: string[];
+            name: string;
+            policyConsentEffectiveDate?: string;
+            policyConsentHardGateDate?: string;
+            policyConsentNoticeRequired?: boolean;
+            policyConsentRequired?: boolean;
+            profileImageUrl?: string;
+            provider?: string;
+            providerId?: string;
+            role?: string;
+        };
+        UserRankDto: {
+            /** Format: int32 */
+            level?: number;
+            /** Format: int64 */
+            rank?: number;
+            /** Format: int64 */
+            score?: number;
+        };
+        UserStatsDto: {
+            /** Format: double */
+            accuracy?: number;
+            /** Format: int32 */
+            achievementCount?: number;
+            /** Format: int32 */
+            correctPredictions?: number;
+            /** Format: int32 */
+            currentStreak?: number;
+            /** Format: int64 */
+            experiencePoints?: number;
+            handle?: string;
+            /** Format: int32 */
+            level?: number;
+            /** Format: double */
+            levelProgress?: number;
+            /** Format: int32 */
+            maxStreak?: number;
+            /** Format: int64 */
+            monthlyRank?: number;
+            /** Format: int64 */
+            monthlyScore?: number;
+            /** Format: int64 */
+            nextLevelExp?: number;
+            powerups?: components["schemas"]["PowerupInventoryDto"][];
+            profileImageUrl?: string;
+            /** Format: int64 */
+            rank?: number;
+            rankTitle?: string;
+            recentAchievements?: components["schemas"]["AchievementDto"][];
+            /** Format: int64 */
+            seasonRank?: number;
+            /** Format: int64 */
+            seasonScore?: number;
+            /** Format: int32 */
+            totalPredictions?: number;
+            /** Format: int64 */
+            totalRank?: number;
+            /** Format: int64 */
+            totalScore?: number;
+            userName?: string;
+            /** Format: int64 */
+            weeklyRank?: number;
+            /** Format: int64 */
+            weeklyScore?: number;
+        };
+        WinProbabilityDto: {
+            /** Format: double */
+            away: number;
+            /** Format: double */
+            home: number;
         };
     };
     responses: never;
@@ -7053,123 +7053,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    updateNotifySettingByHandle: {
-        parameters: {
-            query: {
-                notify: boolean;
-            };
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["FollowToggleResponse"];
-                };
-            };
-        };
-    };
-    get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PostDetailRes"];
-                };
-            };
-        };
-    };
-    update: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdatePostReq"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PostDetailRes"];
-                };
-            };
-        };
-    };
-    delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    changePassword: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ChangePasswordRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    getMyProfile: {
+    getCacheStats: {
         parameters: {
             query?: never;
             header?: never;
@@ -7177,156 +7061,6 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    updateMyProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UserProfileDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    updatePlace: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                placeId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlaceRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    deletePlace: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                placeId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    updateMovement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                movementId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OffseasonMovementAdminRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
-                };
-            };
-        };
-    };
-    deleteMovement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                movementId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseMapStringLong"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseMapStringLong"];
-                };
-            };
-        };
-    };
-    upsertInningScores: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                gameId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["GameInningScoreRequestDto"][];
-            };
-        };
         responses: {
             /** @description OK */
             200: {
@@ -7335,6 +7069,82 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseMapStringObject"];
+                };
+            };
+        };
+    };
+    getDashboard: {
+        parameters: {
+            query?: {
+                from?: string;
+                to?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseClientErrorDashboardDto"];
+                };
+            };
+        };
+    };
+    getEvents: {
+        parameters: {
+            query?: {
+                bucket?: string;
+                source?: string;
+                statusGroup?: string;
+                route?: string;
+                fingerprint?: string;
+                search?: string;
+                from?: string;
+                to?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseClientErrorEventPageDto"];
+                };
+            };
+        };
+    };
+    getEventDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                eventId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseClientErrorEventDetailDto"];
                 };
             };
         };
@@ -7407,261 +7217,12 @@ export interface operations {
             };
         };
     };
-    toggleFollowByHandle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["FollowToggleResponse"];
-                };
-            };
-        };
-    };
-    toggleBlockByHandle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["BlockToggleResponse"];
-                };
-            };
-        };
-    };
-    analyzeTicket: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TicketInfo"];
-                };
-            };
-        };
-    };
-    uploadChatImage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMateChatImageUploadResponse"];
-                };
-            };
-        };
-    };
-    addFavorite: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stadiumId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": {
-                        [key: string]: boolean;
-                    };
-                    "application/json; charset=UTF-8": {
-                        [key: string]: boolean;
-                    };
-                };
-            };
-        };
-    };
-    removeFavorite: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stadiumId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": {
-                        [key: string]: boolean;
-                    };
-                    "application/json; charset=UTF-8": {
-                        [key: string]: boolean;
-                    };
-                };
-            };
-        };
-    };
-    createReview: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MateReviewCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateReviewResponse"];
-                };
-            };
-        };
-    };
-    getResult: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TeamUserAnswersDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamResultDto"];
-                };
-            };
-        };
-    };
-    uploadProfileImage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    /** Format: binary */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    vote: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PredictionRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    getPredction: {
+    repairGameStatusMismatches: {
         parameters: {
             query: {
-                seasonYear: number;
+                startDate: string;
+                endDate?: string;
+                dryRun?: boolean;
             };
             header?: never;
             path?: never;
@@ -7675,21 +7236,69 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RankingPredictionResponseDto"];
+                    "*/*": components["schemas"]["ApiResponseGameStatusRepairBatchResultDto"];
                 };
             };
         };
     };
-    savePrediction: {
+    getGameStatusMismatches: {
         parameters: {
-            query?: never;
+            query: {
+                startDate: string;
+                endDate?: string;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseGameStatusMismatchBatchResultDto"];
+                };
+            };
+        };
+    };
+    syncGameSnapshotsByDateRange: {
+        parameters: {
+            query: {
+                startDate: string;
+                endDate?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseGameScoreSyncBatchResultDto"];
+                };
+            };
+        };
+    };
+    upsertInningScores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RankingPredictionRequestDto"];
+                "application/json": components["schemas"]["GameInningScoreRequestDto"][];
             };
         };
         responses: {
@@ -7699,12 +7308,193 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RankingPredictionResponseDto"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
     };
-    getMyVotesBulk: {
+    syncGameSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseGameScoreSyncResultDto"];
+                };
+            };
+        };
+    };
+    cleanupSoftDeletedCheerPosts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    backfillExistingData: {
+        parameters: {
+            query?: {
+                apply?: boolean;
+                batchSize?: number;
+                domains?: string;
+                clearBrokenChatImages?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMediaBackfillReport"];
+                };
+            };
+        };
+    };
+    runCleanup: {
+        parameters: {
+            query?: {
+                targets?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMediaCleanupReport"];
+                };
+            };
+        };
+    };
+    runSmoke: {
+        parameters: {
+            query?: {
+                sampleLimit?: number;
+                domains?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMediaSmokeReport"];
+                };
+            };
+        };
+    };
+    getMates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListAdminMateDto"];
+                };
+            };
+        };
+    };
+    deleteMate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mateId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    getMovements: {
+        parameters: {
+            query?: {
+                search?: string;
+                section?: string;
+                teamCode?: string;
+                fromDate?: string;
+                toDate?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseListOffseasonMovementAdminDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseListOffseasonMovementAdminDto"];
+                };
+            };
+        };
+    };
+    createMovement: {
         parameters: {
             query?: never;
             header?: never;
@@ -7713,7 +7503,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PredictionMyVotesRequestDto"];
+                "application/json": components["schemas"]["OffseasonMovementAdminRequest"];
             };
         };
         responses: {
@@ -7723,12 +7513,83 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PredictionMyVotesResponseDto"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
                 };
             };
         };
     };
-    listPostImages: {
+    updateMovement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movementId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OffseasonMovementAdminRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
+                };
+            };
+        };
+    };
+    deleteMovement: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                movementId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseMapStringLong"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseMapStringLong"];
+                };
+            };
+        };
+    };
+    getPosts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListAdminPostDto"];
+                };
+            };
+        };
+    };
+    deletePost: {
         parameters: {
             query?: never;
             header?: never;
@@ -7745,25 +7606,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PostImageDto"][];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
     };
-    uploadPostImages: {
+    getReports: {
+        parameters: {
+            query?: {
+                status?: string;
+                reason?: string;
+                fromDate?: string;
+                toDate?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponsePageAdminReportDto"];
+                };
+            };
+        };
+    };
+    getReport: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                postId: number;
+                reportId: number;
             };
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    files: string[];
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
                 };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
+                };
+            };
+        };
+    };
+    handleReport: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                reportId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminReportActionReq"];
             };
         };
         responses: {
@@ -7773,23 +7681,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PostImageDto"][];
+                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
                 };
             };
         };
     };
-    cancelTossPayment: {
+    requestAppeal: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                intentId: number;
+                reportId: number;
             };
             cookie?: never;
         };
         requestBody?: {
             content: {
-                "application/json": components["schemas"]["MatePaymentCancelIntentRequest"];
+                "application/json": components["schemas"]["AdminReportAppealReq"];
             };
         };
         responses: {
@@ -7799,12 +7707,301 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseMatePaymentCancelIntentResponse"];
+                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
                 };
             };
         };
     };
-    prepareTossPayment: {
+    getAuditLogs: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponsePageAuditLogDto"];
+                };
+            };
+        };
+    };
+    demoteToUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RoleChangeRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseRoleChangeResponseDto"];
+                };
+            };
+        };
+    };
+    promoteToAdmin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RoleChangeRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseRoleChangeResponseDto"];
+                };
+            };
+        };
+    };
+    getSeatViews: {
+        parameters: {
+            query?: {
+                moderationStatus?: string;
+                stadium?: string;
+                aiSuggestedLabel?: string;
+                adminLabel?: string;
+                ticketVerified?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListAdminSeatViewDto"];
+                };
+            };
+        };
+    };
+    getSeatView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                seatViewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAdminSeatViewDto"];
+                };
+            };
+        };
+    };
+    handleSeatView: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                seatViewId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AdminSeatViewActionReq"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAdminSeatViewDto"];
+                };
+            };
+        };
+    };
+    updatePlace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                placeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    deletePlace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                placeId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    createPlace: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stadiumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaceRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    getStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAdminStatsDto"];
+                };
+            };
+        };
+    };
+    getUsers: {
+        parameters: {
+            query?: {
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListAdminUserDto"];
+                };
+            };
+        };
+    };
+    deleteUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    chatCompletion: {
         parameters: {
             query?: never;
             header?: never;
@@ -7813,7 +8010,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MatePaymentPrepareRequest"];
+                "application/json": string;
             };
         };
         responses: {
@@ -7823,12 +8020,353 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MatePaymentPrepareResponse"];
+                    "*/*": string;
                 };
             };
         };
     };
-    confirmTossPayment: {
+    listFavorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListChatFavoriteItem"];
+                };
+            };
+        };
+    };
+    addFavorite_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseChatFavoriteItem"];
+                };
+            };
+        };
+    };
+    removeFavorite_2: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    listSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListChatSessionSummary"];
+                };
+            };
+        };
+    };
+    createSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseChatSessionSummary"];
+                };
+            };
+        };
+    };
+    deleteSession_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    listMessages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListStoredChatMessage"];
+                };
+            };
+        };
+    };
+    addAssistantMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAssistantChatMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseStoredChatMessage"];
+                };
+            };
+        };
+    };
+    addUserMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserChatMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseStoredChatMessage"];
+                };
+            };
+        };
+    };
+    chatStream: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-AI-Event-Version"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StreamingResponseBody"];
+                };
+            };
+        };
+    };
+    chatVoice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    coachAnalyze: {
+        parameters: {
+            query?: never;
+            header?: {
+                "X-AI-Event-Version"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["StreamingResponseBody"];
+                };
+            };
+        };
+    };
+    coachAutoBriefOpsHealth: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionArtifacts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionArtifactDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artifactId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionDraft: {
         parameters: {
             query?: never;
             header?: never;
@@ -7837,7 +8375,119 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MatePaymentConfirmRequest"];
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionEvalCases: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionEvaluate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionPresets: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    releaseDecisionSave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": string;
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": string;
+                };
+            };
+        };
+    };
+    createApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MateApplicationCreateRequest"];
             };
         };
         responses: {
@@ -7850,30 +8500,827 @@ export interface operations {
                     "*/*": components["schemas"]["MateApplicationResponse"];
                 };
             };
+        };
+    };
+    getMyApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
+                };
+            };
+        };
+    };
+    getApplicationsByPartyId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
+                };
+            };
+        };
+    };
+    getApprovedApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
+                };
+            };
+        };
+    };
+    getMyApplicationByPartyId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"];
+                };
+            };
+        };
+    };
+    getPendingApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
+                };
+            };
+        };
+    };
+    getRejectedApplications: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"][];
+                };
+            };
+        };
+    };
+    cancelApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    approveApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"];
+                };
+            };
+        };
+    };
+    cancelApplicationWithReason: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MateApplicationCancelRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationCancelResponse"];
+                };
+            };
+        };
+    };
+    rejectApplication: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                applicationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"];
+                };
+            };
+        };
+    };
+    deleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    getDeletionRecoveryInfo: {
+        parameters: {
+            query: {
+                token: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAccountDeletionRecoveryInfoDto"];
+                };
+            };
+        };
+    };
+    recoverDeletedAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AccountDeletionRecoveryRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    checkHandle: {
+        parameters: {
+            query: {
+                handle: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseAvailabilityCheckResponseDto"];
+                };
+            };
+        };
+    };
+    checkName: {
+        parameters: {
+            query: {
+                name: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
+                };
+            };
+        };
+    };
+    generateLinkToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    login: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LoginDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
+                };
+            };
+        };
+    };
+    logout: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    getMyProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    updateMyProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UserProfileDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    consumeOAuth2State: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stateId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    changePassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangePasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    confirmPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetConfirmDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    requestPasswordReset: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordResetRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    submitPolicyConsents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyConsentSubmitDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
+                };
+            };
+        };
+    };
+    getRequiredPolicies: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponsePolicyRequiredResponseDto"];
+                };
+            };
+        };
+    };
+    getConnectedProviders: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    unlinkProvider: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    reissue: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    getSecurityEvents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListAccountSecurityEventDto"];
+                };
+            };
+        };
+    };
+    getSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    deleteSessions: {
+        parameters: {
+            query?: {
+                allExceptCurrent?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    deleteSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    signUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SignupDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    getTrustedDevices: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseListTrustedDeviceDto"];
+                };
+            };
+        };
+    };
+    deleteTrustedDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                deviceId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseVoid"];
+                };
+            };
+        };
+    };
+    sendMessage_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MateChatMessageRequest"];
+            };
+        };
+        responses: {
             /** @description Created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"];
+                    "*/*": components["schemas"]["MateChatMessageResponse"];
                 };
             };
         };
     };
-    getAllParties: {
+    getTotalUnreadCount: {
         parameters: {
-            query?: {
-                teamId?: string;
-                stadium?: string;
-                date?: string;
-                searchQuery?: string;
-                status?: string;
-                page?: number;
-                size?: number;
-                sortBy?: string;
-                sortDir?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -7886,12 +9333,88 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PagedModel"];
+                    "*/*": components["schemas"]["MateChatUnreadCountResponse"];
                 };
             };
         };
     };
-    createParty: {
+    getMessagesByPartyId: {
+        parameters: {
+            query?: {
+                limit?: number;
+                beforeId?: number;
+            };
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateChatMessageResponse"][];
+                };
+            };
+        };
+    };
+    getLatestMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateChatMessageResponse"];
+                };
+            };
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    updateReadTimestamp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateChatReadResponse"];
+                };
+            };
+        };
+    };
+    checkIn: {
         parameters: {
             query?: never;
             header?: never;
@@ -7900,7 +9423,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MatePartyCreateRequest"];
+                "application/json": components["schemas"]["MateCheckInRequest"];
             };
         };
         responses: {
@@ -7910,17 +9433,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MatePartyResponse"];
+                    "*/*": components["schemas"]["MateCheckInResponse"];
                 };
             };
         };
     };
-    addFavorite_1: {
+    isCheckedIn: {
+        parameters: {
+            query: {
+                partyId: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": boolean;
+                };
+            };
+        };
+    };
+    getCheckInsByPartyId: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                partyId: number;
             };
             cookie?: never;
         };
@@ -7932,19 +9477,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: boolean;
-                    };
+                    "*/*": components["schemas"]["MateCheckInResponse"][];
                 };
             };
         };
     };
-    removeFavorite_1: {
+    getCheckInCount: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                id: number;
+                partyId: number;
             };
             cookie?: never;
         };
@@ -7956,25 +9499,111 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: boolean;
-                    };
+                    "*/*": number;
                 };
             };
         };
     };
-    recordSearchTerm: {
+    createQrSession: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["RecordRequest"];
+                "application/json": components["schemas"]["MateCheckInQrSessionRequest"];
             };
         };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateCheckInQrSessionResponse"];
+                };
+            };
+        };
+    };
+    getCheckInsByUserId: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateCheckInResponse"][];
+                };
+            };
+        };
+    };
+    getBattleStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CheerBattleStatusRes"];
+                };
+            };
+        };
+    };
+    getBookmarks: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
+                };
+            };
+        };
+    };
+    deleteComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                commentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description No Content */
             204: {
@@ -7985,12 +9614,12 @@ export interface operations {
             };
         };
     };
-    markAsRead: {
+    toggleCommentLike: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                notificationId: number;
+                commentId: number;
             };
             cookie?: never;
         };
@@ -8002,78 +9631,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": Record<string, never>;
+                    "*/*": components["schemas"]["LikeToggleResponse"];
                 };
             };
         };
     };
-    markAllAsRead: {
+    listMyPosts: {
         parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
+            query: {
+                pageable: components["schemas"]["Pageable"];
             };
-        };
-    };
-    finalizeUpload: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                assetId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    initUpload: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InitMediaUploadRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    seedTestData: {
-        parameters: {
-            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
@@ -8086,374 +9653,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
                 };
-            };
-        };
-    };
-    usePowerup: {
-        parameters: {
-            query?: {
-                gameId?: string;
-            };
-            header?: never;
-            path: {
-                type: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    [key: string]: Record<string, never>;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PowerupUseResultDto"];
-                };
-            };
-        };
-    };
-    requestPayout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                paymentId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMateInternalSettlementPayoutResponse"];
-                };
-            };
-        };
-    };
-    upsertSellerProfile: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MateSellerPayoutProfileUpsertRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMateSellerPayoutProfileResponse"];
-                };
-            };
-        };
-    };
-    markAsThumbnail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imageId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PostImageDto"];
-                };
-            };
-        };
-    };
-    renewSignedUrl: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                imageId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["SignedUrlDto"];
-                };
-            };
-        };
-    };
-    bootstrapRoom: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["BootstrapRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    sendMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["Request"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    submitSeatViewSelections: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SeatViewSelectionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
-                };
-            };
-        };
-    };
-    createSeatViewCandidates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SeatViewCandidateCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
-                };
-            };
-        };
-    };
-    updateDiary: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DiaryRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["DiaryResponseDto"];
-                };
-            };
-        };
-    };
-    uploadImages: {
-        parameters: {
-            query?: {
-                sourceTypes?: string[];
-            };
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    images: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
-                };
-            };
-        };
-    };
-    deleteDiary: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    saveDiary: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["DiaryRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
-                };
-            };
-        };
-    };
-    ingestClientError: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClientErrorEventRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    ingestClientErrorFeedback: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ClientErrorFeedbackRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -8515,21 +9716,17 @@ export interface operations {
             };
         };
     };
-    addReply: {
+    checkChanges: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                postId: number;
-                parentCommentId: number;
+            query?: {
+                sinceId?: number;
+                teamId?: string;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateCommentReq"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -8537,12 +9734,104 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["CommentRes"];
+                    "*/*": components["schemas"]["PostChangesResponse"];
                 };
             };
         };
     };
-    toggleRepost: {
+    listFollowing: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
+                };
+            };
+        };
+    };
+    listHot: {
+        parameters: {
+            query: {
+                algorithm?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
+                };
+            };
+        };
+    };
+    linked: {
+        parameters: {
+            query?: {
+                diaryId?: number;
+                partyId?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["LinkedPostLookupRes"];
+                };
+            };
+        };
+    };
+    search: {
+        parameters: {
+            query: {
+                q: string;
+                teamId?: string;
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
+                };
+            };
+        };
+    };
+    get: {
         parameters: {
             query?: never;
             header?: never;
@@ -8559,34 +9848,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RepostToggleResponse"];
+                    "*/*": components["schemas"]["PostDetailRes"];
                 };
             };
         };
     };
-    cancelRepost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["RepostToggleResponse"];
-                };
-            };
-        };
-    };
-    reportPost: {
+    update: {
         parameters: {
             query?: never;
             header?: never;
@@ -8597,33 +9864,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ReportRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ReportCaseRes"];
-                };
-            };
-        };
-    };
-    createQuoteRepost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["QuoteRepostReq"];
+                "application/json": components["schemas"]["UpdatePostReq"];
             };
         };
         responses: {
@@ -8638,7 +9879,27 @@ export interface operations {
             };
         };
     };
-    toggleLike: {
+    delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    toggleBookmark: {
         parameters: {
             query?: never;
             header?: never;
@@ -8655,57 +9916,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["LikeToggleResponse"];
-                };
-            };
-        };
-    };
-    getImages: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PostImageDto"][];
-                };
-            };
-        };
-    };
-    uploadImages_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "multipart/form-data": {
-                    files: string[];
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PostImageDto"][];
+                    "*/*": components["schemas"]["BookmarkResponse"];
                 };
             };
         };
@@ -8760,7 +9971,7 @@ export interface operations {
             };
         };
     };
-    toggleBookmark: {
+    getImages: {
         parameters: {
             query?: never;
             header?: never;
@@ -8777,17 +9988,45 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["BookmarkResponse"];
+                    "*/*": components["schemas"]["PostImageDto"][];
                 };
             };
         };
     };
-    toggleCommentLike: {
+    uploadImages_1: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                commentId: number;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PostImageDto"][];
+                };
+            };
+        };
+    };
+    toggleLike: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
             };
             cookie?: never;
         };
@@ -8804,110 +10043,18 @@ export interface operations {
             };
         };
     };
-    checkIn: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MateCheckInRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateCheckInResponse"];
-                };
-            };
-        };
-    };
-    createQrSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MateCheckInQrSessionRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateCheckInQrSessionResponse"];
-                };
-            };
-        };
-    };
-    updateReadTimestamp: {
+    createQuoteRepost: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                partyId: number;
+                id: number;
             };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateChatReadResponse"];
-                };
-            };
-        };
-    };
-    sendMessage_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MateChatMessageRequest"];
-            };
-        };
-        responses: {
-            /** @description Created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateChatMessageResponse"];
-                };
-            };
-        };
-    };
-    signUp: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["SignupDto"];
+                "application/json": components["schemas"]["QuoteRepostReq"];
             };
         };
         responses: {
@@ -8917,490 +10064,23 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
+                    "*/*": components["schemas"]["PostDetailRes"];
                 };
             };
         };
     };
-    reissue: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    submitPolicyConsents: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PolicyConsentSubmitDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
-                };
-            };
-        };
-    };
-    requestPasswordReset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PasswordResetRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    confirmPasswordReset: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PasswordResetConfirmDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
-                };
-            };
-        };
-    };
-    login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["LoginDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
-                };
-            };
-        };
-    };
-    getDeletionRecoveryInfo: {
-        parameters: {
-            query: {
-                token: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseAccountDeletionRecoveryInfoDto"];
-                };
-            };
-        };
-    };
-    recoverDeletedAccount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["AccountDeletionRecoveryRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
-                };
-            };
-        };
-    };
-    createApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["MateApplicationCreateRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"];
-                };
-            };
-        };
-    };
-    rejectApplication: {
+    reportPost: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                applicationId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"];
-                };
-            };
-        };
-    };
-    cancelApplicationWithReason: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                applicationId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["MateApplicationCancelRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationCancelResponse"];
-                };
-            };
-        };
-    };
-    approveApplication: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                applicationId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"];
-                };
-            };
-        };
-    };
-    releaseDecisionSave: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    releaseDecisionEvaluate: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    releaseDecisionDraft: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    coachAnalyze: {
-        parameters: {
-            query?: never;
-            header?: {
-                "X-AI-Event-Version"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["StreamingResponseBody"];
-                };
-            };
-        };
-    };
-    chatVoice: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": {
-                    /** Format: binary */
-                    file: string;
-                };
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    chatStream: {
-        parameters: {
-            query?: never;
-            header?: {
-                "X-AI-Event-Version"?: string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["StreamingResponseBody"];
-                };
-            };
-        };
-    };
-    listSessions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListChatSessionSummary"];
-                };
-            };
-        };
-    };
-    createSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseChatSessionSummary"];
-                };
-            };
-        };
-    };
-    addUserMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sessionId: number;
+                id: number;
             };
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateUserChatMessageRequest"];
+                "application/json": components["schemas"]["ReportRequest"];
             };
         };
         responses: {
@@ -9410,422 +10090,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseStoredChatMessage"];
+                    "*/*": components["schemas"]["ReportCaseRes"];
                 };
             };
         };
     };
-    addAssistantMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sessionId: number;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateAssistantChatMessageRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseStoredChatMessage"];
-                };
-            };
-        };
-    };
-    addFavorite_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                messageId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseChatFavoriteItem"];
-                };
-            };
-        };
-    };
-    removeFavorite_2: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                messageId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
-                };
-            };
-        };
-    };
-    chatCompletion: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": string;
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    createPlace: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stadiumId: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["PlaceRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    promoteToAdmin: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RoleChangeRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseRoleChangeResponseDto"];
-                };
-            };
-        };
-    };
-    demoteToUser: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["RoleChangeRequestDto"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseRoleChangeResponseDto"];
-                };
-            };
-        };
-    };
-    requestAppeal: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                reportId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["AdminReportAppealReq"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
-                };
-            };
-        };
-    };
-    getMovements: {
-        parameters: {
-            query?: {
-                search?: string;
-                section?: string;
-                teamCode?: string;
-                fromDate?: string;
-                toDate?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseListOffseasonMovementAdminDto"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseListOffseasonMovementAdminDto"];
-                };
-            };
-        };
-    };
-    createMovement: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["OffseasonMovementAdminRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseOffseasonMovementAdminDto"];
-                };
-            };
-        };
-    };
-    runSmoke: {
-        parameters: {
-            query?: {
-                sampleLimit?: number;
-                domains?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMediaSmokeReport"];
-                };
-            };
-        };
-    };
-    runCleanup: {
-        parameters: {
-            query?: {
-                targets?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMediaCleanupReport"];
-                };
-            };
-        };
-    };
-    backfillExistingData: {
-        parameters: {
-            query?: {
-                apply?: boolean;
-                batchSize?: number;
-                domains?: string;
-                clearBrokenChatImages?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMediaBackfillReport"];
-                };
-            };
-        };
-    };
-    cleanupSoftDeletedCheerPosts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
-                };
-            };
-        };
-    };
-    syncGameSnapshot: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                gameId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseGameScoreSyncResultDto"];
-                };
-            };
-        };
-    };
-    syncGameSnapshotsByDateRange: {
-        parameters: {
-            query: {
-                startDate: string;
-                endDate?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseGameScoreSyncBatchResultDto"];
-                };
-            };
-        };
-    };
-    repairGameStatusMismatches: {
-        parameters: {
-            query: {
-                startDate: string;
-                endDate?: string;
-                dryRun?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseGameStatusRepairBatchResultDto"];
-                };
-            };
-        };
-    };
-    getPartyById: {
+    toggleRepost: {
         parameters: {
             query?: never;
             header?: never;
@@ -9842,12 +10112,261 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MatePartyPublicResponse"];
+                    "*/*": components["schemas"]["RepostToggleResponse"];
                 };
             };
         };
     };
-    deleteParty: {
+    cancelRepost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RepostToggleResponse"];
+                };
+            };
+        };
+    };
+    addReply: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                postId: number;
+                parentCommentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCommentReq"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["CommentRes"];
+                };
+            };
+        };
+    };
+    listByUser: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
+                };
+            };
+        };
+    };
+    ingestClientError: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientErrorEventRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ingestClientErrorFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClientErrorFeedbackRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getDiary_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiaryResponseDto"][];
+                };
+            };
+        };
+    };
+    getGamesByDate_1: {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GameResponseDto"][];
+                };
+            };
+        };
+    };
+    saveDiary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DiaryRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getSeatViewPhotos: {
+        parameters: {
+            query: {
+                stadium: string;
+                section?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SeatViewPhotoDto"][];
+                };
+            };
+        };
+    };
+    showStatistics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiaryStatisticsDto"];
+                };
+            };
+        };
+    };
+    getDiary: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["DiaryResponseDto"];
+                };
+            };
+        };
+    };
+    deleteDiary: {
         parameters: {
             query?: never;
             header?: never;
@@ -9867,7 +10386,37 @@ export interface operations {
             };
         };
     };
-    updateParty: {
+    uploadImages: {
+        parameters: {
+            query?: {
+                sourceTypes?: string[];
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    images: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    updateDiary: {
         parameters: {
             query?: never;
             header?: never;
@@ -9878,7 +10427,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["MatePartyUpdateRequest"];
+                "application/json": components["schemas"]["DiaryRequestDto"];
             };
         };
         responses: {
@@ -9888,17 +10437,93 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MatePartyResponse"];
+                    "*/*": components["schemas"]["DiaryResponseDto"];
                 };
             };
         };
     };
-    getSeatView: {
+    createSeatViewCandidates: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                seatViewId: number;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatViewCandidateCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    submitSeatViewSelections: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SeatViewSelectionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    sendMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Request"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    deleteMessage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                messageId: number;
             };
             cookie?: never;
         };
@@ -9910,23 +10535,21 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseAdminSeatViewDto"];
+                    "*/*": components["schemas"]["ApiResponse"];
                 };
             };
         };
     };
-    handleSeatView: {
+    bootstrapRoom: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                seatViewId: number;
-            };
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AdminSeatViewActionReq"];
+                "application/json": components["schemas"]["BootstrapRequest"];
             };
         };
         responses: {
@@ -9936,17 +10559,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseAdminSeatViewDto"];
+                    "*/*": components["schemas"]["ApiResponse"];
                 };
             };
         };
     };
-    getReport: {
+    getMyRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    getMessages: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                reportId: number;
+                roomId: number;
             };
             cookie?: never;
         };
@@ -9958,23 +10601,376 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
+                    "*/*": components["schemas"]["ApiResponse"];
                 };
             };
         };
     };
-    handleReport: {
+    getAllFranchises: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamFranchiseEntity"][];
+                };
+            };
+        };
+    };
+    getFranchiseByCode: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                reportId: number;
+                code: string;
             };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamFranchiseEntity"];
+                };
+            };
+        };
+    };
+    searchFranchises: {
+        parameters: {
+            query: {
+                keyword: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamFranchiseEntity"][];
+                };
+            };
+        };
+    };
+    getFranchiseById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamFranchiseEntity"];
+                };
+            };
+        };
+    };
+    getCurrentTeam: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamEntity"];
+                };
+            };
+        };
+    };
+    getFranchiseHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getRecentHistory: {
+        parameters: {
+            query?: {
+                years?: number;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getFranchiseMetadata: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    getFranchiseTeams: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamEntity"][];
+                };
+            };
+        };
+    };
+    getPastGames: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchDto"][];
+                };
+            };
+        };
+    };
+    getBootstrap: {
+        parameters: {
+            query?: {
+                date?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HomeBootstrapResponseDto"];
+                };
+            };
+        };
+    };
+    getNavigation: {
+        parameters: {
+            query?: {
+                date?: string;
+                scope?: string;
+                seasonYear?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HomeScopedNavigationDto"];
+                };
+            };
+        };
+    };
+    getWidgets: {
+        parameters: {
+            query?: {
+                date?: string;
+                seasonYear?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HomeWidgetsResponseDto"];
+                };
+            };
+        };
+    };
+    deleteImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    renewSignedUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["SignedUrlDto"];
+                };
+            };
+        };
+    };
+    markAsThumbnail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imageId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PostImageDto"];
+                };
+            };
+        };
+    };
+    upsertSellerProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["AdminReportActionReq"];
+                "application/json": components["schemas"]["MateSellerPayoutProfileUpsertRequest"];
             };
         };
         responses: {
@@ -9984,14 +10980,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseAdminReportDto"];
+                    "*/*": components["schemas"]["ApiResponseMateSellerPayoutProfileResponse"];
                 };
             };
         };
     };
-    checkSocialVerified: {
+    getSellerProfile: {
         parameters: {
-            query?: never;
+            query?: {
+                provider?: string;
+            };
             header?: never;
             path: {
                 userId: number;
@@ -10006,17 +11004,17 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMateSellerPayoutProfileResponse"];
                 };
             };
         };
     };
-    getPublicUserProfile: {
+    requestPayout: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                handle: string;
+                paymentId: number;
             };
             cookie?: never;
         };
@@ -10028,126 +11026,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMateInternalSettlementPayoutResponse"];
                 };
             };
         };
     };
-    getPublicFollowing: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getPublicFollowers: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getPublicFollowCounts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["FollowCountResponse"];
-                };
-            };
-        };
-    };
-    getMyFollowing: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getMyFollowers: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getMyFollowCounts: {
+    getLeagueStartDates: {
         parameters: {
             query?: never;
             header?: never;
@@ -10162,84 +11046,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["FollowCountResponse"];
+                    "*/*": components["schemas"]["LeagueStartDatesDto"];
                 };
             };
         };
     };
-    getBlockedUsers: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getGamesInRange: {
-        parameters: {
-            query: {
-                start: string;
-                end: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    getCounts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    getTeams: {
+    getMetadata: {
         parameters: {
             query?: {
-                includeInactive?: boolean;
+                year?: number;
             };
             header?: never;
             path?: never;
@@ -10253,123 +11068,12 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TeamSummaryDto"][];
+                    "*/*": components["schemas"]["OffseasonMetaDto"];
                 };
             };
         };
     };
-    getActiveTeams: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamSummaryDto"][];
-                };
-            };
-        };
-    };
-    getTeamCodeHistory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                teamCode: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getTeamSeason: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                teamCode: string;
-                season: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"];
-                };
-            };
-        };
-    };
-    getSeasonStatistics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                season: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    getHistoryByStadium: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stadium: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getAvailableSeasons: {
+    getMovements_1: {
         parameters: {
             query?: never;
             header?: never;
@@ -10384,59 +11088,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": number[];
+                    "*/*": components["schemas"]["OffseasonMovementDto"][];
                 };
             };
         };
     };
-    getSeasonTeams: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                season: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getSeasonStandings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                season: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getRecentSeasons: {
+    getRankingSnapshot: {
         parameters: {
             query?: {
-                limit?: number;
+                date?: string;
+                seasonYear?: number;
             };
             header?: never;
             path?: never;
@@ -10450,269 +11111,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                    "*/*": components["schemas"]["HomeRankingSnapshotDto"];
                 };
             };
         };
     };
-    getHistoryByRange: {
-        parameters: {
-            query: {
-                startYear: number;
-                endYear: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getStadiums: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["StadiumDto"][];
-                    "application/json; charset=UTF-8": components["schemas"]["StadiumDto"][];
-                };
-            };
-        };
-    };
-    getStadiumDetail: {
+    getTeamRankings: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                stadiumId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["StadiumDetailDto"];
-                    "application/json; charset=UTF-8": components["schemas"]["StadiumDetailDto"];
-                };
-            };
-        };
-    };
-    getPlacesByStadium: {
-        parameters: {
-            query?: {
-                category?: string;
-            };
-            header?: never;
-            path: {
-                stadiumId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["PlaceDto"][];
-                    "application/json; charset=UTF-8": components["schemas"]["PlaceDto"][];
-                };
-            };
-        };
-    };
-    getAllPlaces: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["PlaceDto"][];
-                    "application/json; charset=UTF-8": components["schemas"]["PlaceDto"][];
-                };
-            };
-        };
-    };
-    getStadiumDetailByName: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stadiumName: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["StadiumDetailDto"];
-                    "application/json; charset=UTF-8": components["schemas"]["StadiumDetailDto"];
-                };
-            };
-        };
-    };
-    getPlacesByStadiumName: {
-        parameters: {
-            query?: {
-                category?: string;
-            };
-            header?: never;
-            path: {
-                stadiumName: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": components["schemas"]["PlaceDto"][];
-                    "application/json; charset=UTF-8": components["schemas"]["PlaceDto"][];
-                };
-            };
-        };
-    };
-    getFavorites: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json;charset=UTF-8": {
-                        [key: string]: string[];
-                    };
-                    "application/json; charset=UTF-8": {
-                        [key: string]: string[];
-                    };
-                };
-            };
-        };
-    };
-    getReviewsByParty: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateReviewResponse"][];
-                };
-            };
-        };
-    };
-    getReviewsByHost: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateReviewResponse"][];
-                };
-            };
-        };
-    };
-    getVoteStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                gameId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PredictionResponseDto"];
-                };
-            };
-        };
-    };
-    getSharedPrediction: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                shareId: string;
                 seasonYear: number;
             };
             cookie?: never;
@@ -10725,56 +11133,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["RankingPredictionResponseDto"];
+                    "*/*": components["schemas"]["HomePageTeamRankingDto"][];
                 };
             };
         };
     };
-    getInit: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["RankingPredictionInitDto"];
-                };
-            };
-        };
-    };
-    getCurrentSeason: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["RankingPredictionCurrentSeasonDto"];
-                };
-            };
-        };
-    };
-    getPredictionBootstrap: {
+    getGamesByDate: {
         parameters: {
             query: {
                 date: string;
-                gameId?: string;
             };
             header?: never;
             path?: never;
@@ -10788,97 +11155,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["PredictionBootstrapResponseDto"];
+                    "*/*": components["schemas"]["HomePageGameDto"][];
                 };
             };
         };
     };
-    getMyStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PredictionStatsResponseDto"];
-                };
-            };
-        };
-    };
-    getPaymentCapability: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatePaymentCapabilityResponse"];
-                };
-            };
-        };
-    };
-    getUpcomingParties: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
-                };
-            };
-        };
-    };
-    getPartiesByStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                status: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
-                };
-            };
-        };
-    };
-    searchParties: {
+    getScheduleNavigation: {
         parameters: {
             query: {
-                query: string;
+                date: string;
             };
             header?: never;
             path?: never;
@@ -10892,79 +11177,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
+                    "*/*": components["schemas"]["ScheduleNavigationDto"];
                 };
             };
         };
     };
-    getPopularSearchTerms: {
+    getLeaderboard: {
         parameters: {
             query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PopularResponse"][];
-                };
-            };
-        };
-    };
-    getPartiesByHostHandle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
-                };
-            };
-        };
-    };
-    getMyParties: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatePartyResponse"][];
-                };
-            };
-        };
-    };
-    getMyPartyHistory: {
-        parameters: {
-            query?: {
-                group?: string;
+                type?: string;
                 page?: number;
                 size?: number;
             };
@@ -10985,29 +11206,7 @@ export interface operations {
             };
         };
     };
-    getMyNotifications: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["Response"][];
-                };
-            };
-        };
-    };
-    getMyUnreadCount: {
+    getAllAchievements: {
         parameters: {
             query?: never;
             header?: never;
@@ -11022,7 +11221,299 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": number;
+                    "*/*": components["schemas"]["AchievementDto"][];
+                };
+            };
+        };
+    };
+    getRecentRareAchievements: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AchievementDto"][];
+                };
+            };
+        };
+    };
+    getRecentAchievements: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["AchievementDto"][];
+                };
+            };
+        };
+    };
+    getHotStreaks: {
+        parameters: {
+            query?: {
+                minStreak?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["HotStreakDto"][];
+                };
+            };
+        };
+    };
+    getMyStats_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserStatsDto"];
+                };
+            };
+        };
+    };
+    getMyScoreHistory: {
+        parameters: {
+            query?: {
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    getPowerups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: number;
+                    };
+                };
+            };
+        };
+    };
+    getActivePowerups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ActivePowerupDto"][];
+                };
+            };
+        };
+    };
+    usePowerup: {
+        parameters: {
+            query?: {
+                gameId?: string;
+            };
+            header?: never;
+            path: {
+                type: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    [key: string]: Record<string, never>;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PowerupUseResultDto"];
+                };
+            };
+        };
+    };
+    getUserStatsByHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserStatsDto"];
+                };
+            };
+        };
+    };
+    getUserRankByHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["UserRankDto"];
+                };
+            };
+        };
+    };
+    getRecentScores: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RecentScoreDto"][];
+                };
+            };
+        };
+    };
+    seedTestData: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    getGlobalStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: Record<string, never>;
+                    };
                 };
             };
         };
@@ -11045,6 +11536,97 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["MatchDto"][];
+                };
+            };
+        };
+    };
+    getMatchBounds: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchBoundsResponseDto"];
+                };
+            };
+        };
+    };
+    getMatchDay: {
+        parameters: {
+            query: {
+                date: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchDayNavigationResponseDto"];
+                };
+            };
+        };
+    };
+    getLiveSummaries: {
+        parameters: {
+            query: {
+                gameIds: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["GameLiveSummaryDto"][];
+                };
+            };
+        };
+    };
+    getMatchesByRange: {
+        parameters: {
+            query: {
+                startDate: string;
+                endDate: string;
+                includePast?: boolean;
+                page?: number;
+                size?: number;
+                withMeta?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatchDto"][] | components["schemas"]["MatchRangePageResponseDto"];
                 };
             };
         };
@@ -11121,857 +11703,18 @@ export interface operations {
             };
         };
     };
-    getMatchesByRange: {
-        parameters: {
-            query: {
-                startDate: string;
-                endDate: string;
-                includePast?: boolean;
-                page?: number;
-                size?: number;
-                withMeta?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatchDto"][] | components["schemas"]["MatchRangePageResponseDto"];
-                };
-            };
-        };
-    };
-    getLiveSummaries: {
-        parameters: {
-            query: {
-                gameIds: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GameLiveSummaryDto"][];
-                };
-            };
-        };
-    };
-    getMatchDay: {
-        parameters: {
-            query: {
-                date: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatchDayNavigationResponseDto"];
-                };
-            };
-        };
-    };
-    getMatchBounds: {
+    initUpload: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatchBoundsResponseDto"];
-                };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InitMediaUploadRequest"];
             };
         };
-    };
-    getLeaderboard: {
-        parameters: {
-            query?: {
-                type?: string;
-                page?: number;
-                size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getGlobalStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    getRecentScores: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["RecentScoreDto"][];
-                };
-            };
-        };
-    };
-    getUserStatsByHandle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["UserStatsDto"];
-                };
-            };
-        };
-    };
-    getUserRankByHandle: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["UserRankDto"];
-                };
-            };
-        };
-    };
-    getPowerups: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: number;
-                    };
-                };
-            };
-        };
-    };
-    getActivePowerups: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ActivePowerupDto"][];
-                };
-            };
-        };
-    };
-    getMyStats_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["UserStatsDto"];
-                };
-            };
-        };
-    };
-    getMyScoreHistory: {
-        parameters: {
-            query?: {
-                page?: number;
-                size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModel"];
-                };
-            };
-        };
-    };
-    getHotStreaks: {
-        parameters: {
-            query?: {
-                minStreak?: number;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HotStreakDto"][];
-                };
-            };
-        };
-    };
-    getAllAchievements: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["AchievementDto"][];
-                };
-            };
-        };
-    };
-    getRecentAchievements: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["AchievementDto"][];
-                };
-            };
-        };
-    };
-    getRecentRareAchievements: {
-        parameters: {
-            query?: {
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["AchievementDto"][];
-                };
-            };
-        };
-    };
-    getGamesByDate: {
-        parameters: {
-            query: {
-                date: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HomePageGameDto"][];
-                };
-            };
-        };
-    };
-    getScheduleNavigation: {
-        parameters: {
-            query: {
-                date: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ScheduleNavigationDto"];
-                };
-            };
-        };
-    };
-    getTeamRankings: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                seasonYear: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HomePageTeamRankingDto"][];
-                };
-            };
-        };
-    };
-    getRankingSnapshot: {
-        parameters: {
-            query?: {
-                date?: string;
-                seasonYear?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HomeRankingSnapshotDto"];
-                };
-            };
-        };
-    };
-    getMovements_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["OffseasonMovementDto"][];
-                };
-            };
-        };
-    };
-    getMetadata: {
-        parameters: {
-            query?: {
-                year?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["OffseasonMetaDto"];
-                };
-            };
-        };
-    };
-    getLeagueStartDates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["LeagueStartDatesDto"];
-                };
-            };
-        };
-    };
-    getSellerProfile: {
-        parameters: {
-            query?: {
-                provider?: string;
-            };
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMateSellerPayoutProfileResponse"];
-                };
-            };
-        };
-    };
-    getWidgets: {
-        parameters: {
-            query?: {
-                date?: string;
-                seasonYear?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HomeWidgetsResponseDto"];
-                };
-            };
-        };
-    };
-    getNavigation: {
-        parameters: {
-            query?: {
-                date?: string;
-                scope?: string;
-                seasonYear?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HomeScopedNavigationDto"];
-                };
-            };
-        };
-    };
-    getBootstrap: {
-        parameters: {
-            query?: {
-                date?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["HomeBootstrapResponseDto"];
-                };
-            };
-        };
-    };
-    getPastGames: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MatchDto"][];
-                };
-            };
-        };
-    };
-    getAllFranchises: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamFranchiseEntity"][];
-                };
-            };
-        };
-    };
-    getFranchiseById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamFranchiseEntity"];
-                };
-            };
-        };
-    };
-    getFranchiseTeams: {
-        parameters: {
-            query?: {
-                includeInactive?: boolean;
-            };
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamEntity"][];
-                };
-            };
-        };
-    };
-    getFranchiseMetadata: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": {
-                        [key: string]: Record<string, never>;
-                    };
-                };
-            };
-        };
-    };
-    getFranchiseHistory: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getRecentHistory: {
-        parameters: {
-            query?: {
-                years?: number;
-            };
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamHistoryEntity"][];
-                };
-            };
-        };
-    };
-    getCurrentTeam: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamEntity"];
-                };
-            };
-        };
-    };
-    searchFranchises: {
-        parameters: {
-            query: {
-                keyword: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamFranchiseEntity"][];
-                };
-            };
-        };
-    };
-    getFranchiseByCode: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                code: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["TeamFranchiseEntity"];
-                };
-            };
-        };
-    };
-    getMessages: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                roomId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -11980,1323 +11723,6 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    getMyRooms: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    getDiary: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["DiaryResponseDto"];
-                };
-            };
-        };
-    };
-    showStatistics: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["DiaryStatisticsDto"];
-                };
-            };
-        };
-    };
-    getSeatViewPhotos: {
-        parameters: {
-            query: {
-                stadium: string;
-                section?: string;
-                limit?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["SeatViewPhotoDto"][];
-                };
-            };
-        };
-    };
-    getGamesByDate_1: {
-        parameters: {
-            query: {
-                date: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["GameResponseDto"][];
-                };
-            };
-        };
-    };
-    getDiary_1: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["DiaryResponseDto"][];
-                };
-            };
-        };
-    };
-    listByUser: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path: {
-                handle: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
-                };
-            };
-        };
-    };
-    search: {
-        parameters: {
-            query: {
-                q: string;
-                teamId?: string;
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
-                };
-            };
-        };
-    };
-    linked: {
-        parameters: {
-            query?: {
-                diaryId?: number;
-                partyId?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["LinkedPostLookupRes"];
-                };
-            };
-        };
-    };
-    listHot: {
-        parameters: {
-            query: {
-                algorithm?: string;
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
-                };
-            };
-        };
-    };
-    listFollowing: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
-                };
-            };
-        };
-    };
-    checkChanges: {
-        parameters: {
-            query?: {
-                sinceId?: number;
-                teamId?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PostChangesResponse"];
-                };
-            };
-        };
-    };
-    listMyPosts: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
-                };
-            };
-        };
-    };
-    getBookmarks: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["PagedModelPostSummaryRes"];
-                };
-            };
-        };
-    };
-    getBattleStatus: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                gameId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["CheerBattleStatusRes"];
-                };
-            };
-        };
-    };
-    getCheckInsByUserId: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                userId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateCheckInResponse"][];
-                };
-            };
-        };
-    };
-    getCheckInsByPartyId: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateCheckInResponse"][];
-                };
-            };
-        };
-    };
-    getCheckInCount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": number;
-                };
-            };
-        };
-    };
-    isCheckedIn: {
-        parameters: {
-            query: {
-                partyId: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": boolean;
-                };
-            };
-        };
-    };
-    getMessagesByPartyId: {
-        parameters: {
-            query?: {
-                limit?: number;
-                beforeId?: number;
-            };
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateChatMessageResponse"][];
-                };
-            };
-        };
-    };
-    getLatestMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateChatMessageResponse"];
-                };
-            };
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    getTotalUnreadCount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateChatUnreadCountResponse"];
-                };
-            };
-        };
-    };
-    getTrustedDevices: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListTrustedDeviceDto"];
-                };
-            };
-        };
-    };
-    getSessions: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    deleteSessions: {
-        parameters: {
-            query?: {
-                allExceptCurrent?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    getSecurityEvents: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListAccountSecurityEventDto"];
-                };
-            };
-        };
-    };
-    getConnectedProviders: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    getRequiredPolicies: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponsePolicyRequiredResponseDto"];
-                };
-            };
-        };
-    };
-    consumeOAuth2State: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                stateId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
-                };
-            };
-        };
-    };
-    generateLinkToken: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
-                };
-            };
-        };
-    };
-    checkName: {
-        parameters: {
-            query: {
-                name: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
-                };
-            };
-        };
-    };
-    checkHandle: {
-        parameters: {
-            query: {
-                handle: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseAvailabilityCheckResponseDto"];
-                };
-            };
-        };
-    };
-    getApplicationsByPartyId: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"][];
-                };
-            };
-        };
-    };
-    getRejectedApplications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"][];
-                };
-            };
-        };
-    };
-    getPendingApplications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"][];
-                };
-            };
-        };
-    };
-    getMyApplicationByPartyId: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"];
-                };
-            };
-        };
-    };
-    getApprovedApplications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                partyId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"][];
-                };
-            };
-        };
-    };
-    getMyApplications: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["MateApplicationResponse"][];
-                };
-            };
-        };
-    };
-    releaseDecisionPresets: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    releaseDecisionEvalCases: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    releaseDecisionArtifacts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    releaseDecisionArtifactDetail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                artifactId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    coachAutoBriefOpsHealth: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": string;
-                };
-            };
-        };
-    };
-    listMessages: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sessionId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListStoredChatMessage"];
-                };
-            };
-        };
-    };
-    listFavorites: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListChatFavoriteItem"];
-                };
-            };
-        };
-    };
-    getUsers: {
-        parameters: {
-            query?: {
-                search?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListAdminUserDto"];
-                };
-            };
-        };
-    };
-    getStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseAdminStatsDto"];
-                };
-            };
-        };
-    };
-    getSeatViews: {
-        parameters: {
-            query?: {
-                moderationStatus?: string;
-                stadium?: string;
-                aiSuggestedLabel?: string;
-                adminLabel?: string;
-                ticketVerified?: boolean;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListAdminSeatViewDto"];
-                };
-            };
-        };
-    };
-    getAuditLogs: {
-        parameters: {
-            query: {
-                pageable: components["schemas"]["Pageable"];
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponsePageAuditLogDto"];
-                };
-            };
-        };
-    };
-    getReports: {
-        parameters: {
-            query?: {
-                status?: string;
-                reason?: string;
-                fromDate?: string;
-                toDate?: string;
-                page?: number;
-                size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponsePageAdminReportDto"];
-                };
-            };
-        };
-    };
-    getPosts: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListAdminPostDto"];
-                };
-            };
-        };
-    };
-    getMates: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseListAdminMateDto"];
-                };
-            };
-        };
-    };
-    getGameStatusMismatches: {
-        parameters: {
-            query: {
-                startDate: string;
-                endDate?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseGameStatusMismatchBatchResultDto"];
-                };
-            };
-        };
-    };
-    getEvents: {
-        parameters: {
-            query?: {
-                bucket?: string;
-                source?: string;
-                statusGroup?: string;
-                route?: string;
-                fingerprint?: string;
-                search?: string;
-                from?: string;
-                to?: string;
-                page?: number;
-                size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseClientErrorEventPageDto"];
-                };
-            };
-        };
-    };
-    getEventDetail: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                eventId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseClientErrorEventDetailDto"];
-                };
-            };
-        };
-    };
-    getDashboard: {
-        parameters: {
-            query?: {
-                from?: string;
-                to?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseClientErrorDashboardDto"];
-                };
-            };
-        };
-    };
-    getCacheStats: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
-                };
-            };
-        };
-    };
-    removeFollower: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                followerId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    cancelVote: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                gameId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    deleteNotification: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                notificationId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": Record<string, never>;
                 };
             };
         };
@@ -13323,32 +11749,12 @@ export interface operations {
             };
         };
     };
-    deleteImage: {
+    finalizeUpload: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                imageId: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    deleteMessage: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                messageId: number;
+                assetId: number;
             };
             cookie?: never;
         };
@@ -13365,16 +11771,264 @@ export interface operations {
             };
         };
     };
-    deleteComment: {
+    markAllAsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyNotifications: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["Response"][];
+                };
+            };
+        };
+    };
+    getMyUnreadCount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number;
+                };
+            };
+        };
+    };
+    deleteNotification: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                commentId: number;
+                notificationId: number;
             };
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    markAsRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                notificationId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": Record<string, never>;
+                };
+            };
+        };
+    };
+    getAllParties: {
+        parameters: {
+            query?: {
+                teamId?: string;
+                stadium?: string;
+                date?: string;
+                searchQuery?: string;
+                status?: string;
+                page?: number;
+                size?: number;
+                sortBy?: string;
+                sortDir?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    createParty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatePartyCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePartyResponse"];
+                };
+            };
+        };
+    };
+    getMyParties: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePartyResponse"][];
+                };
+            };
+        };
+    };
+    getMyPartyHistory: {
+        parameters: {
+            query?: {
+                group?: string;
+                page?: number;
+                size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    getPartiesByHostHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
+                };
+            };
+        };
+    };
+    searchParties: {
+        parameters: {
+            query: {
+                query: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
+                };
+            };
+        };
+    };
+    recordSearchTerm: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RecordRequest"];
+            };
+        };
         responses: {
             /** @description No Content */
             204: {
@@ -13385,12 +12039,34 @@ export interface operations {
             };
         };
     };
-    deleteTrustedDevice: {
+    getPopularSearchTerms: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PopularResponse"][];
+                };
+            };
+        };
+    };
+    getPartiesByStatus: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                deviceId: number;
+                status: string;
             };
             cookie?: never;
         };
@@ -13402,67 +12078,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
                 };
             };
         };
     };
-    deleteSession: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                sessionId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    unlinkProvider: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                provider: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "*/*": components["schemas"]["ApiResponse"];
-                };
-            };
-        };
-    };
-    deleteAccount: {
+    getUpcomingParties: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: {
-            content: {
-                "application/json": components["schemas"]["DeleteAccountRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description OK */
             200: {
@@ -13470,17 +12098,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["MatePartyPublicResponse"][];
                 };
             };
         };
     };
-    cancelApplication: {
+    getPartyById: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                applicationId: number;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePartyPublicResponse"];
+                };
+            };
+        };
+    };
+    deleteParty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
             };
             cookie?: never;
         };
@@ -13495,12 +12145,38 @@ export interface operations {
             };
         };
     };
-    deleteSession_1: {
+    updateParty: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                sessionId: number;
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatePartyUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePartyResponse"];
+                };
+            };
+        };
+    };
+    addFavorite_1: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
             };
             cookie?: never;
         };
@@ -13512,17 +12188,19 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
+                    "*/*": {
+                        [key: string]: boolean;
+                    };
                 };
             };
         };
     };
-    deleteUser: {
+    removeFavorite_1: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                userId: number;
+                id: number;
             };
             cookie?: never;
         };
@@ -13534,12 +12212,117 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
+                    "*/*": {
+                        [key: string]: boolean;
+                    };
                 };
             };
         };
     };
-    deletePost: {
+    getPaymentCapability: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePaymentCapabilityResponse"];
+                };
+            };
+        };
+    };
+    confirmTossPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatePaymentConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"];
+                };
+            };
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateApplicationResponse"];
+                };
+            };
+        };
+    };
+    prepareTossPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MatePaymentPrepareRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MatePaymentPrepareResponse"];
+                };
+            };
+        };
+    };
+    cancelTossPayment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                intentId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MatePaymentCancelIntentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMatePaymentCancelIntentResponse"];
+                };
+            };
+        };
+    };
+    listPostImages: {
         parameters: {
             query?: never;
             header?: never;
@@ -13556,17 +12339,199 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
+                    "*/*": components["schemas"]["PostImageDto"][];
                 };
             };
         };
     };
-    deleteMate: {
+    uploadPostImages: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                mateId: number;
+                postId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    files: string[];
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PostImageDto"][];
+                };
+            };
+        };
+    };
+    getMyStats: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PredictionStatsResponseDto"];
+                };
+            };
+        };
+    };
+    getPredictionBootstrap: {
+        parameters: {
+            query: {
+                date: string;
+                gameId?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PredictionBootstrapResponseDto"];
+                };
+            };
+        };
+    };
+    getMyVotesBulk: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PredictionMyVotesRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PredictionMyVotesResponseDto"];
+                };
+            };
+        };
+    };
+    getPredction: {
+        parameters: {
+            query: {
+                seasonYear: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RankingPredictionResponseDto"];
+                };
+            };
+        };
+    };
+    savePrediction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RankingPredictionRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RankingPredictionResponseDto"];
+                };
+            };
+        };
+    };
+    getCurrentSeason: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RankingPredictionCurrentSeasonDto"];
+                };
+            };
+        };
+    };
+    getInit: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["RankingPredictionInitDto"];
+                };
+            };
+        };
+    };
+    getSharedPrediction: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                shareId: string;
+                seasonYear: number;
             };
             cookie?: never;
         };
@@ -13578,7 +12543,1042 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponseVoid"];
+                    "*/*": components["schemas"]["RankingPredictionResponseDto"];
+                };
+            };
+        };
+    };
+    getVoteStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PredictionResponseDto"];
+                };
+            };
+        };
+    };
+    vote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PredictionRequestDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    cancelVote: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    uploadProfileImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    getResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TeamUserAnswersDto"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamResultDto"];
+                };
+            };
+        };
+    };
+    createReview: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MateReviewCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateReviewResponse"];
+                };
+            };
+        };
+    };
+    getReviewsByHost: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateReviewResponse"][];
+                };
+            };
+        };
+    };
+    getReviewsByParty: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                partyId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["MateReviewResponse"][];
+                };
+            };
+        };
+    };
+    getStadiums: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["StadiumDto"][];
+                    "application/json;charset=UTF-8": components["schemas"]["StadiumDto"][];
+                };
+            };
+        };
+    };
+    getFavorites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": {
+                        [key: string]: string[];
+                    };
+                    "application/json;charset=UTF-8": {
+                        [key: string]: string[];
+                    };
+                };
+            };
+        };
+    };
+    getStadiumDetailByName: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stadiumName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["StadiumDetailDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["StadiumDetailDto"];
+                };
+            };
+        };
+    };
+    getPlacesByStadiumName: {
+        parameters: {
+            query?: {
+                category?: string;
+            };
+            header?: never;
+            path: {
+                stadiumName: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["PlaceDto"][];
+                    "application/json;charset=UTF-8": components["schemas"]["PlaceDto"][];
+                };
+            };
+        };
+    };
+    getAllPlaces: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["PlaceDto"][];
+                    "application/json;charset=UTF-8": components["schemas"]["PlaceDto"][];
+                };
+            };
+        };
+    };
+    getStadiumDetail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stadiumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["StadiumDetailDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["StadiumDetailDto"];
+                };
+            };
+        };
+    };
+    addFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stadiumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": {
+                        [key: string]: boolean;
+                    };
+                    "application/json;charset=UTF-8": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+        };
+    };
+    removeFavorite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stadiumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": {
+                        [key: string]: boolean;
+                    };
+                    "application/json;charset=UTF-8": {
+                        [key: string]: boolean;
+                    };
+                };
+            };
+        };
+    };
+    getPlacesByStadium: {
+        parameters: {
+            query?: {
+                category?: string;
+            };
+            header?: never;
+            path: {
+                stadiumId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json; charset=UTF-8": components["schemas"]["PlaceDto"][];
+                    "application/json;charset=UTF-8": components["schemas"]["PlaceDto"][];
+                };
+            };
+        };
+    };
+    uploadChatImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseMateChatImageUploadResponse"];
+                };
+            };
+        };
+    };
+    getHistoryByRange: {
+        parameters: {
+            query: {
+                startYear: number;
+                endYear: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getRecentSeasons: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getSeasonTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getSeasonStandings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getAvailableSeasons: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": number[];
+                };
+            };
+        };
+    };
+    getHistoryByStadium: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                stadium: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getSeasonStatistics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                season: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    getTeamCodeHistory: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamCode: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"][];
+                };
+            };
+        };
+    };
+    getTeamSeason: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teamCode: string;
+                season: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamHistoryEntity"];
+                };
+            };
+        };
+    };
+    getTeams: {
+        parameters: {
+            query?: {
+                includeInactive?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamSummaryDto"][];
+                };
+            };
+        };
+    };
+    getActiveTeams: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TeamSummaryDto"][];
+                };
+            };
+        };
+    };
+    getCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    getGamesInRange: {
+        parameters: {
+            query: {
+                start: string;
+                end: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": {
+                        [key: string]: Record<string, never>;
+                    };
+                };
+            };
+        };
+    };
+    analyzeTicket: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["TicketInfo"];
+                };
+            };
+        };
+    };
+    getBlockedUsers: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    getMyFollowCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FollowCountResponse"];
+                };
+            };
+        };
+    };
+    getMyFollowers: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    removeFollower: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                followerId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    getMyFollowing: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    getPublicUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
+                };
+            };
+        };
+    };
+    toggleBlockByHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["BlockToggleResponse"];
+                };
+            };
+        };
+    };
+    toggleFollowByHandle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FollowToggleResponse"];
+                };
+            };
+        };
+    };
+    getPublicFollowCounts: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FollowCountResponse"];
+                };
+            };
+        };
+    };
+    updateNotifySettingByHandle: {
+        parameters: {
+            query: {
+                notify: boolean;
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["FollowToggleResponse"];
+                };
+            };
+        };
+    };
+    getPublicFollowers: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    getPublicFollowing: {
+        parameters: {
+            query: {
+                pageable: components["schemas"]["Pageable"];
+            };
+            header?: never;
+            path: {
+                handle: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["PagedModel"];
+                };
+            };
+        };
+    };
+    checkSocialVerified: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                userId: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponse"];
                 };
             };
         };

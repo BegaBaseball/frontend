@@ -206,3 +206,26 @@ fix: address landing final accessibility review
 ### Review-Fix Concerns
 
 No review-fix blocker remains. Task 6 work remains untouched.
+
+---
+
+## Mate Chat-History Retry Checkpoint
+
+Added the approved characterization scenario to `cypress/e2e/mate-execution-flow.cy.ts`: an approved participant sees an initial chat-history failure, explicitly retries, then sees the recovered host message and no stale failure state.
+
+Verification:
+
+```text
+CYPRESS_ALLOW_GLOBAL_FALLBACK=1 CYPRESS_DISABLE_AUTO_DOCKER_FALLBACK=1 node scripts/test-e2e.mjs --host 127.0.0.1 --browser electron --spec cypress/e2e/mate-execution-flow.cy.ts
+10 passing (24s)
+0 failing
+All specs passed!
+
+rg -n "session|복원|다시 시도" cypress/e2e/mate-apply-session-recovery.cy.ts
+Existing submit-time session-expiry recovery coverage remains present; no duplicate added.
+
+git diff --check
+exit 0, no output
+```
+
+No production code changed. The local Vite test run emitted expected development WebSocket proxy `ECONNREFUSED` warnings because no backend was running; all intercepted Cypress scenarios passed.

@@ -549,8 +549,8 @@
 
 @keyframes landing-phone-live-pulse {
   0%,
-  100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }
 
 .landing-phone-card {
@@ -1283,7 +1283,7 @@
 }
 
 .landing-cheer-metrics .landing-cheer-liked {
-  color: #b91c1c;
+  color: #ef4444;
 }
 
 .landing-cheer-liked i {
@@ -1355,6 +1355,12 @@
   font-size: 13px;
   font-weight: 600;
   list-style: none;
+}
+
+.landing-mate-details li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .landing-mate-details li:not(:last-child)::after {
@@ -1564,17 +1570,17 @@
 
 .landing-diary-result-win {
   background: #e9f9ef;
-  color: #15803d;
+  color: #16a34a;
 }
 
 .landing-diary-result-draw {
   background: #fdf7e1;
-  color: #a16207;
+  color: #ca8a04;
 }
 
 .landing-diary-result-loss {
   background: #fdecec;
-  color: #b91c1c;
+  color: #dc2626;
 }
 
 .landing-diary-quote {
@@ -1589,7 +1595,7 @@
 }
 
 .landing-diary-quote strong {
-  color: #15803d;
+  color: #16a34a;
   font-weight: 800;
 }
 
@@ -1935,16 +1941,16 @@
 
 @keyframes landing-feature-live-pulse {
   0%,
-  100% { opacity: 1; }
-  50% { opacity: 0.35; }
+  100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
 }
 
 @keyframes landing-feature-score-roll {
   0%,
-  24% { transform: translateY(-1em); }
-  25%,
-  49% { transform: translateY(-2em); }
-  50%,
+  20% { transform: translateY(-1em); }
+  30%,
+  45% { transform: translateY(-2em); }
+  55%,
   100% { transform: translateY(-3em); }
 }
 
@@ -2031,6 +2037,10 @@
 .dark .landing-stadium-stats dt,
 .dark .landing-diary-quote {
   color: #9aa7b1;
+}
+
+.dark .landing-cheer-metrics .landing-cheer-liked {
+  color: #f87171;
 }
 
 .dark .landing-vignette-card,
