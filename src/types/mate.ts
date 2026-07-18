@@ -157,6 +157,7 @@ export type MatePartySeed = Party | MateParty;
 
 export interface MateRouteLocationState {
   partySeed?: MatePartySeed;
+  returnTo?: string;
 }
 
 export interface MateApplication {

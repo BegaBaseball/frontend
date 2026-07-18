@@ -13,6 +13,7 @@ import {
   markPersistedAuthBootstrapSuccess,
   normalizeAuthBootstrapPathname,
   resolveAuthBootstrapMode,
+  shouldInitializeAuthLoading,
 } from '../utils/authBootstrap';
 import {
   clearStoredLoginRedirect,
@@ -264,9 +265,24 @@ interface AuthActions {
 
 type AuthStore = AuthState & AuthActions;
 
+const getInitialAuthLoadingState = (): boolean => {
+  if (typeof window === 'undefined') {
+    return true;
+  }
+
+  return shouldInitializeAuthLoading(window.location.pathname, {
+    isLoggedIn: false,
+    hasPersistedAuthHint: hasPersistedAuthBootstrapHint(),
+    authBootstrapMeta: getPersistedAuthBootstrapMeta(),
+    hasInjectedAuthProfile: Boolean(
+      (window as Window & { __BEGA_TEST_AUTH_PROFILE__?: unknown }).__BEGA_TEST_AUTH_PROFILE__,
+    ),
+  });
+};
+
 const getInitialState = (): AuthState => ({
   user: null,
-  isAuthLoading: true,
+  isAuthLoading: getInitialAuthLoadingState(),
   publicAuthBootstrapPhase: 'idle',
   showLoginRequiredDialog: false,
   pendingLoginRedirect: null,
