@@ -9,6 +9,7 @@ import {
   getCoachStreamRequestTimeoutMs,
   getCoachStreamReadTimeoutMs,
 } from './coach';
+import { RateLimitError } from './aiStreamError';
 import { baseRequest, buildStreamResponse } from './coachTestSupport';
 
 process.env.VITE_AI_EVENT_VERSION = '1';
@@ -85,6 +86,8 @@ test('analyzeTeam은 v2 payload-limit stream.error를 전용 오류로 승격한
     (error) => {
       assert.ok(error instanceof CoachAnalyzeError);
       assert.equal(error.code, 'PAYLOAD_TOO_LARGE');
+      assert.equal(error.upstreamCode, 'AI_PROXY_PAYLOAD_TOO_LARGE');
+      assert.equal(error.retryable, false);
       return true;
     },
   );
@@ -118,6 +121,76 @@ test('analyzeTeam은 rollback 모드에서 v1 헤더를 명시한다', async (t)
 
   const capturedHeaders = requestHeaders as unknown as Headers;
   assert.equal(capturedHeaders.get('X-AI-Event-Version'), '1');
+});
+
+test('analyzeTeam preserves canonical 504 stream error details', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    code: 'AI_UPSTREAM_TIMEOUT',
+    message: 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
+    detail: null,
+    retryable: true,
+    retry_after_seconds: null,
+    supported_versions: [],
+  }), { status: 504 }));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'STREAM_TIMEOUT');
+      assert.equal(error.upstreamCode, 'AI_UPSTREAM_TIMEOUT');
+      assert.equal(error.retryable, true);
+      assert.equal(error.detail, null);
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam preserves canonical 406 supported versions', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    code: 'AI_EVENT_VERSION_UNSUPPORTED',
+    message: '지원하지 않는 AI 이벤트 버전입니다.',
+    detail: null,
+    retryable: false,
+    retry_after_seconds: null,
+    supported_versions: ['1', '2'],
+  }), { status: 406 }));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof CoachAnalyzeError);
+      assert.equal(error.code, 'REQUEST_FAILED');
+      assert.deepEqual(error.supportedVersions, ['1', '2']);
+      assert.equal(error.upstreamCode, 'AI_EVENT_VERSION_UNSUPPORTED');
+      return true;
+    },
+  );
+});
+
+test('analyzeTeam maps canonical 429 to the shared RateLimitError', async (t) => {
+  t.mock.method(globalThis, 'fetch', async () => new Response(JSON.stringify({
+    code: 'AI_RATE_LIMITED',
+    message: '요청이 많아 잠시 후 다시 시도해주세요.',
+    detail: '분당 요청 한도를 초과했습니다.',
+    retryable: true,
+    retry_after_seconds: 11,
+    supported_versions: [],
+  }), {
+    status: 429,
+    headers: { 'Retry-After': '31' },
+  }));
+
+  await assert.rejects(
+    () => analyzeTeam(baseRequest),
+    (error) => {
+      assert.ok(error instanceof RateLimitError);
+      assert.equal(error.code, 'AI_RATE_LIMITED');
+      assert.equal(error.retryAfterSeconds, 11);
+      assert.equal(error.detail, '분당 요청 한도를 초과했습니다.');
+      return true;
+    },
+  );
 });
 
 test('analyzeTeam은 401에서 auth 전용 에러를 던진다', async (t) => {
@@ -182,6 +255,10 @@ test('analyzeTeam은 AI upstream 401을 auth 만료로 오인하지 않는다', 
     return new Response(JSON.stringify({
       code: 'AI_UPSTREAM_UNAUTHORIZED',
       message: 'AI 서비스 인증에 실패했습니다.',
+      detail: null,
+      retryable: false,
+      retry_after_seconds: null,
+      supported_versions: [],
     }), {
       status: 401,
       headers: { 'Content-Type': 'application/json' },

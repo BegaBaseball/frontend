@@ -4,10 +4,18 @@ import type { components as AiStreamComponents } from './generated/aiStreamV2';
 import { requestAuthReissue } from './authReissue';
 import { normalizeAiDataSources, normalizeAiToolCalls } from './aiMeta';
 import {
+    AI_EVENT_VERSION_HEADER,
     AiStreamContractError,
     decodeAiStreamV2Event,
     getAiEventVersion,
 } from './aiStreamContract';
+import {
+    decodeAiStreamHttpError,
+    normalizeAiStreamEventError,
+    RateLimitError,
+    type AiStreamErrorDetails,
+    type AiStreamRequestError,
+} from './aiStreamError';
 import { consumeSseStream } from './sse';
 import {
     COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS,
@@ -22,7 +30,6 @@ import {
 } from './stream';
 
 const COACH_ANALYZE_ENDPOINT = '/ai/coach/analyze';
-const AI_EVENT_VERSION_HEADER = 'X-AI-Event-Version';
 
 type CoachAnalyzeRequestWire = AiStreamComponents['schemas']['CoachAnalyzeRequest'];
 type CoachMetaV2 = AiStreamComponents['schemas']['CoachMetaData'];
@@ -299,80 +306,80 @@ export const COACH_PAYLOAD_TOO_LARGE_MESSAGE =
     'AI 코치 분석 요청 데이터가 너무 큽니다. 다른 경기로 다시 시도하거나 잠시 후 다시 확인해주세요.';
 
 export class CoachAnalyzeError extends Error {
-    code: CoachAnalyzeErrorCode;
-    statusCode: number | null;
+    readonly code: CoachAnalyzeErrorCode;
+    readonly statusCode: number | null;
+    readonly upstreamCode: string | null;
+    readonly detail: string | null;
+    readonly retryable: boolean;
+    readonly retryAfterSeconds: number | null;
+    readonly supportedVersions: AiStreamErrorDetails['supportedVersions'];
 
-    constructor(code: CoachAnalyzeErrorCode, message: string, statusCode: number | null = null) {
+    constructor(
+        code: CoachAnalyzeErrorCode,
+        message: string,
+        statusCode: number | null = null,
+        details?: AiStreamErrorDetails,
+    ) {
         super(message);
         this.name = 'CoachAnalyzeError';
         this.code = code;
         this.statusCode = statusCode;
+        this.upstreamCode = details?.code ?? null;
+        this.detail = details?.detail ?? null;
+        this.retryable = details?.retryable ?? false;
+        this.retryAfterSeconds = details?.retryAfterSeconds ?? null;
+        this.supportedVersions = [...(details?.supportedVersions ?? [])];
     }
 }
 
 export const isCoachAnalyzeError = (error: unknown): error is CoachAnalyzeError =>
     error instanceof CoachAnalyzeError;
 
-const createCoachRequestFailedError = (message = '분석 중 오류가 발생했습니다.'): CoachAnalyzeError =>
-    new CoachAnalyzeError('REQUEST_FAILED', message);
+const createCoachRequestFailedError = (
+    message = '분석 중 오류가 발생했습니다.',
+    statusCode: number | null = null,
+    details?: AiStreamErrorDetails,
+): CoachAnalyzeError => new CoachAnalyzeError('REQUEST_FAILED', message, statusCode, details);
 
-const createCoachPayloadTooLargeError = (statusCode: number | null = null): CoachAnalyzeError =>
-    new CoachAnalyzeError('PAYLOAD_TOO_LARGE', COACH_PAYLOAD_TOO_LARGE_MESSAGE, statusCode);
+const createCoachPayloadTooLargeError = (
+    statusCode: number | null = null,
+    details?: AiStreamErrorDetails,
+): CoachAnalyzeError => new CoachAnalyzeError(
+    'PAYLOAD_TOO_LARGE',
+    COACH_PAYLOAD_TOO_LARGE_MESSAGE,
+    statusCode,
+    details,
+);
 
 const createCoachStreamTimeoutError = (
     message = COACH_STREAM_CONNECT_TIMEOUT_MESSAGE,
-): CoachAnalyzeError => new CoachAnalyzeError('STREAM_TIMEOUT', message);
+    statusCode: number | null = null,
+    details?: AiStreamErrorDetails,
+): CoachAnalyzeError => new CoachAnalyzeError('STREAM_TIMEOUT', message, statusCode, details);
 
-interface ParsedCoachErrorPayload {
-    code?: string;
-    detail?: string;
-    message?: string;
-    rawText: string;
-}
+const isAiProxyPayloadTooLargeCode = (code: string | null | undefined): boolean =>
+    code === AI_PROXY_PAYLOAD_TOO_LARGE_CODE;
 
-const isAiProxyPayloadTooLargePayload = (payload?: Record<string, unknown> | { code?: unknown } | null): boolean =>
-    payload?.code === AI_PROXY_PAYLOAD_TOO_LARGE_CODE;
-
-const resolveCoachRequestFailureMessage = (statusCode: number, payload: ParsedCoachErrorPayload): string => {
-    const normalizedMessage = payload.message?.trim() || payload.detail?.trim();
-    if (normalizedMessage) {
-        return normalizedMessage;
+const createCoachRequestError = (
+    statusCode: number | null,
+    details: AiStreamErrorDetails,
+): CoachAnalyzeError | RateLimitError => {
+    if (statusCode === 429) {
+        return new RateLimitError(details);
     }
-
-    switch (statusCode) {
-        case 502:
-            return 'AI 서비스 연동이 일시적으로 불안정합니다. 잠시 후 다시 시도해주세요.';
-        case 503:
-            return 'AI 서비스가 현재 사용할 수 없습니다. 잠시 후 다시 시도해주세요.';
-        case 504:
-            return 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.';
-        default:
-            return '분석 중 오류가 발생했습니다.';
+    if (statusCode === 413 || isAiProxyPayloadTooLargeCode(details.code)) {
+        return createCoachPayloadTooLargeError(statusCode, details);
     }
-};
-
-const readCoachErrorPayload = async (response: Response): Promise<ParsedCoachErrorPayload> => {
-    const clone = response.clone();
-    const rawText = await clone.text();
-    if (!rawText) {
-        return { rawText };
+    if (statusCode === 504 || details.code === 'AI_UPSTREAM_TIMEOUT') {
+        return createCoachStreamTimeoutError(details.message, null, details);
     }
-
-    try {
-        const parsed = JSON.parse(rawText) as {
-            code?: unknown;
-            detail?: unknown;
-            message?: unknown;
-        };
-        return {
-            code: typeof parsed.code === 'string' ? parsed.code : undefined,
-            detail: typeof parsed.detail === 'string' ? parsed.detail : undefined,
-            message: typeof parsed.message === 'string' ? parsed.message : undefined,
-            rawText,
-        };
-    } catch {
-        return { rawText };
-    }
+    return createCoachRequestFailedError(
+        details.code === 'AI_STREAM_REQUEST_FAILED'
+            ? '분석 중 오류가 발생했습니다.'
+            : details.message,
+        statusCode,
+        details,
+    );
 };
 
 const isCoachRequestMode = (requestMode: AnalyzeRequest['request_mode']): requestMode is CoachRequestMode => (
@@ -486,7 +493,8 @@ export async function analyzeTeam(
     const MAX_RETRIES = COACH_STREAM_TIMEOUT_RETRY_ATTEMPTS;
     let attempt = 0;
     let response: Response | null = null;
-    let lastUnauthorizedPayload: ParsedCoachErrorPayload | null = null;
+    let responseError: AiStreamRequestError | null = null;
+    let lastUnauthorizedError: AiStreamRequestError | null = null;
 
     while (true) {
         attempt++;
@@ -496,11 +504,13 @@ export async function analyzeTeam(
                 ...requestInit,
                 timeoutMs: getCoachStreamRequestTimeoutMs(requestMode),
             });
+            const requestError = request.ok ? null : await decodeAiStreamHttpError(request);
 
             if (request.status === 401) {
-                lastUnauthorizedPayload = await readCoachErrorPayload(request);
-                if (lastUnauthorizedPayload.code === 'AI_UPSTREAM_UNAUTHORIZED') {
+                lastUnauthorizedError = requestError;
+                if (requestError?.code === 'AI_UPSTREAM_UNAUTHORIZED') {
                     response = request;
+                    responseError = requestError;
                     break;
                 }
 
@@ -513,19 +523,24 @@ export async function analyzeTeam(
                     }
                 } catch {
                     response = request;
+                    responseError = requestError;
                     break;
                 }
             }
 
-            if (request.status >= 500 && request.status < 600) {
-                if (attempt < MAX_RETRIES) {
-                    const delay = getStreamRetryDelayMs(attempt);
-                    await waitForStreamDelay(delay, options?.signal);
-                    continue;
-                }
+            if (request.status === 429) {
+                response = request;
+                responseError = requestError;
+                break;
+            }
+
+            if (requestError?.retryable && attempt < MAX_RETRIES) {
+                await waitForStreamDelay(getStreamRetryDelayMs(attempt), options?.signal);
+                continue;
             }
 
             response = request;
+            responseError = requestError;
             break;
         } catch (error) {
             if (isStreamAbortError(error)) {
@@ -554,33 +569,24 @@ export async function analyzeTeam(
             throw new Error('Failed to connect to coach stream');
         }
         if (response.status === 401) {
-            if (lastUnauthorizedPayload?.code === 'AI_UPSTREAM_UNAUTHORIZED') {
-                throw createCoachRequestFailedError();
+            if (lastUnauthorizedError?.code === 'AI_UPSTREAM_UNAUTHORIZED') {
+                throw createCoachRequestFailedError(
+                    '분석 중 오류가 발생했습니다.',
+                    null,
+                    lastUnauthorizedError,
+                );
             }
             throw new CoachAnalyzeError(
                 'AUTH_EXPIRED',
                 '인증이 만료되었습니다. 다시 로그인 후 시도해주세요.',
                 401,
+                lastUnauthorizedError ?? undefined,
             );
         }
-        const errorPayload = await readCoachErrorPayload(response);
-        if (response.status === 413 || isAiProxyPayloadTooLargePayload(errorPayload)) {
-            throw createCoachPayloadTooLargeError(response.status);
+        if (!responseError) {
+            throw createCoachRequestFailedError();
         }
-        if (response.status >= 500) {
-            const errorMessage = resolveCoachRequestFailureMessage(response.status, errorPayload);
-            if (response.status === 504 || errorPayload.code === 'AI_UPSTREAM_TIMEOUT') {
-                throw createCoachStreamTimeoutError(
-                    errorMessage || 'AI 서비스 응답 시간이 초과되었습니다. 잠시 후 다시 시도해주세요.',
-                );
-            }
-            throw new CoachAnalyzeError(
-                'REQUEST_FAILED',
-                errorMessage,
-                response.status,
-            );
-        }
-        throw new Error(errorPayload.detail || errorPayload.message || errorPayload.rawText || 'coach_internal_error');
+        throw createCoachRequestError(response.status, responseError);
     }
 
     if (
@@ -819,10 +825,10 @@ export async function analyzeTeam(
                                 handleV2MetaPayload(decoded.data);
                                 return;
                             case 'stream.error':
-                                if (isAiProxyPayloadTooLargePayload({ code: decoded.data.code })) {
-                                    throw createCoachPayloadTooLargeError();
-                                }
-                                throw createCoachRequestFailedError(decoded.data.message);
+                                throw createCoachRequestError(
+                                    null,
+                                    normalizeAiStreamEventError(decoded.data),
+                                );
                             case 'stream.done':
                                 return;
                             case 'chat.status':
@@ -888,13 +894,22 @@ export async function analyzeTeam(
                     }
 
                     if (event === 'error') {
-                        if (isAiProxyPayloadTooLargePayload(parsed)) {
-                            throw createCoachPayloadTooLargeError();
-                        }
-                        const publicMessage = typeof parsed.message === 'string' && parsed.message.trim() !== ''
+                        const code = typeof parsed.code === 'string'
+                            ? parsed.code
+                            : typeof parsed.message === 'string'
+                                ? parsed.message
+                                : 'AI_STREAM_EVENT_ERROR';
+                        const message = typeof parsed.message === 'string' && parsed.message.trim() !== ''
                             ? parsed.message
                             : '분석 중 오류가 발생했습니다.';
-                        throw createCoachRequestFailedError(publicMessage);
+                        throw createCoachRequestError(null, {
+                            code,
+                            message,
+                            detail: typeof parsed.detail === 'string' ? parsed.detail : null,
+                            retryable: true,
+                            retryAfterSeconds: null,
+                            supportedVersions: [],
+                        });
                     }
                 },
                 isTerminalEvent: eventVersion === '2'
