@@ -124,6 +124,15 @@ const hasAuthBootstrapHint = (storage: ReturnType<typeof createStorage>) => stor
 
 const getAuthBootstrapMeta = () => getPersistedAuthBootstrapMeta();
 
+test('익명 prediction 초기화는 auth loading을 즉시 해제한다', () => {
+  const storage = createStorage();
+  withWindowLocalStorage(storage, '/prediction');
+
+  useAuthStore.getState().reset();
+
+  assert.equal(useAuthStore.getState().isAuthLoading, false);
+});
+
 test('fetchProfileAndAuthenticate는 프로필 조회 성공 시 true를 반환하고 user를 저장한다', async (t) => {
   const storage = createStorage();
   withWindowLocalStorage(storage);
