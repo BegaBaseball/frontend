@@ -40,16 +40,21 @@ export { RateLimitError } from './aiStreamError';
 export class ChatStreamEventError extends Error {
   readonly eventCode: string;
   readonly upstreamMessage: string;
+  readonly upstreamMessageIsPublic: boolean;
   readonly detail: string | null;
   readonly retryable: boolean;
   readonly retryAfterSeconds: number | null;
   readonly supportedVersions: AiStreamErrorDetails['supportedVersions'];
 
-  constructor(details: AiStreamErrorDetails) {
+  constructor(
+    details: AiStreamErrorDetails,
+    options?: { upstreamMessageIsPublic?: boolean },
+  ) {
     super(CHATBOT_STREAM_TEMPORARY_ERROR);
     this.name = 'ChatStreamEventError';
     this.eventCode = details.code;
     this.upstreamMessage = details.message;
+    this.upstreamMessageIsPublic = options?.upstreamMessageIsPublic === true;
     this.detail = details.detail;
     this.retryable = details.retryable;
     this.retryAfterSeconds = details.retryAfterSeconds;
@@ -141,7 +146,7 @@ export async function sendChatMessageStream(
       }
 
       if (!requestError.retryable || attempt >= MAX_RETRIES) {
-        throw new ChatStreamEventError(requestError);
+        throw new ChatStreamEventError(requestError, { upstreamMessageIsPublic: true });
       }
 
       await waitForStreamDelay(getStreamRetryDelayMs(attempt), options?.signal);

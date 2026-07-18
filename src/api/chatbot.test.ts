@@ -154,6 +154,7 @@ test('sendChatMessageStream preserves canonical pre-stream version error fields'
       assert.deepEqual(error.supportedVersions, ['1', '2']);
       assert.equal(error.retryable, false);
       assert.equal(error.upstreamMessage, '지원하지 않는 AI 이벤트 버전입니다.');
+      assert.equal(error.upstreamMessageIsPublic, true);
       assert.equal(error.detail, null);
       return true;
     },
@@ -223,6 +224,7 @@ test('sendChatMessageStream rejects when SSE error event is received', async (t)
       assert.equal(error.message, 'TEMPORARY_STREAM_ERROR');
       assert.equal(error.eventCode, 'temporary_issue');
       assert.equal(error.upstreamMessage, 'temporary_issue');
+      assert.equal(error.upstreamMessageIsPublic, false);
       assert.equal(error.detail, '지금은 응답 템포가 잠깐 흔들리고 있어요. 같은 질문을 다시 보내주세요.');
       return true;
     },
@@ -248,6 +250,7 @@ test('sendChatMessageStream preserves normalized v2 stream.error details', async
       assert.ok(error instanceof ChatStreamEventError);
       assert.equal(error.eventCode, 'AI_UPSTREAM_UNAVAILABLE');
       assert.equal(error.upstreamMessage, 'AI 서비스가 현재 사용할 수 없습니다.');
+      assert.equal(error.upstreamMessageIsPublic, false);
       assert.equal(error.detail, '잠시 후 다시 시도해주세요.');
       assert.equal(error.retryable, true);
       assert.equal(error.retryAfterSeconds, null);

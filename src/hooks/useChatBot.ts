@@ -48,6 +48,7 @@ type ChatStreamEventLikeError = Error & {
   detail?: string | null;
   eventCode?: string;
   upstreamMessage?: string;
+  upstreamMessageIsPublic?: boolean;
 };
 
 let chatSessionsModulePromise: Promise<typeof import('../api/chatSessions')> | null = null;
@@ -78,7 +79,9 @@ const isChatStreamEventLikeError = (error: unknown): error is ChatStreamEventLik
   }
   const candidate = error as ChatStreamEventLikeError;
   return (candidate.detail == null || typeof candidate.detail === 'string')
-    && (candidate.upstreamMessage === undefined || typeof candidate.upstreamMessage === 'string');
+    && (candidate.upstreamMessage === undefined || typeof candidate.upstreamMessage === 'string')
+    && (candidate.upstreamMessageIsPublic === undefined
+      || typeof candidate.upstreamMessageIsPublic === 'boolean');
 };
 
 const createMessageId = (): string => {
@@ -253,7 +256,7 @@ export const resolveChatBotFailureText = (error: unknown): string => {
   if (isChatStreamEventLikeError(error) || isChatStreamStatusError(error, CHATBOT_STREAM_TEMPORARY_ERROR)) {
     return isChatStreamEventLikeError(error)
       ? error.detail
-        || error.upstreamMessage
+        || (error.upstreamMessageIsPublic ? error.upstreamMessage : null)
         || '일시적인 오류가 발생했습니다. 다시 시도해주세요.'
       : '일시적인 오류가 발생했습니다. 다시 시도해주세요.';
   }
