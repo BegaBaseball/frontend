@@ -69,6 +69,7 @@ jobs:
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.suite == 'docker-smoke' }}
         run: |
           for attempt in {1..60}; do
+            echo "Waiting for Vite dev server (attempt ${attempt}/60)"
             if curl -fsS http://127.0.0.1:5176/ >/dev/null; then
               exit 0
             fi

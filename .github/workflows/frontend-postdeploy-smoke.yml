@@ -78,16 +78,18 @@ jobs:
     uses: ./.github/workflows/_frontend-postdeploy-suite.yml
     permissions:
       contents: read
+    secrets:
+      FRONTEND_REAL_DM_TARGET_EMAIL: ${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+      FRONTEND_REAL_DM_TARGET_PASSWORD: ${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+      FRONTEND_REAL_DM_TARGET_HANDLE: ${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      FRONTEND_REAL_SMOKE_LOGIN_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      FRONTEND_REAL_SMOKE_LOGIN_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
     with:
       working_directory: .
       timeout_minutes: 20
       environment_url: ${{ inputs.frontend_origin }}
       env_exports: |
-        DM_TARGET_EMAIL=${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
-        DM_TARGET_PASSWORD=${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
-        DM_TARGET_HANDLE=${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
-        SMOKE_LOGIN_EMAIL=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
-        SMOKE_LOGIN_PASSWORD=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+        # Credentials are passed through the reusable workflow secrets contract.
       validate_script: |
         API_BASE_URL="${{ inputs.api_base_url }}"
         FRONTEND_ORIGIN="${{ inputs.frontend_origin }}"
@@ -171,6 +173,12 @@ jobs:
     uses: ./.github/workflows/_frontend-postdeploy-suite.yml
     permissions:
       contents: read
+    secrets:
+      FRONTEND_REAL_DM_TARGET_EMAIL: ${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+      FRONTEND_REAL_DM_TARGET_PASSWORD: ${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+      FRONTEND_REAL_DM_TARGET_HANDLE: ${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      FRONTEND_REAL_SMOKE_LOGIN_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      FRONTEND_REAL_SMOKE_LOGIN_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
     with:
       working_directory: .
       timeout_minutes: 20
@@ -285,11 +293,6 @@ jobs:
       env_exports: |
         SMOKE_API_BASE_URL=${{ inputs.api_base_url }}
         SMOKE_FRONTEND_ORIGIN=${{ inputs.frontend_origin }}
-        SMOKE_LOGIN_EMAIL=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
-        SMOKE_LOGIN_PASSWORD=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
-        DM_TARGET_EMAIL=${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
-        DM_TARGET_PASSWORD=${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
-        DM_TARGET_HANDLE=${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
       validate_script: |
         API_BASE_URL="${SMOKE_API_BASE_URL}"
         FRONTEND_ORIGIN="${SMOKE_FRONTEND_ORIGIN}"
@@ -410,6 +413,12 @@ jobs:
     uses: ./.github/workflows/_frontend-postdeploy-suite.yml
     permissions:
       contents: read
+    secrets:
+      FRONTEND_REAL_DM_TARGET_EMAIL: ${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+      FRONTEND_REAL_DM_TARGET_PASSWORD: ${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+      FRONTEND_REAL_DM_TARGET_HANDLE: ${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      FRONTEND_REAL_SMOKE_LOGIN_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      FRONTEND_REAL_SMOKE_LOGIN_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
     with:
       working_directory: .
       timeout_minutes: 20
@@ -419,11 +428,6 @@ jobs:
         DM_API_BASE_URL=${{ inputs.api_base_url }}
         DM_FRONTEND_ORIGIN=${{ inputs.frontend_origin }}
         VERIFY_UNFOLLOW_REUSE=${{ inputs.verify_unfollow_reuse }}
-        DM_SENDER_EMAIL=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
-        DM_SENDER_PASSWORD=${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
-        DM_TARGET_EMAIL=${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
-        DM_TARGET_PASSWORD=${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
-        DM_TARGET_HANDLE=${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
       validate_script: |
         if ! [[ "${DM_API_BASE_URL}" =~ ^https?:// ]]; then
           echo "api_base_url must start with http:// or https:// : ${DM_API_BASE_URL}" >&2

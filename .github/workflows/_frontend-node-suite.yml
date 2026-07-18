@@ -93,6 +93,9 @@ jobs:
   run-suite:
     runs-on: ubuntu-latest
     timeout-minutes: ${{ inputs.timeout_minutes }}
+    env:
+      PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+      CRUX_API_KEY: ${{ secrets.CRUX_API_KEY }}
 
     steps:
       - name: Checkout
@@ -108,19 +111,15 @@ jobs:
           printf '%s\n' "${ENV_EXPORTS}" >> "${GITHUB_ENV}"
 
       - name: Export optional PageSpeed API key
-        if: ${{ secrets.PAGESPEED_API_KEY != '' }}
+        if: ${{ env.PAGESPEED_API_KEY != '' }}
         shell: bash
-        env:
-          PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
         run: |
           set -euo pipefail
           printf 'PAGESPEED_API_KEY=%s\n' "${PAGESPEED_API_KEY}" >> "${GITHUB_ENV}"
 
       - name: Export optional CrUX API key
-        if: ${{ secrets.CRUX_API_KEY != '' }}
+        if: ${{ env.CRUX_API_KEY != '' }}
         shell: bash
-        env:
-          CRUX_API_KEY: ${{ secrets.CRUX_API_KEY }}
         run: |
           set -euo pipefail
           printf 'CRUX_API_KEY=%s\n' "${CRUX_API_KEY}" >> "${GITHUB_ENV}"

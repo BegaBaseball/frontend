@@ -55,6 +55,17 @@ on:
         required: false
         type: string
         default: ""
+    secrets:
+      FRONTEND_REAL_DM_TARGET_EMAIL:
+        required: false
+      FRONTEND_REAL_DM_TARGET_PASSWORD:
+        required: false
+      FRONTEND_REAL_DM_TARGET_HANDLE:
+        required: false
+      FRONTEND_REAL_SMOKE_LOGIN_EMAIL:
+        required: false
+      FRONTEND_REAL_SMOKE_LOGIN_PASSWORD:
+        required: false
 
 jobs:
   run-suite:
@@ -63,6 +74,19 @@ jobs:
     environment:
       name: ${{ inputs.environment_name }}
       url: ${{ inputs.environment_url }}
+    env:
+      FRONTEND_REAL_DM_TARGET_EMAIL: ${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+      FRONTEND_REAL_DM_TARGET_PASSWORD: ${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+      FRONTEND_REAL_DM_TARGET_HANDLE: ${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      FRONTEND_REAL_SMOKE_LOGIN_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      FRONTEND_REAL_SMOKE_LOGIN_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+      DM_TARGET_EMAIL: ${{ secrets.FRONTEND_REAL_DM_TARGET_EMAIL }}
+      DM_TARGET_PASSWORD: ${{ secrets.FRONTEND_REAL_DM_TARGET_PASSWORD }}
+      DM_TARGET_HANDLE: ${{ secrets.FRONTEND_REAL_DM_TARGET_HANDLE }}
+      SMOKE_LOGIN_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      SMOKE_LOGIN_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
+      DM_SENDER_EMAIL: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_EMAIL }}
+      DM_SENDER_PASSWORD: ${{ secrets.FRONTEND_REAL_SMOKE_LOGIN_PASSWORD }}
 
     steps:
       - name: Checkout
