@@ -83,6 +83,9 @@ jobs:
           npm run seo:env:check:strict
           npm run seo:gate
 
+      - name: Validate Wrangler deployment bundle
+        run: npx wrangler deploy --dry-run --outdir .wrangler/deploy-dry-run
+
       - name: Upload validated frontend artifact
         uses: actions/upload-artifact@v4
         with:
