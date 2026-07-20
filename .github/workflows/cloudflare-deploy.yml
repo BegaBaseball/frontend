@@ -38,6 +38,7 @@ env:
   VITE_GA4_MEASUREMENT_ID: ${{ vars.VITE_GA4_MEASUREMENT_ID }}
   VITE_GOOGLE_SITE_VERIFICATION: ${{ vars.VITE_GOOGLE_SITE_VERIFICATION }}
   VITE_NAVER_SITE_VERIFICATION: ${{ vars.VITE_NAVER_SITE_VERIFICATION }}
+  VITE_KAKAO_MAP_KEY: ${{ vars.VITE_KAKAO_MAP_KEY || secrets.VITE_KAKAO_MAP_KEY }}
 
 jobs:
   validate:
@@ -69,9 +70,10 @@ jobs:
             VITE_MATE_REQUIRE_SOCIAL_VERIFICATION \
             VITE_GA4_MEASUREMENT_ID \
             VITE_GOOGLE_SITE_VERIFICATION \
-            VITE_NAVER_SITE_VERIFICATION; do
+            VITE_NAVER_SITE_VERIFICATION \
+            VITE_KAKAO_MAP_KEY; do
             if [[ -z "${!var_name:-}" ]]; then
-              echo "::error::Missing production repository variable: ${var_name}"
+              echo "::error::Missing production value: ${var_name}"
               exit 1
             fi
           done
