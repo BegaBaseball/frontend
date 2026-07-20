@@ -293,7 +293,7 @@ describe('Mate Visual QA', () => {
       },
     }).as('getMateChatApplication');
 
-    cy.intercept('GET', '**/api/chat/party/780', {
+    cy.intercept({ method: 'GET', pathname: '/api/chat/party/780' }, {
       statusCode: 200,
       body: chatMessages,
     }).as('getMateChatMessages');

@@ -2,6 +2,19 @@ describe('Mate Flow Policy', () => {
   beforeEach(() => {
     cy.login('user');
     cy.mockAPI();
+    cy.intercept({ method: 'GET', pathname: '/api/payments/capability' }, {
+      statusCode: 200,
+      body: {
+        paymentMode: 'DIRECT_TRADE',
+        businessMode: 'DIRECT_TRADE',
+        provider: 'TOSS',
+        environment: 'NONE',
+        tossPaymentEnabled: false,
+        sellingPaymentRequired: false,
+        payoutEnabled: false,
+        payoutProvider: 'SIM',
+      },
+    }).as('getMatePaymentCapability');
   });
 
   it('DIRECT_TRADE 일반 모집 신청은 ticketPrice 기반 스냅샷으로 생성한다', () => {
@@ -241,7 +254,7 @@ describe('Mate Flow Policy', () => {
       },
     }).as('getMatchedParty');
 
-    cy.intercept('GET', '**/api/chat/party/999', {
+    cy.intercept({ method: 'GET', pathname: '/api/chat/party/999' }, {
       statusCode: 200,
       body: [
         {

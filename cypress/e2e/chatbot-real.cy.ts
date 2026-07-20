@@ -3,7 +3,7 @@
 export {};
 
 describe('AI chatbot real integration smoke', () => {
-    const fallbackLoginPassword = 'Test1234!';
+    const fallbackLoginPassword = 'Cx9!ChatbotSmoke';
     const fallbackFavoriteTeam = 'LG';
     const localDevSmokeEmail = 'test@example.com';
     const localDevSmokePassword = 'testpassword';

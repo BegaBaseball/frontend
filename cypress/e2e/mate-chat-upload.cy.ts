@@ -31,7 +31,7 @@ describe('Mate Chat Image Upload', () => {
       },
     }).as('getMatchedParty');
 
-    cy.intercept('GET', '**/api/chat/party/999', {
+    cy.intercept({ method: 'GET', pathname: '/api/chat/party/999' }, {
       statusCode: 200,
       body: [],
     }).as('getChatMessages');
