@@ -173,3 +173,18 @@ export interface SeatViewReward {
   unlockedAchievements: SeatViewAchievement[];
   totalContributions: number;
 }
+
+// 직관 출석 등 업적 시스템 공통 DTO (backend AchievementDto와 필드 일치)
+export interface AchievementDto {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  iconUrl: string | null;
+  rarity: string;
+  rarityKo: string;
+  rarityColor: string;
+  pointsRequired: number;
+  earned: boolean;
+  earnedAt: string | null;
+}

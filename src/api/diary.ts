@@ -1,4 +1,5 @@
 import {
+  AchievementDto,
   DiaryEntry,
   DiaryPhotoFile,
   DiaryStatistics,
@@ -29,6 +30,7 @@ export async function fetchDiaries(): Promise<DiaryEntry[]> {
 export interface SaveDiaryResponse {
   id: number;
   ticketVerified?: boolean;
+  unlockedAchievements?: AchievementDto[];
   [key: string]: unknown;
 }
 

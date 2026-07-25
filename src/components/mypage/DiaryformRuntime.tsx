@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import './Diary.css';
 
 import { useDiaryView } from '../../hooks/useDiaryView';
+import AchievementCelebrationOverlay from '../AchievementCelebrationOverlay';
 import { useWeekCalendar } from '../../hooks/useWeekCalendar';
 import { useMonthCalendar } from '../../hooks/useMonthCalendar';
 import { useMediaQuery } from '../../hooks/useMediaQuery';
@@ -106,6 +107,8 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
     handleSeatViewSelectionSkip,
     deleteMutation,
     diaryEntries,
+    currentAchievement,
+    dismissCurrentAchievement,
   } = useDiaryView(initialDate);
 
   const isDesktop = useMediaQuery('(min-width: 768px)');
@@ -135,6 +138,10 @@ export default function DiaryViewSection({ initialDate, onBackToLog }: DiaryView
 
   return (
     <>
+      <AchievementCelebrationOverlay
+        achievement={currentAchievement}
+        onClose={dismissCurrentAchievement}
+      />
       {onBackToLog && (
         <div className="mb-4 flex items-center justify-between gap-3">
           <button

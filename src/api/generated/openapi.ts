@@ -228,6 +228,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/maintenance/ranking-predictions/settle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["settleSeason"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/mates": {
         parameters: {
             query?: never;
@@ -4373,15 +4389,6 @@ export interface components {
             postCount?: number;
             role?: string;
         };
-        ApiResponse: {
-            code?: string;
-            data?: unknown;
-            errors?: {
-                [key: string]: string;
-            };
-            message?: string;
-            success?: boolean;
-        };
         ApiResponseAccountDeletionRecoveryInfoDto: {
             code?: string;
             data?: components["schemas"]["AccountDeletionRecoveryInfoDto"];
@@ -4436,6 +4443,24 @@ export interface components {
             message?: string;
             success?: boolean;
         };
+        ApiResponseBoolean: {
+            code?: string;
+            data?: boolean;
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseBootstrapResponse: {
+            code?: string;
+            data?: components["schemas"]["BootstrapResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
         ApiResponseChatFavoriteItem: {
             code?: string;
             data?: components["schemas"]["ChatFavoriteItem"];
@@ -4481,6 +4506,15 @@ export interface components {
             message?: string;
             success?: boolean;
         };
+        ApiResponseFinalizeMediaUploadResponse: {
+            code?: string;
+            data?: components["schemas"]["FinalizeMediaUploadResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
         ApiResponseGameScoreSyncBatchResultDto: {
             code?: string;
             data?: components["schemas"]["GameScoreSyncBatchResultDto"];
@@ -4511,6 +4545,25 @@ export interface components {
         ApiResponseGameStatusRepairBatchResultDto: {
             code?: string;
             data?: components["schemas"]["GameStatusRepairBatchResultDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseInitMediaUploadResponse: {
+            code?: string;
+            data?: components["schemas"]["InitMediaUploadResponse"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseInteger: {
+            code?: string;
+            /** Format: int32 */
+            data?: number;
             errors?: {
                 [key: string]: string;
             };
@@ -4589,9 +4642,36 @@ export interface components {
             message?: string;
             success?: boolean;
         };
+        ApiResponseListDeviceSessionDto: {
+            code?: string;
+            data?: components["schemas"]["DeviceSessionDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListInboxItem: {
+            code?: string;
+            data?: components["schemas"]["InboxItem"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
         ApiResponseListOffseasonMovementAdminDto: {
             code?: string;
             data?: components["schemas"]["OffseasonMovementAdminDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseListResponse: {
+            code?: string;
+            data?: components["schemas"]["Response"][];
             errors?: {
                 [key: string]: string;
             };
@@ -4616,6 +4696,15 @@ export interface components {
             message?: string;
             success?: boolean;
         };
+        ApiResponseListUserProviderDto: {
+            code?: string;
+            data?: components["schemas"]["UserProviderDto"][];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
         ApiResponseMapStringLong: {
             code?: string;
             data?: {
@@ -4631,6 +4720,17 @@ export interface components {
             code?: string;
             data?: {
                 [key: string]: unknown;
+            };
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseMapStringString: {
+            code?: string;
+            data?: {
+                [key: string]: string;
             };
             errors?: {
                 [key: string]: string;
@@ -4728,9 +4828,45 @@ export interface components {
             message?: string;
             success?: boolean;
         };
+        ApiResponsePlaceDto: {
+            code?: string;
+            data?: components["schemas"]["PlaceDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
         ApiResponsePolicyRequiredResponseDto: {
             code?: string;
             data?: components["schemas"]["PolicyRequiredResponseDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseProfileImageDto: {
+            code?: string;
+            data?: components["schemas"]["ProfileImageDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponsePublicUserProfileDto: {
+            code?: string;
+            data?: components["schemas"]["PublicUserProfileDto"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseResponse: {
+            code?: string;
+            data?: components["schemas"]["Response"];
             errors?: {
                 [key: string]: string;
             };
@@ -4749,6 +4885,15 @@ export interface components {
         ApiResponseStoredChatMessage: {
             code?: string;
             data?: components["schemas"]["StoredChatMessage"];
+            errors?: {
+                [key: string]: string;
+            };
+            message?: string;
+            success?: boolean;
+        };
+        ApiResponseUserProfileDto: {
+            code?: string;
+            data?: components["schemas"]["UserProfileDto"];
             errors?: {
                 [key: string]: string;
             };
@@ -4805,6 +4950,12 @@ export interface components {
         };
         BootstrapRequest: {
             targetHandle: string;
+        };
+        BootstrapResponse: {
+            membershipState?: string;
+            /** Format: int64 */
+            roomId?: number;
+            targetUser?: components["schemas"]["TargetUser"];
         };
         ChangePasswordRequest: {
             confirmPassword: string;
@@ -5075,6 +5226,19 @@ export interface components {
             confirmText?: string;
             password?: string;
         };
+        DeviceSessionDto: {
+            browser?: string;
+            deviceLabel?: string;
+            deviceType?: string;
+            id?: string;
+            ip?: string;
+            isCurrent?: boolean;
+            isRevoked?: boolean;
+            lastActiveAt?: string;
+            lastSeenAt?: string;
+            os?: string;
+            sessionName?: string;
+        };
         DiaryRequestDto: {
             block?: string;
             date?: string;
@@ -5109,6 +5273,7 @@ export interface components {
             team?: string;
             ticketVerified?: boolean;
             type?: string;
+            unlockedAchievements?: components["schemas"]["AchievementDto"][];
             winningName?: string;
         };
         DiaryStatisticsDto: {
@@ -5215,6 +5380,12 @@ export interface components {
             teamId?: string;
             /** Format: int32 */
             ticketPrice?: number;
+        };
+        FinalizeMediaUploadResponse: {
+            /** Format: int64 */
+            assetId?: number;
+            publicUrl?: string;
+            storagePath?: string;
         };
         FollowCountResponse: {
             blockedByMe?: boolean;
@@ -5520,6 +5691,8 @@ export interface components {
             losses: number | null;
             /** Format: int32 */
             rank: number | null;
+            /** @description 최근 5경기 결과, 최신순 (W/L/D), 데이터 없으면 null 또는 빈 리스트 */
+            recentForm?: string[] | null;
             teamId: string | null;
             teamName: string | null;
             winRate: string | null;
@@ -5563,6 +5736,13 @@ export interface components {
             totalScore?: number;
             userName?: string;
         };
+        InboxItem: {
+            hasUnread?: boolean;
+            lastMessage?: components["schemas"]["LastMessagePreview"];
+            /** Format: int64 */
+            roomId?: number;
+            targetUser?: components["schemas"]["TargetUser"];
+        };
         InitMediaUploadRequest: {
             /** Format: int64 */
             contentLength: number;
@@ -5575,7 +5755,25 @@ export interface components {
             /** Format: int32 */
             width: number;
         };
+        InitMediaUploadResponse: {
+            /** Format: int64 */
+            assetId?: number;
+            /** Format: date-time */
+            expiresAt?: string;
+            requiredHeaders?: {
+                [key: string]: string;
+            };
+            stagingObjectKey?: string;
+            uploadUrl?: string;
+        };
         JsonNode: unknown;
+        LastMessagePreview: {
+            content?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: int64 */
+            senderId?: number;
+        };
         LeaderboardEntryDto: {
             /** Format: double */
             accuracy?: number;
@@ -6633,6 +6831,24 @@ export interface components {
             message: string;
             success: boolean;
         };
+        ProfileImageDto: {
+            /** Format: int64 */
+            bytes?: number;
+            mimeType?: string;
+            publicUrl?: string;
+            storagePath?: string;
+            /** Format: int64 */
+            userId?: number;
+        };
+        PublicUserProfileDto: {
+            bio?: string;
+            /** Format: int32 */
+            cheerPoints?: number;
+            favoriteTeam?: string;
+            handle?: string;
+            name?: string;
+            profileImageUrl?: string;
+        };
         QuoteRepostReq: {
             content: string;
         };
@@ -6749,17 +6965,16 @@ export interface components {
             roomId: number;
         };
         Response: {
+            clientMessageId?: string;
+            content?: string;
             /** Format: date-time */
             createdAt?: string;
             /** Format: int64 */
             id?: number;
-            isRead?: boolean;
-            message?: string;
             /** Format: int64 */
-            relatedId?: number;
-            title?: string;
-            /** @enum {string} */
-            type?: "APPLICATION_RECEIVED" | "APPLICATION_APPROVED" | "APPLICATION_REJECTED" | "PARTY_EXPIRED" | "PARTY_AUTO_COMPLETED" | "GAME_TOMORROW_REMINDER" | "GAME_DAY_REMINDER" | "HOST_RESPONSE_NUDGE" | "REVIEW_REQUEST" | "PARTY_CANCELLED_HOST_DELETED" | "PARTY_PARTICIPANT_LEFT" | "POST_COMMENT" | "COMMENT_REPLY" | "POST_LIKE" | "POST_REPOST" | "NEW_FOLLOWER" | "FOLLOWING_NEW_POST" | "NEW_DEVICE_LOGIN";
+            roomId?: number;
+            /** Format: int64 */
+            senderId?: number;
         };
         RoleChangeRequestDto: {
             reason?: string;
@@ -6889,6 +7104,14 @@ export interface components {
             verified?: boolean;
         };
         StreamingResponseBody: unknown;
+        TargetUser: {
+            favoriteTeam?: string;
+            handle?: string;
+            /** Format: int64 */
+            id?: number;
+            name?: string;
+            profileImageUrl?: string;
+        };
         TeamEntity: {
             activeKboTeam?: boolean;
             aliases?: string;
@@ -7050,6 +7273,12 @@ export interface components {
             provider?: string;
             providerId?: string;
             role?: string;
+        };
+        UserProviderDto: {
+            connectedAt?: string;
+            email?: string;
+            provider?: string;
+            providerId?: string;
         };
         UserRankDto: {
             /** Format: int32 */
@@ -7488,6 +7717,28 @@ export interface operations {
                 };
                 content: {
                     "*/*": components["schemas"]["ApiResponseMediaSmokeReport"];
+                };
+            };
+        };
+    };
+    settleSeason: {
+        parameters: {
+            query: {
+                seasonYear: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "*/*": components["schemas"]["ApiResponseInteger"];
                 };
             };
         };
@@ -7948,8 +8199,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponsePlaceDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponsePlaceDto"];
                 };
             };
         };
@@ -7971,8 +8222,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponseVoid"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -7998,8 +8249,8 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json; charset=UTF-8": components["schemas"]["ApiResponse"];
-                    "application/json;charset=UTF-8": components["schemas"]["ApiResponse"];
+                    "application/json; charset=UTF-8": components["schemas"]["ApiResponsePlaceDto"];
+                    "application/json;charset=UTF-8": components["schemas"]["ApiResponsePlaceDto"];
                 };
             };
         };
@@ -8808,7 +9059,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringString"];
                 };
             };
         };
@@ -8982,7 +9233,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseUserProfileDto"];
                 };
             };
         };
@@ -9006,7 +9257,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseMapStringObject"];
                 };
             };
         };
@@ -9052,7 +9303,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -9076,7 +9327,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -9100,7 +9351,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -9164,7 +9415,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListUserProviderDto"];
                 };
             };
         };
@@ -9186,7 +9437,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -9206,7 +9457,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -9246,7 +9497,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListDeviceSessionDto"];
                 };
             };
         };
@@ -9268,7 +9519,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -9290,7 +9541,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -10580,7 +10831,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseResponse"];
                 };
             };
         };
@@ -10602,7 +10853,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -10626,7 +10877,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseBootstrapResponse"];
                 };
             };
         };
@@ -10646,7 +10897,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListInboxItem"];
                 };
             };
         };
@@ -10668,7 +10919,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseListResponse"];
                 };
             };
         };
@@ -11789,7 +12040,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseInitMediaUploadResponse"];
                 };
             };
         };
@@ -11811,7 +12062,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -11833,7 +12084,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseFinalizeMediaUploadResponse"];
                 };
             };
         };
@@ -12656,7 +12907,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -12678,7 +12929,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseVoid"];
                 };
             };
         };
@@ -12705,7 +12956,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseProfileImageDto"];
                 };
             };
         };
@@ -13485,7 +13736,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponsePublicUserProfileDto"];
                 };
             };
         };
@@ -13645,7 +13896,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "*/*": components["schemas"]["ApiResponse"];
+                    "*/*": components["schemas"]["ApiResponseBoolean"];
                 };
             };
         };

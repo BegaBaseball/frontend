@@ -10,7 +10,7 @@ import {
   submitSeatViewSelections,
   type UploadDiaryImagesResponse,
 } from '../api/diary';
-import { DiaryEntry, Game, SaveDiaryRequest, SeatViewCandidate } from '../types/diary';
+import { AchievementDto, DiaryEntry, Game, SaveDiaryRequest, SeatViewCandidate } from '../types/diary';
 import { formatDateString } from '../utils/diary';
 import { useDiaryForm } from './useDiaryForm';
 import { toast } from 'sonner';
@@ -74,6 +74,7 @@ export const useDiaryView = (initialDateString?: string) => {
   const [seatViewSelectionState, setSeatViewSelectionState] = useState<SeatViewSelectionState>(
     createEmptySeatViewSelectionState()
   );
+  const [achievementQueue, setAchievementQueue] = useState<AchievementDto[]>([]);
 
   const {
     diaryForm,
@@ -247,6 +248,10 @@ export const useDiaryView = (initialDateString?: string) => {
       await openSeatViewSelectionDialog(diaryId, uploadResult.candidates);
       await refreshDiaryQueries();
 
+      if (result.unlockedAchievements && result.unlockedAchievements.length > 0) {
+        setAchievementQueue((prev) => [...prev, ...(result.unlockedAchievements ?? [])]);
+      }
+
       toast.success('다이어리가 작성되었습니다!');
       setIsEditMode(false);
     },
@@ -381,6 +386,10 @@ export const useDiaryView = (initialDateString?: string) => {
     }
   };
 
+  const dismissCurrentAchievement = () => {
+    setAchievementQueue((prev) => prev.slice(1));
+  };
+
   const handleDeleteDiary = async () => {
     if (!selectedDiary) return;
     const confirmed = await confirm({
@@ -421,5 +430,7 @@ export const useDiaryView = (initialDateString?: string) => {
     handleSeatViewSelectionConfirm: () =>
       handleSeatViewSelectionSubmit(seatViewSelectionState.selectedIds),
     handleSeatViewSelectionSkip: () => handleSeatViewSelectionSubmit([]),
+    currentAchievement: achievementQueue[0] ?? null,
+    dismissCurrentAchievement,
   };
 };
