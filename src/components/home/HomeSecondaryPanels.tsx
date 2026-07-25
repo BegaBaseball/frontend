@@ -7,6 +7,7 @@ import { getMateDDayLabel } from '../../utils/mateDateLabels';
 import { formatTimeAgo } from '../../utils/time';
 import { formatStadiumDisplayName } from '../../utils/stadiumDisplay';
 import { getMateStatusBadgeMeta } from '../../utils/statusBadgeMeta';
+import { useAuthProfileSnapshot } from '../../store/authStore';
 import TeamLogo from '../TeamLogo';
 import AdSlot from '../ads/AdSlot';
 import {
@@ -222,6 +223,8 @@ export default function HomeSecondaryPanels({
 }: HomeSecondaryPanelsProps) {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [activePanel, setActivePanel] = useState(0);
+  const { userFavoriteTeam } = useAuthProfileSnapshot();
+  const myTeamRanking = displayedRankings.find((team) => team.teamId === userFavoriteTeam);
 
   const handleCarouselScroll = () => {
     const el = scrollContainerRef.current;
@@ -238,8 +241,8 @@ export default function HomeSecondaryPanels({
     el.scrollTo({ left: target, behavior: 'smooth' });
   };
 
-  const panelCardClassName = `border border-zinc-200/80 bg-white/88 shadow-sm dark:border-zinc-800 dark:bg-card/82 ${homeDashboardCardHeightClass} max-h-[320px] overflow-y-auto p-3 lg:max-h-none lg:p-4`;
-  const rankingCardClassName = `overflow-hidden border border-zinc-200/80 bg-white/88 dark:border-zinc-800 dark:bg-card/82 ${teamRankingCardHeightClass} lg:max-h-none lg:overflow-y-auto`;
+  const panelCardClassName = `rounded-2xl border border-zinc-200/80 bg-white/88 shadow-sm dark:border-zinc-800 dark:bg-card/82 ${homeDashboardCardHeightClass} max-h-[320px] overflow-y-auto p-3 lg:max-h-none lg:p-4`;
+  const rankingCardClassName = `overflow-hidden rounded-2xl border border-zinc-200/80 bg-white/88 dark:border-zinc-800 dark:bg-card/82 ${teamRankingCardHeightClass} lg:max-h-none lg:overflow-y-auto`;
   const compactRankingRows = [
     ...displayedRankings.map((team) => ({
       key: team.teamId,
@@ -499,6 +502,21 @@ export default function HomeSecondaryPanels({
                     </div>
                   </div>
 
+                  {/* Row 2.5: host */}
+                  {mate.hostHandle ? (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span
+                        aria-hidden="true"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#2d5f4f] text-9 font-black text-white"
+                      >
+                        {mate.hostHandle.replace(/^@/, '').slice(0, 1).toUpperCase()}
+                      </span>
+                      <span className="truncate text-12 font-semibold text-zinc-500 dark:text-white">
+                        {mate.hostHandle}
+                      </span>
+                    </div>
+                  ) : null}
+
                   {/* Row 3: recruitment progress */}
                   <div className="mt-2 flex items-center justify-between gap-3">
                     <span className="text-12 font-bold text-zinc-500 dark:text-white">모집 현황</span>
@@ -522,7 +540,7 @@ export default function HomeSecondaryPanels({
     <section data-home-panel-priority="secondary" className="w-full space-y-3 lg:order-3 lg:col-span-4 lg:w-auto">
       <PanelHeader
         title="팀 순위"
-        icon={<TrophyIcon className="h-5 w-5 text-[#2ecc71]" />}
+        icon={<TrophyIcon className="h-5 w-5 text-[#2d5f4f] dark:text-emerald-200" />}
       >
         <div className="flex items-center rounded-full border border-zinc-200 bg-slate-100 p-0.5 shadow-sm dark:border-zinc-800 dark:bg-card">
           <Button
@@ -574,6 +592,29 @@ export default function HomeSecondaryPanels({
           </div>
         ) : (
           <div>
+            {myTeamRanking ? (
+              <div className="flex items-center gap-2.5 border-b border-zinc-200/80 bg-[#2d5f4f]/[0.06] px-3 py-2.5 dark:border-zinc-800/80 dark:bg-emerald-950/20">
+                <span className="w-6 shrink-0 text-center text-17 font-black text-[#2d5f4f] dark:text-emerald-200">
+                  {myTeamRanking.rank}
+                </span>
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 p-1 shadow-sm dark:bg-white">
+                  <TeamLogo team={myTeamRanking.displayName} teamId={myTeamRanking.teamId} size={24} className="object-contain" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-15 font-black text-gray-900 dark:text-white">
+                      {myTeamRanking.displayName}
+                    </span>
+                    <span className="shrink-0 rounded-md bg-[#2d5f4f] px-1.5 py-0.5 text-11 font-bold text-white dark:bg-emerald-800">
+                      내 팀
+                    </span>
+                  </div>
+                  <p className="truncate text-12 font-bold text-zinc-500 dark:text-white">
+                    {myTeamRanking.winRate} · {myTeamRanking.wins}승 {myTeamRanking.draws}무 {myTeamRanking.losses}패
+                  </p>
+                </div>
+              </div>
+            ) : null}
             <div className="md:hidden lg:block xl:hidden">
               {compactRankingRows.map((row) => (
                 <div key={row.key}>{row.node}</div>

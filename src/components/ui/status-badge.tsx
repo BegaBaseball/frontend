@@ -13,7 +13,7 @@ export type StatusBadgeTone =
 
 export type StatusBadgeMarker = 'dot' | 'check' | 'x' | 'arrow' | 'diamond' | 'dash';
 export type StatusBadgeSize = 'xs' | 'sm' | 'md';
-export type StatusBadgeVariant = 'quiet' | 'line';
+export type StatusBadgeVariant = 'quiet' | 'line' | 'filled';
 export type StatusBadgeLiveMode = 'always' | 'hover';
 
 interface StatusBadgeProps {
@@ -24,6 +24,10 @@ interface StatusBadgeProps {
   liveMode?: StatusBadgeLiveMode;
   size?: StatusBadgeSize;
   variant?: StatusBadgeVariant;
+  /** Raw hex for the marker dot when variant="filled" (defaults to currentColor). */
+  dotColor?: string;
+  /** Raw hex for the label text when variant="filled" (defaults to white). */
+  filledTextColor?: string;
   className?: string;
   style?: CSSProperties;
   title?: string;
@@ -96,13 +100,16 @@ export function StatusBadge({
   liveMode = 'always',
   size = 'sm',
   variant = 'quiet',
+  dotColor,
+  filledTextColor,
   className,
   style,
   title,
   'data-testid': testId,
 }: StatusBadgeProps) {
   const lineVariant = variant === 'line';
-  const showDot = marker === 'dot' || lineVariant;
+  const filledVariant = variant === 'filled';
+  const showDot = marker === 'dot' || lineVariant || filledVariant;
   const hasLabel = label !== null && label !== undefined && label !== false && label !== '';
 
   return (
@@ -115,24 +122,29 @@ export function StatusBadge({
         'status-badge relative inline-flex shrink-0 items-center whitespace-nowrap rounded-full font-bold leading-none tracking-normal',
         lineVariant
           ? cn('border border-transparent bg-transparent px-0 py-0 text-slate-600 shadow-none dark:text-white', lineSizeClass[size])
-          : cn(
-            'border border-slate-200 bg-slate-50 text-slate-800 shadow-none dark:border-slate-700 dark:bg-slate-900/70 dark:text-white',
-            sizeClass[size],
-          ),
+          : filledVariant
+            ? cn('border border-transparent bg-[#173b34] shadow-none', sizeClass[size])
+            : cn(
+              'border border-slate-200 bg-slate-50 text-slate-800 shadow-none dark:border-slate-700 dark:bg-slate-900/70 dark:text-white',
+              sizeClass[size],
+            ),
         className,
       )}
     >
       <span
         aria-hidden="true"
+        style={filledVariant ? { color: dotColor || 'currentColor' } : undefined}
         className={cn(
           'relative z-0 shrink-0 rounded-full',
           lineVariant
             ? cn('h-2 w-2 bg-current shadow-none', markerToneTextClass[tone])
-            : cn(
-              'grid place-items-center border shadow-none',
-              markerSizeClass[size],
-              markerToneClass[tone],
-            ),
+            : filledVariant
+              ? cn('grid place-items-center border-0 bg-transparent shadow-none', markerSizeClass[size])
+              : cn(
+                'grid place-items-center border shadow-none',
+                markerSizeClass[size],
+                markerToneClass[tone],
+              ),
         )}
       >
         {live ? (
@@ -141,7 +153,7 @@ export function StatusBadge({
           />
         ) : null}
         {showDot ? (
-          <span className={cn('rounded-full bg-current shadow-none', lineVariant ? 'h-2 w-2' : dotSizeClass[size])} />
+          <span className={cn('rounded-full bg-current shadow-none', lineVariant || filledVariant ? 'h-2 w-2' : dotSizeClass[size])} />
         ) : (
           <span className="relative z-10 grid h-full w-full place-items-center leading-none">
             <span
@@ -159,7 +171,10 @@ export function StatusBadge({
       </span>
       {hasLabel
         ? (
-          <span className={cn('relative z-0', markerToneTextClass[tone])}>
+          <span
+            className={filledVariant ? 'relative z-0' : cn('relative z-0', markerToneTextClass[tone])}
+            style={filledVariant ? { color: filledTextColor || '#ffffff' } : undefined}
+          >
             {label}
           </span>
         ) : null}

@@ -45,9 +45,9 @@ export default function TeamRankRow({
 
   if (variant === 'compact') {
     return (
-      <div className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-zinc-200/80 px-3 py-2.5 last:border-b-0 dark:border-zinc-800/80 ${rowClassName}`}>
+      <div className={`grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-zinc-200/80 px-3 py-2.5 last:border-b-0 dark:border-zinc-800/80 ${isTopThree ? 'border-l border-l-[#2d5f4f]/40 dark:border-l-emerald-700/60' : ''} ${rowClassName}`}>
         <div className="flex min-w-0 items-center gap-2">
-          <span className={`w-5 shrink-0 text-center text-15 font-black lg:text-17 ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-white'}`}>
+          <span className={`w-5 shrink-0 text-center text-15 font-black lg:text-17 ${isTopThree ? 'text-[#2d5f4f] dark:text-emerald-200' : 'text-zinc-500 dark:text-white'}`}>
             {team.rank}
           </span>
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 p-1 shadow-sm dark:bg-white lg:h-10 lg:w-10">
@@ -68,10 +68,10 @@ export default function TeamRankRow({
   }
 
   return (
-    <div className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_120px] items-center gap-3 overflow-hidden border-b border-zinc-200/80 px-4 py-2 transition-colors last:border-b-0 hover:bg-slate-100 dark:border-zinc-800/80 dark:hover:bg-zinc-800/40 xl:grid-cols-[minmax(0,1fr)_148px] ${rowClassName} ${isTopThree ? 'border-l border-l-[#2ecc71]/40' : ''}`}>
+    <div className={`group grid min-w-0 grid-cols-[minmax(0,1fr)_120px] items-center gap-3 overflow-hidden border-b border-zinc-200/80 px-4 py-2 transition-colors last:border-b-0 hover:bg-slate-100 dark:border-zinc-800/80 dark:hover:bg-zinc-800/40 xl:grid-cols-[minmax(0,1fr)_148px] ${rowClassName} ${isTopThree ? 'border-l border-l-[#2d5f4f]/40 dark:border-l-emerald-700/60' : ''}`}>
       <div className="min-w-0">
         <div className="mb-1 flex min-w-0 items-center gap-2">
-          <span className={`w-6 shrink-0 text-center text-17 font-black ${isTopThree ? 'text-[#2ecc71]' : 'text-zinc-500 dark:text-white'}`}>
+          <span className={`w-6 shrink-0 text-center text-17 font-black ${isTopThree ? 'text-[#2d5f4f] dark:text-emerald-200' : 'text-zinc-500 dark:text-white'}`}>
             {team.rank}
           </span>
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 p-1 shadow-sm dark:bg-white">
@@ -93,7 +93,7 @@ export default function TeamRankRow({
         >
           {totalGames > 0 ? (
             <div className="flex h-full w-full">
-              <span className="h-full bg-[#2ecc71]" style={{ width: `${winsPercent}%` }} />
+              <span className="h-full bg-[#2d5f4f]" style={{ width: `${winsPercent}%` }} />
               <span className="h-full bg-zinc-300 dark:bg-zinc-600" style={{ width: `${drawsPercent}%` }} />
               <span className="h-full bg-rose-300 dark:bg-rose-500/60" style={{ width: `${lossesPercent}%` }} />
             </div>

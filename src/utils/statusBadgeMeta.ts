@@ -1,4 +1,4 @@
-import type { StatusBadgeLiveMode, StatusBadgeMarker, StatusBadgeTone } from '../components/ui/status-badge';
+import type { StatusBadgeLiveMode, StatusBadgeMarker, StatusBadgeTone, StatusBadgeVariant } from '../components/ui/status-badge';
 import type { PartyStatus } from '../types/mate';
 
 export interface StatusBadgeMeta {
@@ -8,8 +8,14 @@ export interface StatusBadgeMeta {
   marker: StatusBadgeMarker;
   live?: boolean;
   liveMode?: StatusBadgeLiveMode;
+  variant?: StatusBadgeVariant;
+  /** Raw hex for the marker dot when variant is "filled". */
+  dotColor?: string;
+  /** Raw hex for the label text when variant is "filled" (defaults to white). */
+  filledTextColor?: string;
 }
 
+// 딥 민트 필드 칩(#173b34) + 상태별 점 색 — 매칭 완료는 tint 텍스트로 구분
 export const MATE_STATUS_BADGE_META: Record<PartyStatus, StatusBadgeMeta> = {
   PENDING: {
     label: '모집 중',
@@ -17,18 +23,26 @@ export const MATE_STATUS_BADGE_META: Record<PartyStatus, StatusBadgeMeta> = {
     tone: 'success',
     marker: 'dot',
     live: true,
+    variant: 'filled',
+    dotColor: '#63b39b',
   },
   MATCHED: {
     label: '매칭 성공',
     accessibleLabel: '매칭 성공',
     tone: 'success',
     marker: 'check',
+    variant: 'filled',
+    dotColor: '#22c55e',
+    filledTextColor: '#63b39b',
   },
   FAILED: {
     label: '매칭 실패',
     accessibleLabel: '매칭 실패',
     tone: 'danger',
     marker: 'x',
+    variant: 'filled',
+    dotColor: '#ef4444',
+    filledTextColor: 'rgba(255,255,255,0.65)',
   },
   SELLING: {
     label: '판매 중',
@@ -37,24 +51,34 @@ export const MATE_STATUS_BADGE_META: Record<PartyStatus, StatusBadgeMeta> = {
     marker: 'arrow',
     live: true,
     liveMode: 'hover',
+    variant: 'filled',
+    dotColor: '#ea580c',
   },
   SOLD: {
     label: '판매 완료',
     accessibleLabel: '판매 완료',
     tone: 'neutral',
     marker: 'check',
+    variant: 'filled',
+    dotColor: '#8fa0ab',
+    filledTextColor: 'rgba(255,255,255,0.75)',
   },
   CHECKED_IN: {
     label: '체크인',
     accessibleLabel: '체크인',
     tone: 'violet',
     marker: 'diamond',
+    variant: 'filled',
+    dotColor: '#a78bfa',
   },
   COMPLETED: {
     label: '관람 완료',
     accessibleLabel: '관람 완료',
     tone: 'neutral',
     marker: 'check',
+    variant: 'filled',
+    dotColor: '#8fa0ab',
+    filledTextColor: 'rgba(255,255,255,0.75)',
   },
 };
 
