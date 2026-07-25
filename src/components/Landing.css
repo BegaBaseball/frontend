@@ -1315,7 +1315,7 @@
 }
 
 .landing-cheer-metrics .landing-cheer-liked {
-  color: #ef4444;
+  color: #b91c1c;
 }
 
 .landing-cheer-liked i {
@@ -1602,17 +1602,17 @@
 
 .landing-diary-result-win {
   background: #e9f9ef;
-  color: #16a34a;
+  color: #15803d;
 }
 
 .landing-diary-result-draw {
   background: #fdf7e1;
-  color: #ca8a04;
+  color: #a16207;
 }
 
 .landing-diary-result-loss {
   background: #fdecec;
-  color: #dc2626;
+  color: #b91c1c;
 }
 
 .landing-diary-quote {
@@ -1627,7 +1627,7 @@
 }
 
 .landing-diary-quote strong {
-  color: #16a34a;
+  color: #15803d;
   font-weight: 800;
 }
 
