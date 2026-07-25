@@ -356,7 +356,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 >
                   <TeamLogo team={game.awayTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
                 </div>
-                <div className="mt-2 text-body leading-tight" style={awayTeamLabelTextStyle}>
+                <div className="mt-2 break-keep text-body leading-tight" style={awayTeamLabelTextStyle}>
                   {awayTeamName}
                 </div>
                 <div className="text-body text-white/80">AWAY</div>
@@ -410,7 +410,7 @@ const AdvancedMatchCard = React.memo(function AdvancedMatchCard({
                 >
                   <TeamLogo team={game.homeTeam} size={40} className="h-10 w-10 sm:h-11 sm:w-11" />
                 </div>
-                <div className="mt-2 text-body leading-tight" style={homeTeamLabelTextStyle}>
+                <div className="mt-2 break-keep text-body leading-tight" style={homeTeamLabelTextStyle}>
                   {homeTeamName}
                 </div>
                 <div className="text-body text-white/80">HOME</div>

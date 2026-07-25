@@ -444,7 +444,7 @@ export default function AdvancedMatchCardContentRuntime({
         <div className="flex items-center rounded-xl border border-gray-100/90 bg-gradient-to-br from-white/90 via-white to-gray-50/70 dark:border-border dark:from-secondary/45 dark:to-secondary/25 px-4 py-4 shadow-sm">
           <div className="flex-1 text-center">
             <TeamLogo team={game.awayTeam} size={20} className="mx-auto mb-1.5" />
-            <p className="text-18 sm:text-19 leading-[1.28] font-black" style={awayTeamNameStyle}>
+            <p className="break-keep text-18 sm:text-19 leading-[1.28] font-black" style={awayTeamNameStyle}>
               {awayTeamName}
             </p>
             <p className="mt-1.5 text-body leading-[1.45]" style={pitchTextStyle}>
@@ -454,7 +454,7 @@ export default function AdvancedMatchCardContentRuntime({
           <div className="h-9 w-px bg-gray-200/90 dark:bg-border" />
           <div className="flex-1 text-center">
             <TeamLogo team={game.homeTeam} size={20} className="mx-auto mb-1.5" />
-            <p className="text-18 sm:text-19 leading-[1.28] font-black" style={homeTeamNameStyle}>
+            <p className="break-keep text-18 sm:text-19 leading-[1.28] font-black" style={homeTeamNameStyle}>
               {homeTeamName}
             </p>
             <p className="mt-1.5 text-body leading-[1.45]" style={pitchTextStyle}>

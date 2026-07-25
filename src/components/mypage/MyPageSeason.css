@@ -1132,6 +1132,7 @@ button.mypage-season-cell:focus-visible {
 .mypage-season-composer-copy {
   min-width: 0;
   flex: 1 1 auto;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 
@@ -1487,6 +1488,7 @@ button.mypage-season-cell:focus-visible {
 .mypage-season-meta {
   color: var(--mp-fg-muted);
   font-size: 12px;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 
@@ -1603,6 +1605,7 @@ button.mypage-season-cell:focus-visible {
   color: var(--mp-fg-muted);
   font-size: 13px;
   line-height: 1.55;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 
@@ -1668,6 +1671,7 @@ button.mypage-season-cell:focus-visible {
 .mypage-season-stat-sub {
   color: var(--mp-fg-muted);
   font-size: 12px;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 
@@ -1932,6 +1936,7 @@ button.mypage-season-cell:focus-visible {
   color: var(--mp-fg-muted);
   font-size: 12px;
   line-height: 1.5;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 
