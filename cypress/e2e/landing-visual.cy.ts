@@ -193,13 +193,25 @@ describe('Landing hero and ticker foundation', () => {
     cy.clearLocalStorage();
   });
 
-  it('renders the CTA-free season hero and score ticker', () => {
+  it('renders the season hero with a home navigation CTA and score ticker', () => {
     cy.viewport(1280, 900);
     visitLanding();
 
     cy.getBySel('landing-score-ticker').should('be.visible');
+    cy.getBySel('landing-home-cta')
+      .should('be.visible')
+      .and('have.attr', 'type', 'button')
+      .and('contain.text', '홈으로 이동');
     cy.getBySel('landing-team-row').find('img').should('have.length', 10);
     assertNoHorizontalOverflow();
+  });
+
+  it('navigates from the root landing page to home', () => {
+    cy.viewport(1280, 900);
+    visitLanding();
+
+    cy.getBySel('landing-home-cta').click();
+    cy.location('pathname').should('eq', '/home');
   });
 
   it('lets visitors pause and resume the score ticker', () => {
@@ -233,12 +245,12 @@ describe('Landing hero and ticker foundation', () => {
     });
   });
 
-  it('omits navigation and calls to action', () => {
+  it('omits global navigation and footer chrome', () => {
     cy.viewport(1280, 900);
     visitLanding();
 
     cy.get('[data-testid^="landing-header-"]').should('not.exist');
-    cy.get('[data-testid*="cta"]').should('not.exist');
+    cy.getBySel('landing-home-cta').should('exist');
     cy.get('footer').should('not.exist');
   });
 
@@ -496,7 +508,7 @@ describe('Landing hero and ticker foundation', () => {
     cy.then(() => emulateReducedMotion('no-preference'));
   });
 
-  it('renders the CTA-free offseason, semantic start guide, and mascot closing', () => {
+  it('renders the offseason, semantic start guide, and mascot closing', () => {
     cy.viewport(1280, 900);
     visitLanding();
 
@@ -591,10 +603,17 @@ describe('Landing hero and ticker foundation', () => {
       const summary = interactive.map((element) => (
         `${element.tagName.toLowerCase()}[data-testid="${element.dataset.testid ?? ''}"] "${normalizedText(element)}"`
       )).join(', ');
-      expect(interactive, `landing interactive elements: ${summary}`).to.have.length(1);
-      expect(interactive[0].tagName).to.equal('BUTTON');
-      expect(interactive[0].dataset.testid).to.equal('landing-ticker-toggle');
-      expect(normalizedText(interactive[0])).to.equal('티커 일시정지');
+      expect(interactive, `landing interactive elements: ${summary}`).to.have.length(2);
+      expect(interactive.map((element) => element.dataset.testid)).to.have.members([
+        'landing-ticker-toggle',
+        'landing-home-cta',
+      ]);
+      const tickerToggle = interactive.find((element) => element.dataset.testid === 'landing-ticker-toggle');
+      expect(tickerToggle?.tagName).to.equal('BUTTON');
+      expect(normalizedText(tickerToggle as HTMLElement)).to.equal('티커 일시정지');
+      const homeCta = interactive.find((element) => element.dataset.testid === 'landing-home-cta');
+      expect(homeCta?.tagName).to.equal('BUTTON');
+      expect(normalizedText(homeCta as HTMLElement)).to.equal('홈으로 이동');
     });
     cy.getBySel('landing-ticker-toggle').should('exist').and('be.visible').focus().should('have.focus');
   });

@@ -188,6 +188,38 @@
   word-break: keep-all;
 }
 
+.landing-home-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  margin-top: clamp(28px, 4vw, 40px);
+  padding: 13px 24px;
+  border: 0;
+  border-radius: 999px;
+  background: #2d5f4f;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms ease;
+}
+
+.landing-home-cta:hover {
+  background: #234d40;
+  transform: translateY(-1px);
+}
+
+.landing-home-cta:focus-visible {
+  outline: 3px solid #63b39b;
+  outline-offset: 3px;
+}
+
+.landing-home-cta:active {
+  transform: translateY(0);
+}
+
 .landing-hero-stats {
   display: flex;
   justify-content: center;

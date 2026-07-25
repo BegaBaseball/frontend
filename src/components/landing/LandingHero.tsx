@@ -1,3 +1,5 @@
+import { useNavigate } from 'react-router-dom';
+
 import { BEGA_LOGO_ASSET, TEAM_ASSETS } from './landingAssets';
 import { TEAM_LABELS, TEAM_ORDER } from './landingShowcaseData';
 
@@ -14,6 +16,8 @@ const HERO_STATS: readonly HeroStat[] = [
 ];
 
 export default function LandingHero() {
+  const navigate = useNavigate();
+
   return (
     <section className="landing-hero" data-testid="landing-hero">
       <div
@@ -41,6 +45,15 @@ export default function LandingHero() {
           점수 · 예측 · 응원 · 메이트 · 구장 · 일기 —<br />
           야구팬의 하루가 전부 BEGA 안에 있습니다.
         </p>
+
+        <button
+          type="button"
+          data-testid="landing-home-cta"
+          className="landing-home-cta"
+          onClick={() => navigate('/home')}
+        >
+          홈으로 이동
+        </button>
 
         <dl className="landing-hero-stats">
           {HERO_STATS.map((stat) => (
